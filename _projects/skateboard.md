@@ -8,7 +8,7 @@ Board cost £10 from smyths, spray paint white then acrylic markers for the desi
 
 The world cup logo has been edited on
 
-![My Brazuca Artwork]({{ '/images/brazuca-deck.jpg' | relative_url }})
+![My Brazuca Artwork]({{ '/images/skateboard.jpg' | relative_url }})
 
 link to skateboard
 _no longer available_
