@@ -31,11 +31,14 @@ layout: null
             margin: 0 auto;
         }
         header {
-            text-align: center;
-            border-bottom: 4px solid var(--text);
-            padding-bottom: 30px;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-end; 
+            flex-wrap: wrap; 
+            gap: 20px; 
+            border-bottom: 4px solid var(--text); 
+            padding-bottom: 30px; 
             margin-bottom: 40px;
-            position: relative;
         }
         h1 {
             font-size: clamp(3rem, 6vw, 4.5rem);
@@ -57,7 +60,7 @@ layout: null
             margin-top: 8px;
         }
         
-        /* ---------- Sleek New Search Bar Box ---------- */
+        /* ---------- Search Bar Styling ---------- */
         .search-container {
             margin-bottom: 40px;
             display: flex;
@@ -83,6 +86,7 @@ layout: null
             transform: translate(-2px, -2px);
         }
 
+        /* ---------- Projects Grid Layout ---------- */
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -135,7 +139,6 @@ layout: null
             border-color: var(--accent);
         }
         
-        /* Message displayed if nothing matches search criteria */
         .no-results {
             display: none;
             grid-column: 1 / -1;
@@ -150,18 +153,27 @@ layout: null
 </head>
 <body>
     <div class="container">
+        <!-- Header Section with Responsive Shop Button Insertion Route -->
         <header>
-            <h1>Joel's <span>Space</span></h1>
-            <div class="subtitle">Creative Portfolio & Interactive Apps</div>
+            <div>
+                <h1>Joel's <span>Space</span></h1>
+                <div class="subtitle">Creative Portfolio & Interactive Apps</div>
+            </div>
+            <div>
+                <a href="{{ '/shop/' | relative_url }}" class="btn" style="background: var(--accent); border-color: var(--accent); color: white; padding: 14px 28px; font-size: 1.1rem; border-radius: 12px; box-shadow: 4px 4px 0px var(--text);">
+                    🛒 Visit The Shop →
+                </a>
+            </div>
         </header>
 
-        <!-- Search Bar Input Box -->
+        <!-- Search Functional Input Frame Container Box -->
         <div class="search-container">
             <input type="text" id="projectSearch" class="search-input" placeholder="🔍 Search projects by title or keywords...">
         </div>
 
         <main class="grid" id="projectGrid">
-            {% for project in site.projects %}
+            {% assign sorted_projects = site.projects | sort: "order" %}
+            {% for project in sorted_projects %}
             <div class="card project-card">
                 <div>
                     <h3>{{ project.title }}</h3>
@@ -183,7 +195,7 @@ layout: null
         </main>
     </div>
 
-    <!-- Real-time Filtering Javascript -->
+    <!-- Live Client-Side Filtering Core Logic Script -->
     <script>
         const searchInput = document.getElementById('projectSearch');
         const cards = document.querySelectorAll('.project-card');
@@ -197,7 +209,6 @@ layout: null
                 const title = card.querySelector('h3').textContent.toLowerCase();
                 const description = card.querySelector('p').textContent.toLowerCase();
 
-                // If query matches title or description description text content bounds
                 if (title.includes(query) || description.includes(query)) {
                     card.style.display = 'flex';
                     matchesFound = true;
@@ -206,7 +217,6 @@ layout: null
                 }
             });
 
-            // Toggle "No matches found" message card display visibility bounds
             if (matchesFound || query === '') {
                 noResultsMessage.style.display = 'none';
             } else {
