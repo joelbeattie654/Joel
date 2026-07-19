@@ -1,0 +1,112 @@
+---
+layout: default
+title: "The Shop"
+description: "Custom gear and custom creations directly from the studio."
+---
+
+<style>
+    .shop-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 30px;
+        margin-top: 30px;
+    }
+    .item-card {
+        background: #ffffff;
+        border: 3px solid #1b2a41;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 6px 6px 0px #1b2a41;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: transform 0.2s ease;
+    }
+    .item-card:hover {
+        transform: translate(-2px, -2px);
+        box-shadow: 8px 8px 0px #b23a2e;
+    }
+    .item-img-container {
+        width: 100%;
+        height: 220px;
+        background: #fdfdfd;
+        border-bottom: 3px solid #1b2a41;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+    .item-img-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .item-details {
+        padding: 20px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    .item-price {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #b23a2e;
+        margin-bottom: 5px;
+    }
+    .item-title {
+        font-size: 1.25rem;
+        font-weight: 800;
+        margin: 0 0 10px 0;
+    }
+    .item-desc {
+        color: #5b6577;
+        font-size: 0.95rem;
+        line-height: 1.4;
+        margin-bottom: 20px;
+        flex-grow: 1;
+    }
+    .buy-btn {
+        display: block;
+        width: 100%;
+        background: #1b2a41;
+        color: #f4efe3;
+        text-align: center;
+        text-decoration: none;
+        padding: 12px;
+        border-radius: 8px;
+        font-weight: 700;
+        box-sizing: border-box;
+        border: 2px solid #1b2a41;
+        transition: all 0.15s ease;
+    }
+    .item-card:hover .buy-btn {
+        background: #b23a2e;
+        border-color: #b23a2e;
+        color: #ffffff;
+    }
+</style>
+
+<div class="shop-grid">
+    {% for item in site.items %}
+    <div class="item-card">
+        <div class="item-img-container">
+            <img src="{{ item.image | relative_url }}" alt="{{ item.title }}">
+        </div>
+        <div class="item-details">
+            <div class="item-price">{{ item.price }}</div>
+            <h3 class="item-title">{{ item.title }}</h3>
+            <p class="item-desc">{{ item.description }}</p>
+            
+            <!-- Smart Mail Link: Pre-fills email subject title text instantly -->
+            <a href="mailto:joelbeattie654@gmail.com?subject=Inquiry regarding: {{ item.title | url_encode }}" class="buy-btn">
+                Inquire to Buy →
+            </a>
+        </div>
+    </div>
+    {% else %}
+    <div style="grid-column: 1/-1; text-align: center; padding: 40px; border: 3px dashed #1b2a41; border-radius: 16px; background: white;">
+        <h3>The shelves are being stocked! 🛠️</h3>
+        <p>No items listed quite yet. Add a document markdown file to your <code>_items</code> folder to populate the shop shelf.</p>
+    </div>
+    {% endfor %}
+</div>
