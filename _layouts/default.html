@@ -3,35 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ page.title }} — Joel Space</title>
+    <title>{{ page.title }} — Joel's Space</title>
     <style>
-        .joel-space-back-bar {
-            background: #111827;
-            padding: 10px 20px;
+        .joel-space-header {
+            background: #1b2a41;
+            padding: 14px 24px;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             font-family: system-ui, -apple-system, sans-serif;
-            border-bottom: 2px solid #374151;
+            border-bottom: 3px solid #111827;
             position: sticky;
             top: 0;
             z-index: 99999;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
         }
-        .joel-space-back-bar a {
-            color: #f3f4f6;
+        .joel-space-logo {
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 18px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .joel-space-logo span {
+            color: #b23a2e;
+        }
+        .joel-space-back-btn {
+            color: #f4efe3;
             text-decoration: none;
-            font-weight: 600;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: opacity 0.2s;
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: rgba(255,255,255,0.08);
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.2s ease;
         }
-        .joel-space-back-bar a:hover { opacity: 0.8; }
+        .joel-space-back-btn:hover { 
+            background: #b23a2e;
+            border-color: #b23a2e;
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 <body>
-    <div class="joel-space-back-bar no-print">
-        <a href="{{ '/' | relative_url }}">← Back to Joel Space</a>
+    <div class="joel-space-header no-print">
+        <div class="joel-space-logo">Joel's <span>Space</span></div>
+        <a href="{{ '/' | relative_url }}" class="joel-space-back-btn">← Back Home</a>
     </div>
     {{ content }}
 </body>
