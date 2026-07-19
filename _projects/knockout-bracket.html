@@ -595,6 +595,7 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
     return leaves;
   }
   function buildLevels(leaves){
+    if(leaves.length === 0) return [{ value: null, isBye: true, forced: true }];
     var levels = [leaves.map(function(v){ return { value: v === 'BYE' ? null : v, isBye: v === 'BYE', forced: false }; })];
     var prev = levels[0];
     while(prev.length > 1){
@@ -618,8 +619,8 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
   }
   
   function sideGeometryQuadrants(qTopLevels, qBotLevels, direction, originX, yStart, maxSideHeight){
-    var sizeTop = qTopLevels[0].length;
-    var sizeBot = qBotLevels[0].length;
+    var sizeTop = qTopLevels[0] ? (qTopLevels[0].length || 1) : 1;
+    var sizeBot = qBotLevels[0] ? (qBotLevels[0].length || 1) : 1;
     var totalHeight = maxSideHeight;
     
     var topBlockHeight = sizeTop * LEAF_PITCH;
@@ -629,6 +630,9 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
     var botYOffset = yStart + totalHeight / 2 + (totalHeight / 2 - botBlockHeight) / 2;
     
     function mapQuadrantCenters(levels, baseOffset){
+      if(!levels[0] || !levels[0].map) {
+        return [[baseOffset + LEAF_PITCH/2]];
+      }
       var centersPrev = [];
       for(var i=0; i<levels[0].length; i++) centersPrev.push(i * LEAF_PITCH + LEAF_PITCH/2 + baseOffset);
       var centersByLvl = [centersPrev];
@@ -652,6 +656,7 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
     }
     
     function populateQuadrant(levels, centers, isTopQuadrant){
+      if(!levels[0] || !levels[0].forEach) return;
       levels.forEach(function(lvlArr, lvl){
         var xLeft = direction === 1 ? originX + lvl * COL_PITCH : originX - lvl * COL_PITCH - BOX_W;
         lvlArr.forEach(function(slot, i){
@@ -668,9 +673,13 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
     
     var finalSemiRoundLvl = maxRounds;
     var xSemi = direction === 1 ? originX + finalSemiRoundLvl * COL_PITCH : originX - finalSemiRoundLvl * COL_PITCH - BOX_W;
-    var topFinalSemi = boxesByLevel[finalSemiRoundLvl-1].filter(b => b.isTopQuad)[0];
-    var botFinalSemi = boxesByLevel[finalSemiRoundLvl-1].filter(b => !b.isTopQuad)[0];
-    var semiCy = (topFinalSemi.cy + botFinalSemi.cy) / 2;
+    
+    var topSemiGroup = boxesByLevel[finalSemiRoundLvl-1].filter(b => b.isTopQuad);
+    var botSemiGroup = boxesByLevel[finalSemiRoundLvl-1].filter(b => !b.isTopQuad);
+    
+    var topFinalSemiCy = topSemiGroup.length > 0 ? topSemiGroup[0].cy : topYOffset + LEAF_PITCH/2;
+    var botFinalSemiCy = botSemiGroup.length > 0 ? botSemiGroup[0].cy : botYOffset + LEAF_PITCH/2;
+    var semiCy = (topFinalSemiCy + botFinalSemiCy) / 2;
     
     var semiBox = {
       x: xSemi, y: semiCy - BOX_H/2, cy: semiCy, w: BOX_W, h: BOX_H,
@@ -707,8 +716,11 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
   }
   function updateCounts(){
     for(var i=1; i<=4; i++){
-      var c = parseNames(document.getElementById('names'+i).value).length;
-      document.getElementById('count'+i).textContent = c + (c === 1 ? ' name' : ' names');
+      var targetNode = document.getElementById('names'+i);
+      if(targetNode) {
+         var c = parseNames(targetNode.value).length;
+         document.getElementById('count'+i).textContent = c + (c === 1 ? ' name' : ' names');
+      }
     }
   }
   function shuffle(arr){
@@ -745,8 +757,8 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
     var lvl1 = buildLevels(lLeaves1), lvl2 = buildLevels(lLeaves2);
     var lvl3 = buildLevels(lLeaves3), lvl4 = buildLevels(lLeaves4);
     
-    var h1 = lLeaves1.length * LEAF_PITCH, h2 = lLeaves2.length * LEAF_PITCH;
-    var h3 = lLeaves3.length * LEAF_PITCH, h4 = lLeaves4.length * LEAF_PITCH;
+    var h1 = (lLeaves1.length || 1) * LEAF_PITCH, h2 = (lLeaves2.length || 1) * LEAF_PITCH;
+    var h3 = (lLeaves3.length || 1) * LEAF_PITCH, h4 = (lLeaves4.length || 1) * LEAF_PITCH;
     var maxSideHeight = Math.max(h1 + h2 + 40, h3 + h4 + 40, 300);
     
     var totalHeight = TOP_PAD * 2 + maxSideHeight;
@@ -788,13 +800,16 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
       
       var sRound = geo.totalRoundsCount;
       var semiNode = geo.boxesByLevel[sRound][0];
-      var tChild = geo.boxesByLevel[sRound-1].filter(b => b.isTopQuad)[0];
-      var bChild = geo.boxesByLevel[sRound-1].filter(b => !b.isTopQuad)[0];
-      [tChild, bChild].forEach(function(ch){
-        var cp = direction === 1 ? { x: ch.x + ch.w, y: ch.cy } : { x: ch.x, y: ch.cy };
-        var pp = direction === 1 ? { x: semiNode.x, y: semiNode.cy } : { x: semiNode.x + semiNode.w, y: semiNode.cy };
-        lines.push(elbow(cp, pp));
-      });
+      var tChildList = geo.boxesByLevel[sRound-1].filter(b => b.isTopQuad);
+      var bChildList = geo.boxesByLevel[sRound-1].filter(b => !b.isTopQuad);
+      
+      if(tChildList.length > 0 && bChildList.length > 0) {
+        [tChildList[0], bChildList[0]].forEach(function(ch){
+          var cp = direction === 1 ? { x: ch.x + ch.w, y: ch.cy } : { x: ch.x, y: ch.cy };
+          var pp = direction === 1 ? { x: semiNode.x, y: semiNode.cy } : { x: semiNode.x + semiNode.w, y: semiNode.cy };
+          lines.push(elbow(cp, pp));
+        });
+      }
     }
     
     renderSideData(geoL, 1);
@@ -883,7 +898,8 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
     box.style.height = (model.totalHeight * sc) + 'px';
   }
   for(var idx=1; idx<=4; idx++){
-    document.getElementById('names'+idx).addEventListener('input', updateCounts);
+    var node = document.getElementById('names'+idx);
+    if(node) node.addEventListener('input', updateCounts);
   }
   document.getElementById('genBtn').addEventListener('click', generate);
   document.getElementById('pageSizeSel').addEventListener('change', function(){
