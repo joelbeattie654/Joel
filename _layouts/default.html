@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page.title }} — Joel Space</title>
+    <style>
+        .joel-space-back-bar {
+            background: #111827;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            font-family: system-ui, -apple-system, sans-serif;
+            border-bottom: 2px solid #374151;
+            position: sticky;
+            top: 0;
+            z-index: 99999;
+        }
+        .joel-space-back-bar a {
+            color: #f3f4f6;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: opacity 0.2s;
+        }
+        .joel-space-back-bar a:hover { opacity: 0.8; }
+    </style>
+</head>
+<body>
+    <div class="joel-space-back-bar no-print">
+        <a href="{{ '/' | relative_url }}">← Back to Joel Space</a>
+    </div>
+    {{ content }}
+</body>
+</html>
