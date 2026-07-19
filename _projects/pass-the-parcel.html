@@ -42,7 +42,7 @@ description: "The ultimate automatic musical game companion."
     display:flex;
     align-items:flex-start;
     justify-content:center;
-    padding:24px 16px 60px;
+    padding:80px 16px 60px; /* Added extra padding top to make room for your new Joel's Space header */
     overflow-x:hidden;
   }
 
@@ -96,6 +96,45 @@ description: "The ultimate automatic musical game companion."
     text-align:left;
   }
 
+  /* --- Drag and Drop Upload Zone Box Styling --- */
+  .upload-zone {
+    border: 3px dashed rgba(255,255,255,0.2);
+    border-radius: 18px;
+    padding: 30px 20px;
+    background: rgba(255,255,255,0.02);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 8px;
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--pink);
+    background: rgba(255, 62, 127, 0.05);
+  }
+  .upload-zone p {
+    margin: 0 0 10px 0;
+    font-weight: 700;
+    font-size: 16px;
+  }
+  .upload-btn-label {
+    display: inline-block;
+    background: rgba(255,255,255,0.1);
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 14px;
+    transition: background 0.2s;
+  }
+  .upload-zone:hover .upload-btn-label {
+    background: var(--pink);
+    color: var(--navy-deep);
+  }
+  .upload-status {
+    font-size: 13px;
+    color: var(--teal);
+    font-weight: 700;
+    margin-top: 8px;
+  }
+
   .playlist-grid{
     display:grid;
     grid-template-columns:1fr;
@@ -130,16 +169,6 @@ description: "The ultimate automatic musical game companion."
     box-shadow: 0 0 20px rgba(255,62,127,0.25);
   }
   
-  .cover-thumb{
-    width:64px;
-    height:64px;
-    border-radius:12px;
-    object-fit:contain; 
-    background:rgba(0,0,0,0.4);
-    border:1px solid rgba(255,255,255,0.15);
-    flex-shrink:0;
-    display:block;
-  }
   .cover-fallback{
     width:64px;
     height:64px;
@@ -215,7 +244,7 @@ description: "The ultimate automatic musical game companion."
     }
     .right-game-panel {
       position: sticky;
-      top: 24px;
+      top: 80px; /* Offset adjusted to fit under the new header perfectly */
     }
   }
 
@@ -438,8 +467,16 @@ description: "The ultimate automatic musical game companion."
   <p class="subtitle">🎁 THE OFFICIAL MUSIC MACHINE 🎁</p>
 
   <div class="setup" id="setupScreen">
-    <div class="card" id="warningCard" style="display:none;">
-      <div class="setup-warning" id="warningText"></div>
+    
+    <!-- Custom Drag & Drop Image Upload Card -->
+    <div class="card">
+      <p class="section-label">Add Photos for the Party Gallery 📸</p>
+      <div class="upload-zone" id="uploadZone">
+        <p>Drag & Drop your party photos here</p>
+        <span class="upload-btn-label">Or Browse Files</span>
+        <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+        <div class="upload-status" id="uploadStatus">No custom images added yet (will look blank unless added)</div>
+      </div>
     </div>
 
     <div class="card">
@@ -488,7 +525,7 @@ description: "The ultimate automatic musical game companion."
 
     <div class="right-game-panel">
       <div class="slideshow" id="slideshow">
-        <div class="slide-empty" id="slideEmpty">Add photos to the gallery array to show them here 📸</div>
+        <div class="slide-empty" id="slideEmpty">Drop photos into the setup array to view them here 📸</div>
       </div>
     </div>
 
@@ -499,31 +536,13 @@ description: "The ultimate automatic musical game companion."
 
 <script>
 const PLAYLISTS = [
-  { name: "a very reggae senior camp",      id: "PLWyawbUEr_ic", cover: "reggae.JPG" },
-  { name: "Party Mix",  id: "PLP3GlAycWPVs", cover: "party.JPG" },
-  { name: "Nathan's Jams",          id: "PLUzJTEG8xpds", cover: "nathan's-jams.JPG" }
+  { name: "a very reggae senior camp",      id: "PLWyawbUEr_ic" },
+  { name: "Party Mix",  id: "PLP3GlAycWPVs" },
+  { name: "Nathan's Jams",          id: "PLUzJTEG8xpds" }
 ];
 
-const GALLERY_IMAGES = [
-  "IMG-20240714-WA0008.jpg",
-  "IMG-20240714-WA0020.jpg",
-  "IMG-20240721-WA0007.jpg",
-  "IMG-20240721-WA0015.jpg",
-  "IMG-20240721-WA0022.jpg",
-  "IMG_20250709_152309153.jpg",
-  "Screenshot_20260715-010213.png",
-  "Screenshot_20260715-010950.png",
-  "Screenshot_20260715-011023.png",
-  "Snapchat-1153767534.jpg",
-  "Snapchat-1519177892.jpg",
-  "Snapchat-1553511336.jpg",
-  "Snapchat-1811636490.jpg",
-  "Snapchat-392181131.jpg",
-  "Snapchat-880045005.jpg",
-  "reggae.JPG",
-  "party.JPG",
-  "nathan's-jams.JPG"
-];
+// This array now dynamically captures your user uploaded image URLs
+let validGalleryImages = [];
 
 const DEFAULT_MIN_STOP_SECONDS = 30;
 const SLIDESHOW_INTERVAL_SECONDS = 5;
@@ -551,21 +570,52 @@ const parcelWrap = document.getElementById('parcelWrap');
 const endScreen = document.getElementById('endScreen');
 const againBtn = document.getElementById('againBtn');
 const prizeCore = document.getElementById('prizeCore');
-const warningCard = document.getElementById('warningCard');
-const warningText = document.getElementById('warningText');
 const slideshow = document.getElementById('slideshow');
 const slideEmpty = document.getElementById('slideEmpty');
+
+// Upload Zone Elements
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+const uploadStatus = document.getElementById('uploadStatus');
 
 const LAYER_COLORS = ['var(--layer1)','var(--layer2)','var(--layer3)','var(--layer4)','var(--layer5)'];
 
 minStopRange.value = DEFAULT_MIN_STOP_SECONDS;
 minStopValue.textContent = DEFAULT_MIN_STOP_SECONDS + 's';
 
-// ---- placeholder detection ----
-const unfilledPlaylists = PLAYLISTS.filter(p => p.id.startsWith('PLAYLIST_ID_HERE'));
-if (unfilledPlaylists.length) {
-  warningCard.style.display = 'block';
-  warningText.innerHTML = "⚠️ <strong>Setup needed:</strong> placeholder playlist IDs detected.";
+// ---- Drag and Drop Functionality Setup ----
+uploadZone.addEventListener('click', () => fileInput.click());
+
+uploadZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  uploadZone.classList.add('dragover');
+});
+
+uploadZone.addEventListener('dragleave', () => {
+  uploadZone.classList.remove('dragover');
+});
+
+uploadZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  handleImageFiles(e.dataTransfer.files);
+});
+
+fileInput.addEventListener('change', (e) => {
+  handleImageFiles(e.target.files);
+});
+
+function handleImageFiles(files) {
+  const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+  
+  if (imageFiles.length === 0) return;
+
+  imageFiles.forEach(file => {
+    const url = URL.createObjectURL(file);
+    validGalleryImages.push(url);
+  });
+
+  uploadStatus.textContent = `✅ Successfully loaded ${validGalleryImages.length} custom image(s)!`;
 }
 
 // ---- build playlist buttons ----
@@ -573,17 +623,7 @@ PLAYLISTS.forEach((pl, i) => {
   const btn = document.createElement('button');
   btn.className = 'playlist-btn';
   btn.dataset.index = i;
-
-  if (pl.cover && !pl.cover.includes('PLACEHOLDER')) {
-    const img = document.createElement('img');
-    img.className = 'cover-thumb';
-    img.src = pl.cover;
-    img.alt = '';
-    img.onerror = () => { img.replaceWith(makeFallbackThumb()); };
-    btn.appendChild(img);
-  } else {
-    btn.appendChild(makeFallbackThumb());
-  }
+  btn.appendChild(makeFallbackThumb());
 
   const label = document.createElement('span');
   label.textContent = pl.name;
@@ -611,7 +651,6 @@ minStopRange.addEventListener('input', () => {
 });
 
 // ---- party slideshow ----
-const validGalleryImages = GALLERY_IMAGES.filter(p => !p.includes('PLACEHOLDER'));
 let slideIndex = 0;
 let slideTimer = null;
 let slideImgA = null;
@@ -621,6 +660,7 @@ let showingA = true;
 function initSlideshow(){
   if (!validGalleryImages.length) {
     slideEmpty.style.display = 'flex';
+    slideEmpty.textContent = "No images were uploaded 📸";
     return;
   }
   slideEmpty.style.display = 'none';
@@ -631,6 +671,7 @@ function initSlideshow(){
     slideshow.appendChild(slideImgB);
   }
 
+  // Shuffle uploaded files randomly
   for (let i = validGalleryImages.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [validGalleryImages[i], validGalleryImages[j]] = [validGalleryImages[j], validGalleryImages[i]];
@@ -669,7 +710,6 @@ function stopSlideshow(){
 
 // ---- YouTube IFrame API Loading ----
 const tag = document.createElement('script');
-// Load standard API securely; parameters inside player handle privacy domain
 tag.src = "https://www.youtube.com/iframe_api";
 const firstScriptTag = document.getElementsByTagName('script')[0];
 firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
