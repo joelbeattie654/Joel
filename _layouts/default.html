@@ -13,10 +13,14 @@
             justify-content: space-between;
             font-family: system-ui, -apple-system, sans-serif;
             border-bottom: 3px solid #111827;
-            position: sticky;
+            /* Changing this to absolute forces it out of the app's centering trap */
+            position: absolute;
             top: 0;
+            left: 0;
+            right: 0;
             z-index: 99999;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            box-sizing: border-box;
         }
         .joel-space-logo {
             color: #ffffff;
