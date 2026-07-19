@@ -89,7 +89,7 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
   .page{
     max-width:1240px;
     margin:0 auto;
-    padding:80px 28px 90px; /* Shifted padding to avoid header block overlaps */
+    padding:80px 28px 90px;
   }
   .masthead{
     border-bottom:3px solid var(--ink);
@@ -123,7 +123,6 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
     margin:0;
   }
   
-  /* --- Sleek 4 Quadrant Setup Grid Structure --- */
   .setup-grid{
     display:grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -459,7 +458,6 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
   </div>
   
   <section class="controls no-print" id="controls">
-    <!-- Updated layout with 4 Distinct Separate Input Nodes -->
     <div class="setup-grid">
       <div class="side-card">
         <span class="field-label">Quadrant 1 (Top Left)</span>
@@ -815,7 +813,6 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
     lines.push(elbow({ x: leftSemiBox.x + leftSemiBox.w, y: leftSemiBox.cy }, { x: fX, y: fCy }));
     lines.push(elbow({ x: rightSemiBox.x, y: rightSemiBox.cy }, { x: fX + BOX_W, y: fCy }));
     
-    // Position Spine Quadrant Title Elements
     boxes.push({ x: SIDE_PAD - 62, y: geoL.topY + geoL.topBlockH/2 - 50, w: 20, h: 100, cls: 'spine-el', text: l1, isLabel: true, editableText: true });
     boxes.push({ x: SIDE_PAD - 62, y: geoL.botY + geoL.botBlockH/2 - 50, w: 20, h: 100, cls: 'spine-el', text: l2, isLabel: true, editableText: true });
     boxes.push({ x: totalWidth - SIDE_PAD + 44, y: geoR.topY + geoR.topBlockH/2 - 50, w: 20, h: 100, cls: 'spine-el flip', text: l3, isLabel: true, editableText: true });
@@ -908,7 +905,7 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
   document.getElementById('clearBtn').addEventListener('click', function(){
     for(var i=1; i<=4; i++){
       document.getElementById('names'+i).value = '';
-      document.getElementById('label1').value = 'Quadrant ' + i;
+      document.getElementById('label'+i).value = 'Quadrant ' + i;
     }
     document.getElementById('tourneyTitle').value = 'Knockout Draw';
     document.getElementById('shuffleChk').checked = false;
