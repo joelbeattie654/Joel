@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Knockout Bracket Generator"
-description: "Generate beautiful wall-chart tournament brackets."
+description: "Generate beautiful wall-chart tournament brackets with custom quadrants."
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -87,9 +87,9 @@ description: "Generate beautiful wall-chart tournament brackets."
     transition: all 0.3s ease;
   }
   .page{
-    max-width:1180px;
+    max-width:1240px;
     margin:0 auto;
-    padding:40px 28px 90px;
+    padding:80px 28px 90px; /* Shifted padding to avoid header block overlaps */
   }
   .masthead{
     border-bottom:3px solid var(--ink);
@@ -122,13 +122,14 @@ description: "Generate beautiful wall-chart tournament brackets."
     max-width:340px;
     margin:0;
   }
+  
+  /* --- Sleek 4 Quadrant Setup Grid Structure --- */
   .setup-grid{
     display:grid;
-    grid-template-columns:1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap:18px;
     margin-bottom:18px;
   }
-  @media (max-width:720px){ .setup-grid{ grid-template-columns:1fr; } }
   .side-card{
     background:var(--card);
     border:1px solid var(--border);
@@ -145,6 +146,9 @@ description: "Generate beautiful wall-chart tournament brackets."
     border-radius: var(--radius) 0 0 var(--radius);
   }
   .side-card.side-b::before{ background:var(--ink); }
+  .side-card.side-c::before{ background:var(--teal); }
+  .side-card.side-d::before{ background:var(--purple); }
+
   .field-label{
     display:block;
     font-family:'IBM Plex Mono', monospace;
@@ -158,7 +162,7 @@ description: "Generate beautiful wall-chart tournament brackets."
     width:100%;
     font-family: var(--font-heading);
     font-weight:600;
-    font-size:20px;
+    font-size:18px;
     border:none;
     border-bottom:2px solid var(--border);
     padding:2px 0 6px;
@@ -169,7 +173,7 @@ description: "Generate beautiful wall-chart tournament brackets."
   .label-input:focus{ outline:none; border-bottom-color:var(--accent); }
   textarea{
     width:100%;
-    min-height:190px;
+    min-height:140px;
     resize:vertical;
     font-family:'IBM Plex Mono', monospace;
     font-size:13.5px;
@@ -337,7 +341,7 @@ description: "Generate beautiful wall-chart tournament brackets."
   .spine-el{
     position:absolute;
     font-family:'IBM Plex Mono', monospace;
-    font-size:13px;
+    font-size:12px;
     letter-spacing:0.18em;
     text-transform:uppercase;
     color:var(--ink);
@@ -451,25 +455,38 @@ description: "Generate beautiful wall-chart tournament brackets."
       <p class="eyebrow" id="mastheadEyebrow">🏆 Tournament Draw Generator</p>
       <h1 id="mastheadTitle">Draw Sheet</h1>
     </div>
-    <p class="tag">Enter the names for each side, pick your setup design, then output a styled wall chart.</p>
+    <p class="tag">Enter the names into the 4 quadrant boxes to isolate sections until the Semi-Finals stage.</p>
   </div>
+  
   <section class="controls no-print" id="controls">
+    <!-- Updated layout with 4 Distinct Separate Input Nodes -->
     <div class="setup-grid">
       <div class="side-card">
-        <span class="field-label">Side A label</span>
-        <input class="label-input" id="labelA" value="Side A" maxlength="40">
-        <span class="field-label">Names — one per line</span>
-        <textarea id="namesA" placeholder="Alice&#10;Bob&#10;Carol&#10;Dave"></textarea>
-        <div class="count" id="countA">0 names</div>
+        <span class="field-label">Quadrant 1 (Top Left)</span>
+        <input class="label-input" id="label1" value="Quadrant 1" maxlength="40">
+        <textarea id="names1" placeholder="Names — one per line"></textarea>
+        <div class="count" id="count1">0 names</div>
       </div>
       <div class="side-card side-b">
-        <span class="field-label">Side B label</span>
-        <input class="label-input" id="labelB" value="Side B" maxlength="40">
-        <span class="field-label">Names — one per line</span>
-        <textarea id="namesB" placeholder="Erin&#10;Frank&#10;Grace&#10;Heidi"></textarea>
-        <div class="count" id="countB">0 names</div>
+        <span class="field-label">Quadrant 2 (Bottom Left)</span>
+        <input class="label-input" id="label2" value="Quadrant 2" maxlength="40">
+        <textarea id="names2" placeholder="Names — one per line"></textarea>
+        <div class="count" id="count2">0 names</div>
+      </div>
+      <div class="side-card side-c">
+        <span class="field-label">Quadrant 3 (Top Right)</span>
+        <input class="label-input" id="label3" value="Quadrant 3" maxlength="40">
+        <textarea id="names3" placeholder="Names — one per line"></textarea>
+        <div class="count" id="count3">0 names</div>
+      </div>
+      <div class="side-card side-d">
+        <span class="field-label">Quadrant 4 (Bottom Right)</span>
+        <input class="label-input" id="label4" value="Quadrant 4" maxlength="40">
+        <textarea id="names4" placeholder="Names — one per line"></textarea>
+        <div class="count" id="count4">0 names</div>
       </div>
     </div>
+    
     <div class="setup-row">
       <div>
         <span class="field-label">Tournament title</span>
@@ -495,7 +512,7 @@ description: "Generate beautiful wall-chart tournament brackets."
       </div>
     </div>
     <div style="margin-bottom: 18px;">
-       <label class="check-field"><input type="checkbox" id="shuffleChk"> Shuffle order within each side</label>
+       <label class="check-field"><input type="checkbox" id="shuffleChk"> Shuffle order within each quadrant</label>
     </div>
     <div class="actions">
       <button class="btn primary" id="genBtn">Draw the bracket</button>
@@ -504,6 +521,7 @@ description: "Generate beautiful wall-chart tournament brackets."
     </div>
     <p class="hint" id="validation"></p>
   </section>
+  
   <section class="result hidden" id="resultSection">
     <div class="toolbar no-print">
       <div style="display: flex; align-items: center; gap: 14px;">
@@ -530,8 +548,8 @@ description: "Generate beautiful wall-chart tournament brackets."
 </div>
 <script>
 (function(){
-  var BOX_W = 152, BOX_H = 32, COL_GAP = 64, COL_PITCH = BOX_W + COL_GAP, LEAF_PITCH = 46;
-  var SIDE_PAD = 70, TOP_PAD = 50, FINAL_GAP = COL_PITCH * 1.4;
+  var BOX_W = 152, BOX_H = 32, COL_GAP = 54, COL_PITCH = BOX_W + COL_GAP, LEAF_PITCH = 44;
+  var SIDE_PAD = 80, TOP_PAD = 40, FINAL_GAP = COL_PITCH * 1.5;
   var currentModel = null;
   var themeConfig = {
     classic: { eyebrow: "🏆 Tournament Draw Generator", sub: "OFFICIAL DRAW SHEET" },
@@ -579,20 +597,20 @@ description: "Generate beautiful wall-chart tournament brackets."
     return leaves;
   }
   function buildLevels(leaves){
-    var levels = [leaves.map(function(v){ return { value: v === 'BYE' ? null : v, isBye: v === 'BYE', hadBye: v === 'BYE' }; })];
+    var levels = [leaves.map(function(v){ return { value: v === 'BYE' ? null : v, isBye: v === 'BYE', forced: false }; })];
     var prev = levels[0];
     while(prev.length > 1){
       var cur = [];
       for(var i = 0; i < prev.length; i += 2){
         var a = prev[i], b = prev[i+1];
         if(a.isBye && b.isBye){ 
-          cur.push({ value:null, isBye:true, hadBye: true }); 
+          cur.push({ value:null, isBye:true, forced:true }); 
         } else if(a.isBye){ 
-          cur.push({ value:b.value, isBye:false, forced:true, hadBye: true }); 
+          cur.push({ value:b.value, isBye:false, forced:true }); 
         } else if(b.isBye){ 
-          cur.push({ value:a.value, isBye:false, forced:true, hadBye: true }); 
+          cur.push({ value:a.value, isBye:false, forced:true }); 
         } else { 
-          cur.push({ value:null, isBye:false, hadBye: false }); 
+          cur.push({ value:null, isBye:false, forced:false }); 
         }
       }
       levels.push(cur);
@@ -600,185 +618,234 @@ description: "Generate beautiful wall-chart tournament brackets."
     }
     return levels;
   }
-  function sideGeometry(levels, direction, originX, yOffset){
-    var size = levels[0].length;
-    var centersPrev = [];
-    for(var i = 0; i < size; i++) centersPrev.push(i * LEAF_PITCH + LEAF_PITCH/2 + yOffset);
-    var centersByLevel = [centersPrev];
-    for(var lvl = 1; lvl < levels.length; lvl++){
-      var cur = [];
-      for(var j = 0; j < levels[lvl].length; j++) cur.push((centersPrev[2*j] + centersPrev[2*j+1]) / 2);
-      centersByLevel.push(cur);
-      centersPrev = cur;
+  
+  function sideGeometryQuadrants(qTopLevels, qBotLevels, direction, originX, yStart, maxSideHeight){
+    var sizeTop = qTopLevels[0].length;
+    var sizeBot = qBotLevels[0].length;
+    var totalHeight = maxSideHeight;
+    
+    var topBlockHeight = sizeTop * LEAF_PITCH;
+    var botBlockHeight = sizeBot * LEAF_PITCH;
+    
+    var topYOffset = yStart + (totalHeight / 2 - topBlockHeight) / 2;
+    var botYOffset = yStart + totalHeight / 2 + (totalHeight / 2 - botBlockHeight) / 2;
+    
+    function mapQuadrantCenters(levels, baseOffset){
+      var centersPrev = [];
+      for(var i=0; i<levels[0].length; i++) centersPrev.push(i * LEAF_PITCH + LEAF_PITCH/2 + baseOffset);
+      var centersByLvl = [centersPrev];
+      for(var lvl=1; lvl<levels.length; lvl++){
+        var cur = [];
+        for(var j=0; j<levels[lvl].length; j++) cur.push((centersPrev[2*j] + centersPrev[2*j+1]) / 2);
+        centersByLvl.push(cur);
+        centersPrev = cur;
+      }
+      return centersByLvl;
     }
-    var boxesByLevel = levels.map(function(lvlArr, lvl){
-      var xLeft = direction === 1 ? originX + lvl * COL_PITCH : originX - lvl * COL_PITCH - BOX_W;
-      return lvlArr.map(function(slot, i){
-        return {
-          x:xLeft, y:centersByLevel[lvl][i] - BOX_H/2, cy:centersByLevel[lvl][i],
-          w:BOX_W, h:BOX_H, slot:slot, level:lvl, index:i
-        };
+    
+    var topCenters = mapQuadrantCenters(qTopLevels, topYOffset);
+    var botCenters = mapQuadrantCenters(qBotLevels, botYOffset);
+    
+    var maxRounds = Math.max(qTopLevels.length, qBotLevels.length);
+    var boxesByLevel = [];
+    
+    for(var lvl=0; lvl <= maxRounds; lvl++){
+      boxesByLevel[lvl] = [];
+    }
+    
+    function populateQuadrant(levels, centers, isTopQuadrant){
+      levels.forEach(function(lvlArr, lvl){
+        var xLeft = direction === 1 ? originX + lvl * COL_PITCH : originX - lvl * COL_PITCH - BOX_W;
+        lvlArr.forEach(function(slot, i){
+          boxesByLevel[lvl].push({
+            x: xLeft, y: centers[lvl][i] - BOX_H/2, cy: centers[lvl][i],
+            w: BOX_W, h: BOX_H, slot: slot, level: lvl, index: i, isTopQuad: isTopQuadrant
+          });
+        });
       });
-    });
-    return { boxesByLevel:boxesByLevel, totalHeight:size * LEAF_PITCH, rounds:levels.length - 1, width:(levels.length - 1) * COL_PITCH + BOX_W };
+    }
+    
+    populateQuadrant(qTopLevels, topCenters, true);
+    populateQuadrant(qBotLevels, botCenters, false);
+    
+    var finalSemiRoundLvl = maxRounds;
+    var xSemi = direction === 1 ? originX + finalSemiRoundLvl * COL_PITCH : originX - finalSemiRoundLvl * COL_PITCH - BOX_W;
+    var topFinalSemi = boxesByLevel[finalSemiRoundLvl-1].filter(b => b.isTopQuad)[0];
+    var botFinalSemi = boxesByLevel[finalSemiRoundLvl-1].filter(b => !b.isTopQuad)[0];
+    var semiCy = (topFinalSemi.cy + botFinalSemi.cy) / 2;
+    
+    var semiBox = {
+      x: xSemi, y: semiCy - BOX_H/2, cy: semiCy, w: BOX_W, h: BOX_H,
+      slot: { value: null, isBye: false, forced: false }, level: finalSemiRoundLvl, index: 0, isSemiFinalNode: true
+    };
+    boxesByLevel[finalSemiRoundLvl].push(semiBox);
+    
+    return { boxesByLevel: boxesByLevel, totalRoundsCount: finalSemiRoundLvl, topY: topYOffset, botY: botYOffset, topBlockH: topBlockHeight, botBlockH: botBlockHeight };
   }
+
   function elbow(p1, p2){
     var xmid = (p1.x + p2.x) / 2;
     return 'M ' + p1.x + ' ' + p1.y + ' H ' + xmid + ' V ' + p2.y + ' H ' + p2.x;
   }
-  function slotBox(b, opts){
+  function slotBox(b, isSemiFinal){
     var cls = 'slot';
     var text = '';
     var editable = false;
-    var placeholder = '';
+    var placeholder = 'Winner';
     if(b.slot.isBye){
       cls += ' bye-slot';
-      text = '';
     } else if(b.slot.value){
       text = b.slot.value;
-      if(b.slot.forced){ cls += ' forced'; }
+      if(b.slot.forced) cls += ' forced';
     } else {
       editable = true;
-      placeholder = opts.championLevel && b.level === opts.championLevel ? 'Champion' : 'Winner';
+      if (isSemiFinal) placeholder = 'Semi Winner';
       cls += ' editable';
     }
-    if(opts.championLevel && b.level === opts.championLevel){ cls += ' champion'; }
-    return {
-      x:b.x, y:b.y, w:b.w, h:b.h, cls:cls, text:text,
-      editable:editable, placeholder:placeholder
-    };
+    return { x:b.x, y:b.y, w:b.w, h:b.h, cls:cls, text:text, editable:editable, placeholder:placeholder };
   }
-  function build(namesA, namesB, opts){
-    var leavesA = namesA.length ? buildLeavesDistributed(namesA) : null;
-    var leavesB = namesB.length ? buildLeavesDistributed(namesB) : null;
-    if(!leavesA && !leavesB) return null;
-    var lines = [];
-    var boxes = [];
-    function addSeeds(geo, side){
-      geo.boxesByLevel[0].forEach(function(b, i){
-        if(b.slot.isBye) return;
-        var siblingIdx = i % 2 === 0 ? i + 1 : i - 1;
-        var sibling = geo.boxesByLevel[0][siblingIdx];
-        var targetBox = b;
-        if (sibling && sibling.slot.isBye) {
-          var parentIdx = Math.floor(i / 2);
-          targetBox = geo.boxesByLevel[1][parentIdx];
-        }
-        boxes.push({
-          x: side === 'A' ? targetBox.x - 36 : targetBox.x + targetBox.w + 6,
-          y: targetBox.cy - 8, w:22, h:16, cls:'seed-el', text:String(i+1), isLabel:true
-        });
-      });
+  function parseNames(text){
+    return text.split('\n').map(function(s){ return s.trim(); }).filter(function(s){ return s.length > 0; });
+  }
+  function updateCounts(){
+    for(var i=1; i<=4; i++){
+      var c = parseNames(document.getElementById('names'+i).value).length;
+      document.getElementById('count'+i).textContent = c + (c === 1 ? ' name' : ' names');
     }
-    function pushSideBoxes(geo, championLevel, isSingle){
-      geo.boxesByLevel.forEach(function(levelArr, lvl){
-        levelArr.forEach(function(b){
-          var rendered = slotBox(b, { championLevel: isSingle ? geo.rounds : null });
-          if (lvl === 0) {
-            var siblingIdx = b.index % 2 === 0 ? b.index + 1 : b.index - 1;
-            var sibling = geo.boxesByLevel[0][siblingIdx];
-            if (b.slot.isBye || (sibling && sibling.slot.isBye)) {
-              rendered.cls += ' hidden-bye';
+  }
+  function shuffle(arr){
+    var a = arr.slice();
+    for(var i = a.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function generate(){
+    var n1 = parseNames(document.getElementById('names1').value);
+    var n2 = parseNames(document.getElementById('names2').value);
+    var n3 = parseNames(document.getElementById('names3').value);
+    var n4 = parseNames(document.getElementById('names4').value);
+    var validation = document.getElementById('validation');
+    if(!n1.length && !n2.length && !n3.length && !n4.length){
+      validation.textContent = 'Add names to the quadrants before drawing the bracket chart.';
+      return;
+    }
+    validation.textContent = '';
+    if(document.getElementById('shuffleChk').checked){
+      n1 = shuffle(n1); n2 = shuffle(n2); n3 = shuffle(n3); n4 = shuffle(n4);
+    }
+    var l1 = document.getElementById('label1').value.trim() || 'Quad 1';
+    var l2 = document.getElementById('label2').value.trim() || 'Quad 2';
+    var l3 = document.getElementById('label3').value.trim() || 'Quad 3';
+    var l4 = document.getElementById('label4').value.trim() || 'Quad 4';
+    var title = document.getElementById('tourneyTitle').value.trim() || 'Knockout Draw';
+    
+    var lLeaves1 = buildLeavesDistributed(n1), lLeaves2 = buildLeavesDistributed(n2);
+    var lLeaves3 = buildLeavesDistributed(n3), lLeaves4 = buildLeavesDistributed(n4);
+    
+    var lvl1 = buildLevels(lLeaves1), lvl2 = buildLevels(lLeaves2);
+    var lvl3 = buildLevels(lLeaves3), lvl4 = buildLevels(lLeaves4);
+    
+    var h1 = lLeaves1.length * LEAF_PITCH, h2 = lLeaves2.length * LEAF_PITCH;
+    var h3 = lLeaves3.length * LEAF_PITCH, h4 = lLeaves4.length * LEAF_PITCH;
+    var maxSideHeight = Math.max(h1 + h2 + 40, h3 + h4 + 40, 300);
+    
+    var totalHeight = TOP_PAD * 2 + maxSideHeight;
+    var maxRoundsSideL = Math.max(lvl1.length, lvl2.length);
+    var maxRoundsSideR = Math.max(lvl3.length, lvl4.length);
+    
+    var widthL = maxRoundsSideL * COL_PITCH + BOX_W;
+    var widthR = maxRoundsSideR * COL_PITCH + BOX_W;
+    var totalWidth = SIDE_PAD * 2 + widthL + widthR + FINAL_GAP;
+    
+    var geoL = sideGeometryQuadrants(lvl1, lvl2, 1, SIDE_PAD, TOP_PAD, maxSideHeight);
+    var geoR = sideGeometryQuadrants(lvl3, lvl4, -1, totalWidth - SIDE_PAD, TOP_PAD, maxSideHeight);
+    
+    var lines = [], boxes = [];
+    
+    function renderSideData(geo, direction){
+      geo.boxesByLevel.forEach(function(lvlArr, lvl){
+        var isSemiNodeRound = (lvl === geo.totalRoundsCount);
+        lvlArr.forEach(function(b){
+          var rb = slotBox(b, isSemiNodeRound);
+          if(lvl === 0 && b.slot.isBye) rb.cls += ' hidden-bye';
+          boxes.push(rb);
+          
+          if(lvl > 0 && !b.isSemiFinalNode){
+            var prevLvlBoxes = geo.boxesByLevel[lvl-1].filter(p => p.isTopQuad === b.isTopQuad);
+            var c1 = prevLvlBoxes[2 * b.index];
+            var c2 = prevLvlBoxes[2 * b.index + 1];
+            if(c1 && c2){
+              if(lvl === 1 && (c1.slot.isBye || c2.slot.isBye)) return;
+              [c1, c2].forEach(function(ch){
+                var cp = direction === 1 ? { x: ch.x + ch.w, y: ch.cy } : { x: ch.x, y: ch.cy };
+                var pp = direction === 1 ? { x: b.x, y: b.cy } : { x: b.x + b.w, y: b.cy };
+                lines.push(elbow(cp, pp));
+              });
             }
           }
-          boxes.push(rendered);
         });
       });
-    }
-    function pushSideConnectors(geo, direction){
-      for(var lvl = 1; lvl < geo.boxesByLevel.length; lvl++){
-        geo.boxesByLevel[lvl].forEach(function(parent, i){
-          var c1 = geo.boxesByLevel[lvl-1][2*i];
-          var c2 = geo.boxesByLevel[lvl-1][2*i+1];
-          if (lvl === 1 && (c1.slot.isBye || c2.slot.isBye)) {
-            return; 
-          }
-          [c1, c2].forEach(function(child){
-            var childPt = direction === 1 ? { x: child.x + child.w, y: child.cy } : { x: child.x, y: child.cy };
-            var parentPt = direction === 1 ? { x: parent.x, y: parent.cy } : { x: parent.x + parent.w, y: parent.cy };
-            lines.push(elbow(childPt, parentPt));
-          });
-        });
-      }
-    }
-    if(leavesA && leavesB){
-      var levelsA = buildLevels(leavesA);
-      var levelsB = buildLevels(leavesB);
-      var widthA = (levelsA.length - 1) * COL_PITCH + BOX_W;
-      var widthB = (levelsB.length - 1) * COL_PITCH + BOX_W;
-      var totalWidth = SIDE_PAD * 2 + widthA + widthB + FINAL_GAP;
-      var heightAraw = leavesA.length * LEAF_PITCH;
-      var heightBraw = leavesB.length * LEAF_PITCH;
-      var maxHeight = Math.max(heightAraw, heightBraw);
-      var offsetA = TOP_PAD + (maxHeight - heightAraw) / 2;
-      var offsetB = TOP_PAD + (maxHeight - heightBraw) / 2;
-      var totalHeight = TOP_PAD * 2 + maxHeight;
-      var geoA = sideGeometry(levelsA, 1, SIDE_PAD, offsetA);
-      var geoB = sideGeometry(levelsB, -1, totalWidth - SIDE_PAD, offsetB);
-      geoA._yTop = offsetA; geoB._yTop = offsetB;
-      pushSideBoxes(geoA, null, false);
-      pushSideBoxes(geoB, null, false);
-      pushSideConnectors(geoA, 1);
-      pushSideConnectors(geoB, -1);
-      addSeeds(geoA, 'A');
-      addSeeds(geoB, 'B');
-      var champA = geoA.boxesByLevel[geoA.boxesByLevel.length - 1][0];
-      var champB = geoB.boxesByLevel[geoB.boxesByLevel.length - 1][0];
-      var finalX = SIDE_PAD + widthA + (FINAL_GAP - BOX_W) / 2;
-      var finalCy = (champA.cy + champB.cy) / 2;
-      var finalBox = { x: finalX, y: finalCy - BOX_H/2, w: BOX_W, h: BOX_H, cy: finalCy };
-      boxes.push({
-        x: finalBox.x, y: finalBox.y, w: finalBox.w, h: finalBox.h,
-        cls: 'slot champion editable', text:'', editable:true, placeholder:'Champion'
+      
+      var sRound = geo.totalRoundsCount;
+      var semiNode = geo.boxesByLevel[sRound][0];
+      var tChild = geo.boxesByLevel[sRound-1].filter(b => b.isTopQuad)[0];
+      var bChild = geo.boxesByLevel[sRound-1].filter(b => !b.isTopQuad)[0];
+      [tChild, bChild].forEach(function(ch){
+        var cp = direction === 1 ? { x: ch.x + ch.w, y: ch.cy } : { x: ch.x, y: ch.cy };
+        var pp = direction === 1 ? { x: semiNode.x, y: semiNode.cy } : { x: semiNode.x + semiNode.w, y: semiNode.cy };
+        lines.push(elbow(cp, pp));
       });
-      lines.push(elbow({ x: champA.x + champA.w, y: champA.cy }, { x: finalBox.x, y: finalBox.cy }));
-      lines.push(elbow({ x: champB.x, y: champB.cy }, { x: finalBox.x + finalBox.w, y: finalBox.cy }));
-      boxes.push({
-        x: SIDE_PAD - 62, y: offsetA + heightAraw/2 - 60, w:20, h:120,
-        cls:'spine-el', text: opts.labelA, isLabel:true, editableText: true
-      });
-      boxes.push({
-        x: totalWidth - SIDE_PAD + 34, y: offsetB + heightBraw/2 - 60, w:20, h:120,
-        cls:'spine-el flip', text: opts.labelB, isLabel:true, editableText: true
-      });
-      return { totalWidth: totalWidth, totalHeight: totalHeight, lines: lines, boxes: boxes };
     }
-    var only = leavesA ? leavesA : leavesB;
-    var onlySideLetter = leavesA ? 'A' : 'B';
-    var onlyLabel = leavesA ? opts.labelA : opts.labelB;
-    var levels = buildLevels(only);
-    var width = (levels.length - 1) * COL_PITCH + BOX_W;
-    var height = only.length * LEAF_PITCH;
-    var totalWidthS = SIDE_PAD * 2 + width;
-    var totalHeightS = TOP_PAD * 2 + height;
-    var geo = sideGeometry(levels, 1, SIDE_PAD, TOP_PAD);
-    geo._yTop = TOP_PAD;
-    pushSideBoxes(geo, geo.rounds, true);
-    pushSideConnectors(geo, 1);
-    addSeeds(geo, onlySideLetter);
+    
+    renderSideData(geoL, 1);
+    renderSideData(geoR, -1);
+    
+    var leftSemiBox = geoL.boxesByLevel[geoL.totalRoundsCount][0];
+    var rightSemiBox = geoR.boxesByLevel[geoR.totalRoundsCount][0];
+    var fX = SIDE_PAD + widthL + (FINAL_GAP - BOX_W) / 2;
+    var fCy = (leftSemiBox.cy + rightSemiBox.cy) / 2;
+    
     boxes.push({
-      x: SIDE_PAD - 62, y: TOP_PAD + height/2 - 60, w:20, h:120,
-      cls:'spine-el', text: onlyLabel, isLabel:true, editableText: true
+      x: fX, y: fCy - BOX_H/2, w: BOX_W, h: BOX_H,
+      cls: 'slot champion editable', text: '', editable: true, placeholder: 'Champion'
     });
-    return { totalWidth: totalWidthS, totalHeight: totalHeightS, lines: lines, boxes: boxes };
+    
+    lines.push(elbow({ x: leftSemiBox.x + leftSemiBox.w, y: leftSemiBox.cy }, { x: fX, y: fCy }));
+    lines.push(elbow({ x: rightSemiBox.x, y: rightSemiBox.cy }, { x: fX + BOX_W, y: fCy }));
+    
+    // Position Spine Quadrant Title Elements
+    boxes.push({ x: SIDE_PAD - 62, y: geoL.topY + geoL.topBlockH/2 - 50, w: 20, h: 100, cls: 'spine-el', text: l1, isLabel: true, editableText: true });
+    boxes.push({ x: SIDE_PAD - 62, y: geoL.botY + geoL.botBlockH/2 - 50, w: 20, h: 100, cls: 'spine-el', text: l2, isLabel: true, editableText: true });
+    boxes.push({ x: totalWidth - SIDE_PAD + 44, y: geoR.topY + geoR.topBlockH/2 - 50, w: 20, h: 100, cls: 'spine-el flip', text: l3, isLabel: true, editableText: true });
+    boxes.push({ x: totalWidth - SIDE_PAD + 44, y: geoR.botY + geoR.botBlockH/2 - 50, w: 20, h: 100, cls: 'spine-el flip', text: l4, isLabel: true, editableText: true });
+    
+    currentModel = { totalWidth: totalWidth, totalHeight: totalHeight, lines: lines, boxes: boxes };
+    document.getElementById('sheetTitle').textContent = title;
+    renderModel(currentModel);
+    computePrintScale(currentModel);
+    var rSec = document.getElementById('resultSection');
+    rSec.classList.remove('hidden');
+    rSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   function renderModel(model){
-    var canvas = document.getElementById('bracketCanvas');
-    canvas.innerHTML = '';
-    canvas.style.width = model.totalWidth + 'px';
-    canvas.style.height = model.totalHeight + 'px';
+    var cv = document.getElementById('bracketCanvas');
+    cv.innerHTML = '';
+    cv.style.width = model.totalWidth + 'px';
+    cv.style.height = model.totalHeight + 'px';
     var svgNS = 'http://www.w3.org/2000/svg';
     var svg = document.createElementNS(svgNS, 'svg');
     svg.setAttribute('class', 'lines-layer');
     svg.setAttribute('width', model.totalWidth);
     svg.setAttribute('height', model.totalHeight);
     model.lines.forEach(function(d){
-      var path = document.createElementNS(svgNS, 'path');
-      path.setAttribute('d', d);
-      path.setAttribute('class', 'bracket-line');
-      svg.appendChild(path);
+      var p = document.createElementNS(svgNS, 'path');
+      p.setAttribute('d', d);
+      p.setAttribute('class', 'bracket-line');
+      svg.appendChild(p);
     });
-    canvas.appendChild(svg);
+    cv.appendChild(svg);
     model.boxes.forEach(function(b){
       var el = document.createElement('div');
       el.className = b.cls;
@@ -793,13 +860,13 @@ description: "Generate beautiful wall-chart tournament brackets."
       } else {
         if(b.editable){
           el.contentEditable = 'true';
-          el.setAttribute('data-placeholder', b.placeholder || 'Winner');
-          el.textContent = b.text || '';
+          el.setAttribute('data-placeholder', b.placeholder);
+          el.textContent = b.text;
         } else {
           el.textContent = b.text;
         }
       }
-      canvas.appendChild(el);
+      cv.appendChild(el);
     });
   }
   function computePrintScale(model){
@@ -807,108 +874,50 @@ description: "Generate beautiful wall-chart tournament brackets."
       'A4': {w: 1040, h: 680, css: 'A4 landscape'}, 
       'A3': {w: 1520, h: 1000, css: 'A3 landscape'},
       'A2': {w: 2160, h: 1440, css: 'A2 landscape'}, 
-      'A1': {w: 3100, h: 2100, css: 'A1 landscape'},
-      'A0': {w: 4400, h: 3000, css: 'A0 landscape'}
+      'A1': {w: 3100, h: 2100, css: 'A1 landscape'}
     };
-    var selectedSize = document.getElementById('pageSizeSel').value;
-    var target = sizeMap[selectedSize] || sizeMap['A2'];
-    document.documentElement.style.setProperty('--print-page-size', target.css);
-    var scale = Math.min(target.w / model.totalWidth, target.h / model.totalHeight);
-    document.documentElement.style.setProperty('--print-scale', scale);
+    var sel = document.getElementById('pageSizeSel').value;
+    var t = sizeMap[sel] || sizeMap['A2'];
+    document.documentElement.style.setProperty('--print-page-size', t.css);
+    var sc = Math.min(t.w / model.totalWidth, t.h / model.totalHeight);
+    document.documentElement.style.setProperty('--print-scale', sc);
     var box = document.getElementById('printScaleBox');
-    box.style.width = (model.totalWidth * scale) + 'px';
-    box.style.height = (model.totalHeight * scale) + 'px';
+    box.style.width = (model.totalWidth * sc) + 'px';
+    box.style.height = (model.totalHeight * sc) + 'px';
   }
-  function parseNames(text){
-    return text.split('\n').map(function(s){ return s.trim(); }).filter(function(s){ return s.length > 0; });
+  for(var idx=1; idx<=4; idx++){
+    document.getElementById('names'+idx).addEventListener('input', updateCounts);
   }
-  function updateCounts(){
-    var a = parseNames(document.getElementById('namesA').value).length;
-    var b = parseNames(document.getElementById('namesB').value).length;
-    document.getElementById('countA').textContent = a + (a === 1 ? ' name' : ' names');
-    document.getElementById('countB').textContent = b + (b === 1 ? ' name' : ' names');
-  }
-  function shuffle(arr){
-    var a = arr.slice();
-    for(var i = a.length - 1; i > 0; i--){
-      var j = Math.floor(Math.random() * (i + 1));
-      var t = a[i]; a[i] = a[j]; a[j] = t;
-    }
-    return a;
-  }
-  function generate(){
-    var namesA = parseNames(document.getElementById('namesA').value);
-    varnamesB = parseNames(document.getElementById('namesB').value);
-    var validation = document.getElementById('validation');
-    if(namesA.length === 0 && namesB.length === 0){
-      validation.textContent = 'Add at least one name to either side before drawing the bracket.';
-      return;
-    }
-    validation.textContent = '';
-    if(document.getElementById('shuffleChk').checked){
-      namesA = shuffle(namesA);
-      namesB = shuffle(namesB);
-    }
-    var labelA = document.getElementById('labelA').value.trim() || 'Side A';
-    var labelB = document.getElementById('labelB').value.trim() || 'Side B';
-    var title = document.getElementById('tourneyTitle').value.trim() || 'Knockout Draw';
-    var model = build(namesA, namesB, { labelA: labelA, labelB: labelB });
-    if(!model) return;
-    currentModel = model;
-    document.getElementById('sheetTitle').textContent = title;
-    renderModel(model);
-    computePrintScale(model);
-    var resultSection = document.getElementById('resultSection');
-    resultSection.classList.remove('hidden');
-    resultSection.scrollIntoView({ behavior:'smooth', block:'start' });
-  }
-  document.getElementById('namesA').addEventListener('input', updateCounts);
-  document.getElementById('namesB').addEventListener('input', updateCounts);
   document.getElementById('genBtn').addEventListener('click', generate);
   document.getElementById('pageSizeSel').addEventListener('change', function(){
     if(currentModel) computePrintScale(currentModel);
   });
   document.getElementById('exampleBtn').addEventListener('click', function(){
-    var currentTheme = document.getElementById('sportThemeSel').value;
-    if (currentTheme === 'foosball') {
-       document.getElementById('labelA').value = 'Red Strikers';
-       document.getElementById('labelB').value = 'Blue Defenders';
-       document.getElementById('namesA').value = 'Marcus\nLucas\nClara\nOliver\nHannah\nBen\nThomas\nEmily';
-       document.getElementById('namesB').value = 'Matias\nEmma\nSophia\nLeo\nJonas\nAlex\nChris\nZoe';
-       document.getElementById('tourneyTitle').value = 'Foosball Table Showdown';
-    } else if (currentTheme === 'pingpong') {
-       document.getElementById('labelA').value = 'Topspin Master';
-       document.getElementById('labelB').value = 'Backspin Elite';
-       document.getElementById('namesA').value = 'Zheng\nWang\nChen\nLin';
-       document.getElementById('namesB').value = 'Takahashi\nSato\nKim\nLee\nPark';
-       document.getElementById('tourneyTitle').value = 'Ping Pong Club Open';
-    } else {
-       document.getElementById('labelA').value = 'Pencil & Ink';
-       document.getElementById('labelB').value = 'Colour Work';
-       document.getElementById('namesA').value = 'Study no.1\nStudy no.2\nStudy no.3\nStudy no.4\nStudy no.5';
-       document.getElementById('namesB').value = 'Piece A\nPiece B\nPiece C\nPiece D\nPiece E\nPiece F\nPiece G';
-       document.getElementById('tourneyTitle').value = 'Portfolio Knockout';
-    }
+    document.getElementById('label1').value = 'Boys (Left Top)';
+    document.getElementById('label2').value = 'Girls (Left Bot)';
+    document.getElementById('label3').value = 'Boys (Right Top)';
+    document.getElementById('label4').value = 'Girls (Right Bot)';
+    document.getElementById('names1').value = 'Oliver\nJack\nHarry\nCharlie';
+    document.getElementById('names2').value = 'Amelia\nOlivia\nIsla\nAva';
+    document.getElementById('names3').value = 'Thomas\nGeorge\nNoah\nLeo';
+    document.getElementById('names4').value = 'Mia\nEmily\nLily\nElla';
+    document.getElementById('tourneyTitle').value = 'Quadrant Knockout Showcase';
     updateCounts();
     generate();
   });
   document.getElementById('clearBtn').addEventListener('click', function(){
-    document.getElementById('namesA').value = '';
-    document.getElementById('namesB').value = '';
-    document.getElementById('labelA').value = 'Side A';
-    document.getElementById('labelB').value = 'Side B';
+    for(var i=1; i<=4; i++){
+      document.getElementById('names'+i).value = '';
+      document.getElementById('label1').value = 'Quadrant ' + i;
+    }
     document.getElementById('tourneyTitle').value = 'Knockout Draw';
     document.getElementById('shuffleChk').checked = false;
-    document.getElementById('validation').textContent = '';
     updateCounts();
     document.getElementById('resultSection').classList.add('hidden');
   });
   document.getElementById('printBtn').addEventListener('click', function(){
     if(currentModel) computePrintScale(currentModel);
     window.print();
-  });
-  window.addEventListener('beforeprint', function(){
-    if(currentModel) computePrintScale(currentModel);
   });
   updateCounts();
 })();
