@@ -1,0 +1,1031 @@
+---
+layout: default
+title: "Knockout Bracket Generator"
+description: "Generate beautiful wall-chart tournament brackets."
+---﻿
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Draw Sheet — Knockout Bracket Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Rubik+Mono+One&family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Default Classic Paper Theme */
+    --bg-main: linear-gradient(rgba(27,42,65,0.07) 1px, transparent 1px) 0 0/100% 28px, #F4EFE3;
+    --paper:#F4EFE3;
+    --card:#FFFFFF;
+    --ink:#1B2A41;
+    --ink-soft:#5B6577;
+    --ink-faint:#9aa2b1;
+    --accent:#B23A2E;
+    --accent-soft: rgba(178,58,46,0.12);
+    --border: rgba(27,42,65,0.16);
+    --radius: 4px;
+    --font-heading: 'Fraunces', serif;
+    --line-w: 1.4px;
+    --print-page-size: A2 landscape;
+    --bg-graphic: none;
+    --print-line-color: #1B2A41;
+  }
+
+  /* --- SPORT THEMES --- */
+  html[data-theme="foosball"] {
+    --bg-main: radial-gradient(circle, #1e293b 20%, #0f172a 100%); /* Clean Charcoal Slate instead of muddy brown */
+    --paper: #1e4623; 
+    --card: #153319;
+    --ink: #ffffff;
+    --ink-soft: #a3cfa7;
+    --ink-faint: #3c6e42;
+    --accent: #eab308; 
+    --accent-soft: rgba(234, 179, 8, 0.2);
+    --border: #2f5c35;
+    --radius: 0px; 
+    --font-heading: 'Barlow Condensed', sans-serif;
+    --line-w: 2.5px;
+    --print-line-color: #143318;
+    --bg-graphic: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><line x1='50' y1='0' x2='50' y2='100' stroke='rgba(255,255,255,0.15)' stroke-width='1'/><circle cx='50' cy='50' r='15' fill='none' stroke='rgba(255,255,255,0.15)' stroke-width='1'/></svg>");
+  }
+
+  html[data-theme="connect4"] {
+    --bg-main: #111827;
+    --paper: #1e40af; 
+    --card: #0f172a;
+    --ink: #ffffff;
+    --ink-soft: #94a3b8;
+    --ink-faint: #334155;
+    --accent: #ef4444; 
+    --accent-soft: rgba(239, 68, 68, 0.2);
+    --border: #3b82f6;
+    --radius: 20px; 
+    --font-heading: 'Rubik Mono One', sans-serif;
+    --line-w: 3px;
+    --print-line-color: #1e3a8a;
+    --bg-graphic: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'><circle cx='20' cy='20' r='14' fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='2'/></svg>");
+  }
+
+  html[data-theme="pingpong"] {
+    --bg-main: #0f172a;
+    --paper: #0284c7; 
+    --card: #0c4a6e;
+    --ink: #ffffff;
+    --ink-soft: #bae6fd;
+    --ink-faint: #075985;
+    --accent: #f43f5e; 
+    --accent-soft: rgba(244, 63, 94, 0.25);
+    --border: #ffffff; 
+    --radius: 8px;
+    --font-heading: 'Inter', sans-serif;
+    --line-w: 2px;
+    --print-line-color: #0c4a6e;
+    --bg-graphic: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='10'><line x1='0' y1='5' x2='100' y2='5' stroke='rgba(255,255,255,0.2)' stroke-dasharray='2,2' stroke-width='1'/></svg>");
+  }
+ 
+  *{ box-sizing:border-box; }
+ 
+  html,body{
+    margin:0;
+    background: var(--bg-main);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    transition: all 0.3s ease;
+  }
+ 
+  .page{
+    max-width:1180px;
+    margin:0 auto;
+    padding:40px 28px 90px;
+  }
+ 
+  /* ---------- Masthead ---------- */
+  .masthead{
+    border-bottom:3px solid var(--ink);
+    padding-bottom:18px;
+    margin-bottom:30px;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:20px;
+    flex-wrap:wrap;
+  }
+  .masthead h1{
+    font-family: var(--font-heading);
+    font-weight:700;
+    font-size:clamp(28px, 4vw, 42px);
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .masthead .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.14em;
+    color:var(--accent);
+    text-transform:uppercase;
+    margin:0 0 6px;
+  }
+  .masthead .tag{
+    font-size:14px;
+    color:var(--ink-soft);
+    max-width:340px;
+    margin:0;
+  }
+ 
+  /* ---------- Controls ---------- */
+  .setup-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+    margin-bottom:18px;
+  }
+  @media (max-width:720px){ .setup-grid{ grid-template-columns:1fr; } }
+ 
+  .side-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:18px;
+    position:relative;
+  }
+  .side-card::before{
+    content:'';
+    position:absolute;
+    top:0; left:0;
+    width:4px; height:100%;
+    background:var(--accent);
+    border-radius: var(--radius) 0 0 var(--radius);
+  }
+  .side-card.side-b::before{ background:var(--ink); }
+ 
+  .field-label{
+    display:block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .label-input{
+    width:100%;
+    font-family: var(--font-heading);
+    font-weight:600;
+    font-size:20px;
+    border:none;
+    border-bottom:2px solid var(--border);
+    padding:2px 0 6px;
+    margin-bottom:14px;
+    background:transparent;
+    color:var(--ink);
+  }
+  .label-input:focus{ outline:none; border-bottom-color:var(--accent); }
+ 
+  textarea{
+    width:100%;
+    min-height:190px;
+    resize:vertical;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13.5px;
+    line-height:1.7;
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:10px 12px;
+    color:var(--ink);
+    background: rgba(0,0,0,0.02);
+  }
+  textarea:focus{ outline:none; border-color:var(--accent); }
+ 
+  .count{
+    margin-top:8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    color:var(--ink-faint);
+    letter-spacing:0.04em;
+  }
+ 
+  .setup-row{
+    display:grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    align-items: center;
+    gap:18px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:14px 18px;
+    margin-bottom:18px;
+  }
+  @media (max-width: 768px) { .setup-row { grid-template-columns: 1fr; } }
+
+  .setup-row input[type="text"], .setup-row select{
+    width:100%;
+    font-family:'Inter', sans-serif;
+    font-size:14px;
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:8px 10px;
+    background: rgba(0,0,0,0.02);
+    color:var(--ink);
+  }
+  .setup-row input[type="text"]:focus, .setup-row select:focus{ outline:none; border-color:var(--accent); }
+  .check-field{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:13.5px;
+    color:var(--ink-soft);
+    white-space:nowrap;
+  }
+ 
+  .actions{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+ 
+  .btn{
+    font-family:'Inter', sans-serif;
+    font-weight:600;
+    font-size:13.5px;
+    padding:11px 20px;
+    border-radius:var(--radius);
+    border:1px solid var(--ink);
+    cursor:pointer;
+    transition:transform .08s ease;
+  }
+  .btn:active{ transform:translateY(1px); }
+  .btn.primary{ background:var(--ink); color: var(--paper); }
+  .btn.primary:hover { opacity: 0.9; }
+  .btn.ghost{ background:transparent; color:var(--ink); border-color:var(--border); }
+  .btn.ghost:hover{ border-color:var(--ink); }
+ 
+  .hint{
+    font-size:13px;
+    color:var(--accent);
+    min-height:18px;
+    margin:4px 0 0;
+  }
+ 
+  /* ---------- Result / Bracket ---------- */
+  .result{ margin-top:36px; }
+  .result.hidden{ display:none; }
+ 
+  .toolbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  .toolbar-hint{
+    font-size:12.5px;
+    color:var(--ink-faint);
+    max-width:420px;
+  }
+ 
+  #printArea{
+    background: var(--paper);
+    background-image: var(--bg-graphic);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:35px 20px;
+    transition: all 0.3s ease;
+  }
+ 
+  .sheet-header{
+    text-align:center;
+    margin-bottom:18px;
+    padding-bottom:14px;
+    border-bottom:2px solid var(--ink);
+  }
+  .sheet-header h2{
+    font-family: var(--font-heading);
+    font-weight:700;
+    font-size:28px;
+    margin:0 0 4px;
+    display: inline-block;
+  }
+  .sheet-sub{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.18em;
+    color:var(--accent);
+  }
+ 
+  #canvasScroll{
+    overflow-x:auto;
+    padding-bottom:6px;
+  }
+ 
+  #bracketCanvas{
+    position:relative;
+  }
+ 
+  .slot{
+    position:absolute;
+    display:flex;
+    align-items:center;
+    border: var(--line-w) solid var(--ink);
+    border-radius: var(--radius);
+    background:var(--card);
+    font-family:'Inter', sans-serif;
+    font-size:13px;
+    font-weight:500;
+    padding:0 10px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .slot.editable{
+    border-style:dashed;
+    border-color:var(--ink-faint);
+    color:var(--ink);
+    cursor:text;
+  }
+  .slot.editable:empty:before{
+    content: attr(data-placeholder);
+    color:var(--ink-faint);
+    font-style:italic;
+  }
+  .slot.editable:focus{
+    outline:none;
+    border-color:var(--accent);
+    border-style:solid;
+  }
+  .slot.forced{ color:var(--ink-soft); }
+  .slot.champion{
+    border: calc(var(--line-w) * 1.5) solid var(--accent);
+    background:var(--accent-soft);
+    font-weight:700;
+    justify-content:center;
+    text-align:center;
+  }
+  .slot.hidden-bye {
+    display: none !important;
+  }
+ 
+  .seed-el{
+    position:absolute;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    color:var(--ink-faint);
+    text-align:right;
+  }
+ 
+  .spine-el{
+    position:absolute;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--ink);
+    writing-mode:vertical-rl;
+    white-space:nowrap;
+    font-weight:600;
+  }
+  .spine-el.flip{ transform:rotate(180deg); }
+ 
+  svg.lines-layer{
+    position:absolute;
+    top:0; left:0;
+    overflow:visible;
+  }
+  .bracket-line{
+    fill:none;
+    stroke:var(--ink);
+    stroke-width: var(--line-w);
+  }
+
+  /* Dynamic Overrides for Ink Saver Toggle Mode */
+  html[data-print-mode="clean"] #printArea {
+    background: #ffffff !important;
+    background-image: none !important;
+    color: #111827 !important;
+  }
+  html[data-print-mode="clean"] #printArea .sheet-header {
+    border-bottom-color: #111827 !important;
+  }
+  html[data-print-mode="clean"] #printArea .sheet-header h2 {
+    color: #111827 !important;
+  }
+  html[data-print-mode="clean"] #printArea .slot {
+    border: var(--line-w) solid #111827 !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+  html[data-print-mode="clean"] #printArea .bracket-line {
+    stroke: var(--print-line-color) !important;
+  }
+  html[data-print-mode="clean"] #printArea .seed-el, 
+  html[data-print-mode="clean"] #printArea .spine-el {
+    color: #4b5563 !important;
+  }
+ 
+  @media print {
+    @page { 
+      size: var(--print-page-size); 
+      margin: 0 !important; 
+    }
+    html, body {
+      background: var(--bg-main) !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      width: 100%;
+      height: 100%;
+    }
+    html[data-print-mode="clean"], html[data-print-mode="clean"] body {
+      background: #ffffff !important;
+    }
+    .no-print, .masthead, .controls, .toolbar { display:none !important; }
+    .page { max-width:none !important; padding:0 !important; margin:0 !important; width: 100%; height: 100%; }
+    
+    #printArea { 
+      border:none !important; 
+      padding:40px 20px !important; 
+      width: 100%; 
+      height: 100%; 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: center; 
+      align-items: center;
+      box-sizing: border-box; 
+    }
+
+    /* Strict ink saver structural bypass rule rules */
+    html[data-print-mode="clean"] #printArea {
+      background: #ffffff !important;
+      background-image: none !important;
+    }
+    html[data-print-mode="clean"] .slot {
+      border: var(--line-w) solid #111827 !important;
+      background: #ffffff !important;
+      color: #111827 !important;
+    }
+    html[data-print-mode="clean"] .bracket-line {
+      stroke: var(--print-line-color) !important;
+    }
+
+    .sheet-header {
+      width: 100%;
+      margin-bottom: 30px;
+    }
+    #canvasScroll { 
+      overflow:hidden !important; 
+      flex: 1; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      width: 100%;
+    }
+    #printScaleBox {
+      overflow: hidden !important;
+    }
+    #bracketCanvas {
+      transform: scale(var(--print-scale, 1)) !important;
+      transform-origin: top left !important;
+    }
+    .slot.editable { border-style:dashed; background:transparent; }
+    .slot.editable:focus { outline:none; }
+    .slot.editable:empty:before, .slot.champion:empty:before { content: "" !important; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+ 
+  <div class="masthead">
+    <div>
+      <p class="eyebrow" id="mastheadEyebrow">🏆 Tournament Draw Generator</p>
+      <h1 id="mastheadTitle">Draw Sheet</h1>
+    </div>
+    <p class="tag">Enter the names for each side, pick your setup design, then output a styled wall chart.</p>
+  </div>
+ 
+  <section class="controls no-print" id="controls">
+    <div class="setup-grid">
+      <div class="side-card">
+        <span class="field-label">Side A label</span>
+        <input class="label-input" id="labelA" value="Side A" maxlength="40">
+        <span class="field-label">Names — one per line</span>
+        <textarea id="namesA" placeholder="Alice&#10;Bob&#10;Carol&#10;Dave"></textarea>
+        <div class="count" id="countA">0 names</div>
+      </div>
+ 
+      <div class="side-card side-b">
+        <span class="field-label">Side B label</span>
+        <input class="label-input" id="labelB" value="Side B" maxlength="40">
+        <span class="field-label">Names — one per line</span>
+        <textarea id="namesB" placeholder="Erin&#10;Frank&#10;Grace&#10;Heidi"></textarea>
+        <div class="count" id="countB">0 names</div>
+      </div>
+    </div>
+ 
+    <div class="setup-row">
+      <div>
+        <span class="field-label">Tournament title</span>
+        <input type="text" id="tourneyTitle" value="Knockout Draw" maxlength="60">
+      </div>
+      <div>
+        <span class="field-label">Tournament Style</span>
+        <select id="sportThemeSel">
+          <option value="classic" selected>📜 Classic Paper</option>
+          <option value="foosball">⚽ Table Football</option>
+          <option value="connect4">🔵 Connect 4 Game</option>
+          <option value="pingpong">🏓 Ping Pong</option>
+        </select>
+      </div>
+      <div>
+        <span class="field-label">Target Page Size</span>
+        <select id="pageSizeSel">
+          <option value="A4">A4 Size</option>
+          <option value="A3">A3 Size</option>
+          <option value="A2" selected>A2 Poster</option>
+          <option value="A1">A1 Chart</option>
+        </select>
+      </div>
+    </div>
+     
+    <div style="margin-bottom: 18px;">
+       <label class="check-field"><input type="checkbox" id="shuffleChk"> Shuffle order within each side</label>
+    </div>
+ 
+    <div class="actions">
+      <button class="btn primary" id="genBtn">Draw the bracket</button>
+      <button class="btn ghost" id="exampleBtn">Try an example</button>
+      <button class="btn ghost" id="clearBtn">Clear</button>
+    </div>
+    <p class="hint" id="validation"></p>
+  </section>
+ 
+  <section class="result hidden" id="resultSection">
+    <div class="toolbar no-print">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <span class="field-label" style="margin:0;">Print Color Mode:</span>
+        <select id="printModeSel" style="font-size:13px; padding:6px 10px; border-radius:4px; border:1px solid var(--border);">
+          <option value="clean" selected>🍃 Ink Saver (White Background)</option>
+          <option value="full">🎨 Full Color Layout</option>
+        </select>
+      </div>
+      <button class="btn primary" id="printBtn">Print bracket</button>
+    </div>
+    <div id="printArea">
+      <div class="sheet-header">
+        <h2 id="sheetTitle" contenteditable="true">Knockout Draw</h2>
+        <div class="sheet-sub" id="sheetSubTitle">OFFICIAL DRAW SHEET</div>
+      </div>
+      <div id="canvasScroll">
+        <div id="printScaleBox">
+          <div id="bracketCanvas"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+ 
+<script>
+(function(){
+  var BOX_W = 152, BOX_H = 32, COL_GAP = 64, COL_PITCH = BOX_W + COL_GAP, LEAF_PITCH = 46;
+  var SIDE_PAD = 70, TOP_PAD = 50, FINAL_GAP = COL_PITCH * 1.4;
+  var currentModel = null;
+ 
+  var themeConfig = {
+    classic: { eyebrow: "🏆 Tournament Draw Generator", sub: "OFFICIAL DRAW SHEET" },
+    foosball: { eyebrow: "⚽ Table Football Cup Arena", sub: "TABLE FOOTBALL STADIUM BRACKET" },
+    connect4: { eyebrow: "🔵 Connect 4 Tactical Grid", sub: "CONNECT FOUR CHAMPIONSHIP MATRIX" },
+    pingpong: { eyebrow: "🏓 Ping Pong Table Matchup", sub: "TABLE TENNIS PRO TOURNAMENT SHEET" }
+  };
+
+  // Configure print layout visibility mode
+  document.documentElement.setAttribute('data-print-mode', 'clean');
+  document.getElementById('printModeSel').addEventListener('change', function(e) {
+    document.documentElement.setAttribute('data-print-mode', e.target.value);
+  });
+
+  document.getElementById('sportThemeSel').addEventListener('change', function(e) {
+    var val = e.target.value;
+    if (val === 'classic') {
+      document.documentElement.removeAttribute('data-theme');
+    } else {
+      document.documentElement.setAttribute('data-theme', val);
+    }
+    
+    var cfg = themeConfig[val] || themeConfig.classic;
+    document.getElementById('mastheadEyebrow').textContent = cfg.eyebrow;
+    document.getElementById('sheetSubTitle').textContent = cfg.sub;
+    
+    if(currentModel) {
+      renderModel(currentModel);
+      computePrintScale(currentModel);
+    }
+  });
+
+  function buildLeavesDistributed(names){
+    if(names.length === 0) return [];
+    var nextPower = 1;
+    while(nextPower < names.length) nextPower *= 2;
+    if(nextPower < 2) nextPower = 2;
+ 
+    var byes = nextPower - names.length;
+    var totalPairs = nextPower / 2;
+    var leaves = new Array(nextPower);
+    var idx = 0;
+ 
+    for(var i = 0; i < totalPairs; i++){
+      if(i < byes){
+        leaves[2*i] = names[idx++];
+        leaves[2*i+1] = 'BYE';
+      } else {
+        leaves[2*i] = names[idx++];
+        leaves[2*i+1] = names[idx++];
+      }
+    }
+    return leaves;
+  }
+ 
+  function buildLevels(leaves){
+    var levels = [leaves.map(function(v){ return { value: v === 'BYE' ? null : v, isBye: v === 'BYE', hadBye: v === 'BYE' }; })];
+    var prev = levels[0];
+    while(prev.length > 1){
+      var cur = [];
+      for(var i = 0; i < prev.length; i += 2){
+        var a = prev[i], b = prev[i+1];
+        if(a.isBye && b.isBye){ 
+          cur.push({ value:null, isBye:true, hadBye: true }); 
+        } else if(a.isBye){ 
+          cur.push({ value:b.value, isBye:false, forced:true, hadBye: true }); 
+        } else if(b.isBye){ 
+          cur.push({ value:a.value, isBye:false, forced:true, hadBye: true }); 
+        } else { 
+          cur.push({ value:null, isBye:false, hadBye: false }); 
+        }
+      }
+      levels.push(cur);
+      prev = cur;
+    }
+    return levels;
+  }
+ 
+  function sideGeometry(levels, direction, originX, yOffset){
+    var size = levels[0].length;
+    var centersPrev = [];
+    for(var i = 0; i < size; i++) centersPrev.push(i * LEAF_PITCH + LEAF_PITCH/2 + yOffset);
+    var centersByLevel = [centersPrev];
+    for(var lvl = 1; lvl < levels.length; lvl++){
+      var cur = [];
+      for(var j = 0; j < levels[lvl].length; j++) cur.push((centersPrev[2*j] + centersPrev[2*j+1]) / 2);
+      centersByLevel.push(cur);
+      centersPrev = cur;
+    }
+    var boxesByLevel = levels.map(function(lvlArr, lvl){
+      var xLeft = direction === 1 ? originX + lvl * COL_PITCH : originX - lvl * COL_PITCH - BOX_W;
+      return lvlArr.map(function(slot, i){
+        return {
+          x:xLeft, y:centersByLevel[lvl][i] - BOX_H/2, cy:centersByLevel[lvl][i],
+          w:BOX_W, h:BOX_H, slot:slot, level:lvl, index:i
+        };
+      });
+    });
+    return { boxesByLevel:boxesByLevel, totalHeight:size * LEAF_PITCH, rounds:levels.length - 1, width:(levels.length - 1) * COL_PITCH + BOX_W };
+  }
+ 
+  function elbow(p1, p2){
+    var xmid = (p1.x + p2.x) / 2;
+    return 'M ' + p1.x + ' ' + p1.y + ' H ' + xmid + ' V ' + p2.y + ' H ' + p2.x;
+  }
+ 
+  function slotBox(b, opts){
+    var cls = 'slot';
+    var text = '';
+    var editable = false;
+    var placeholder = '';
+ 
+    if(b.slot.isBye){
+      cls += ' bye-slot';
+      text = '';
+    } else if(b.slot.value){
+      text = b.slot.value;
+      if(b.slot.forced){ cls += ' forced'; }
+    } else {
+      editable = true;
+      placeholder = opts.championLevel && b.level === opts.championLevel ? 'Champion' : 'Winner';
+      cls += ' editable';
+    }
+    if(opts.championLevel && b.level === opts.championLevel){ cls += ' champion'; }
+ 
+    return {
+      x:b.x, y:b.y, w:b.w, h:b.h, cls:cls, text:text,
+      editable:editable, placeholder:placeholder
+    };
+  }
+ 
+  function build(namesA, namesB, opts){
+    var leavesA = namesA.length ? buildLeavesDistributed(namesA) : null;
+    var leavesB = namesB.length ? buildLeavesDistributed(namesB) : null;
+    if(!leavesA && !leavesB) return null;
+ 
+    var lines = [];
+    var boxes = [];
+ 
+    function addSeeds(geo, side){
+      geo.boxesByLevel[0].forEach(function(b, i){
+        if(b.slot.isBye) return;
+        
+        var siblingIdx = i % 2 === 0 ? i + 1 : i - 1;
+        var sibling = geo.boxesByLevel[0][siblingIdx];
+        
+        var targetBox = b;
+        if (sibling && sibling.slot.isBye) {
+          var parentIdx = Math.floor(i / 2);
+          targetBox = geo.boxesByLevel[1][parentIdx];
+        }
+        
+        boxes.push({
+          x: side === 'A' ? targetBox.x - 36 : targetBox.x + targetBox.w + 6,
+          y: targetBox.cy - 8, w:22, h:16, cls:'seed-el', text:String(i+1), isLabel:true
+        });
+      });
+    }
+ 
+    function pushSideBoxes(geo, championLevel, isSingle){
+      geo.boxesByLevel.forEach(function(levelArr, lvl){
+        levelArr.forEach(function(b){
+          var rendered = slotBox(b, { championLevel: isSingle ? geo.rounds : null });
+          
+          if (lvl === 0) {
+            var siblingIdx = b.index % 2 === 0 ? b.index + 1 : b.index - 1;
+            var sibling = geo.boxesByLevel[0][siblingIdx];
+            if (b.slot.isBye || (sibling && sibling.slot.isBye)) {
+              rendered.cls += ' hidden-bye';
+            }
+          }
+          boxes.push(rendered);
+        });
+      });
+    }
+ 
+    function pushSideConnectors(geo, direction){
+      for(var lvl = 1; lvl < geo.boxesByLevel.length; lvl++){
+        geo.boxesByLevel[lvl].forEach(function(parent, i){
+          var c1 = geo.boxesByLevel[lvl-1][2*i];
+          var c2 = geo.boxesByLevel[lvl-1][2*i+1];
+          
+          if (lvl === 1 && (c1.slot.isBye || c2.slot.isBye)) {
+            return; 
+          }
+          
+          [c1, c2].forEach(function(child){
+            var childPt = direction === 1 ? { x: child.x + child.w, y: child.cy } : { x: child.x, y: child.cy };
+            var parentPt = direction === 1 ? { x: parent.x, y: parent.cy } : { x: parent.x + parent.w, y: parent.cy };
+            lines.push(elbow(childPt, parentPt));
+          });
+        });
+      }
+    }
+ 
+    if(leavesA && leavesB){
+      var levelsA = buildLevels(leavesA);
+      var levelsB = buildLevels(leavesB);
+      var widthA = (levelsA.length - 1) * COL_PITCH + BOX_W;
+      var widthB = (levelsB.length - 1) * COL_PITCH + BOX_W;
+      var totalWidth = SIDE_PAD * 2 + widthA + widthB + FINAL_GAP;
+ 
+      var heightAraw = leavesA.length * LEAF_PITCH;
+      var heightBraw = leavesB.length * LEAF_PITCH;
+      var maxHeight = Math.max(heightAraw, heightBraw);
+      var offsetA = TOP_PAD + (maxHeight - heightAraw) / 2;
+      var offsetB = TOP_PAD + (maxHeight - heightBraw) / 2;
+      var totalHeight = TOP_PAD * 2 + maxHeight;
+ 
+      var geoA = sideGeometry(levelsA, 1, SIDE_PAD, offsetA);
+      var geoB = sideGeometry(levelsB, -1, totalWidth - SIDE_PAD, offsetB);
+      geoA._yTop = offsetA; geoB._yTop = offsetB;
+ 
+      pushSideBoxes(geoA, null, false);
+      pushSideBoxes(geoB, null, false);
+      pushSideConnectors(geoA, 1);
+      pushSideConnectors(geoB, -1);
+      addSeeds(geoA, 'A');
+      addSeeds(geoB, 'B');
+ 
+      var champA = geoA.boxesByLevel[geoA.boxesByLevel.length - 1][0];
+      var champB = geoB.boxesByLevel[geoB.boxesByLevel.length - 1][0];
+      var finalX = SIDE_PAD + widthA + (FINAL_GAP - BOX_W) / 2;
+      var finalCy = (champA.cy + champB.cy) / 2;
+      var finalBox = { x: finalX, y: finalCy - BOX_H/2, w: BOX_W, h: BOX_H, cy: finalCy };
+ 
+      boxes.push({
+        x: finalBox.x, y: finalBox.y, w: finalBox.w, h: finalBox.h,
+        cls: 'slot champion editable', text:'', editable:true, placeholder:'Champion'
+      });
+ 
+      lines.push(elbow({ x: champA.x + champA.w, y: champA.cy }, { x: finalBox.x, y: finalBox.cy }));
+      lines.push(elbow({ x: champB.x, y: champB.cy }, { x: finalBox.x + finalBox.w, y: finalBox.cy }));
+ 
+      boxes.push({
+        x: SIDE_PAD - 62, y: offsetA + heightAraw/2 - 60, w:20, h:120,
+        cls:'spine-el', text: opts.labelA, isLabel:true, editableText: true
+      });
+      boxes.push({
+        x: totalWidth - SIDE_PAD + 34, y: offsetB + heightBraw/2 - 60, w:20, h:120,
+        cls:'spine-el flip', text: opts.labelB, isLabel:true, editableText: true
+      });
+ 
+      return { totalWidth: totalWidth, totalHeight: totalHeight, lines: lines, boxes: boxes };
+    }
+ 
+    var only = leavesA ? leavesA : leavesB;
+    var onlySideLetter = leavesA ? 'A' : 'B';
+    var onlyLabel = leavesA ? opts.labelA : opts.labelB;
+    var levels = buildLevels(only);
+    var width = (levels.length - 1) * COL_PITCH + BOX_W;
+    var height = only.length * LEAF_PITCH;
+    var totalWidthS = SIDE_PAD * 2 + width;
+    var totalHeightS = TOP_PAD * 2 + height;
+     
+    var geo = sideGeometry(levels, 1, SIDE_PAD, TOP_PAD);
+    geo._yTop = TOP_PAD;
+ 
+    pushSideBoxes(geo, geo.rounds, true);
+    pushSideConnectors(geo, 1);
+    addSeeds(geo, onlySideLetter);
+ 
+    boxes.push({
+      x: SIDE_PAD - 62, y: TOP_PAD + height/2 - 60, w:20, h:120,
+      cls:'spine-el', text: onlyLabel, isLabel:true, editableText: true
+    });
+ 
+    return { totalWidth: totalWidthS, totalHeight: totalHeightS, lines: lines, boxes: boxes };
+  }
+ 
+  function renderModel(model){
+    var canvas = document.getElementById('bracketCanvas');
+    canvas.innerHTML = '';
+    canvas.style.width = model.totalWidth + 'px';
+    canvas.style.height = model.totalHeight + 'px';
+ 
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('class', 'lines-layer');
+    svg.setAttribute('width', model.totalWidth);
+    svg.setAttribute('height', model.totalHeight);
+    model.lines.forEach(function(d){
+      var path = document.createElementNS(svgNS, 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('class', 'bracket-line');
+      svg.appendChild(path);
+    });
+    canvas.appendChild(svg);
+ 
+    model.boxes.forEach(function(b){
+      var el = document.createElement('div');
+      el.className = b.cls;
+      el.style.left = b.x + 'px';
+      el.style.top = b.y + 'px';
+      el.style.width = b.w + 'px';
+      el.style.height = b.h + 'px';
+      if(b.isLabel){
+        if (b.editableText) el.contentEditable = "true";
+        el.style.textAlign = 'center';
+        el.textContent = b.text;
+      } else {
+        if(b.editable){
+          el.contentEditable = 'true';
+          el.setAttribute('data-placeholder', b.placeholder || 'Winner');
+          el.textContent = b.text || '';
+        } else {
+          el.textContent = b.text;
+        }
+      }
+      canvas.appendChild(el);
+    });
+  }
+ 
+  function computePrintScale(model){
+    var sizeMap = {
+      'A4': {w: 1040, h: 680, css: 'A4 landscape'}, 
+      'A3': {w: 1520, h: 1000, css: 'A3 landscape'},
+      'A2': {w: 2160, h: 1440, css: 'A2 landscape'}, 
+      'A1': {w: 3100, h: 2100, css: 'A1 landscape'},
+      'A0': {w: 4400, h: 3000, css: 'A0 landscape'}
+    };
+    var selectedSize = document.getElementById('pageSizeSel').value;
+    var target = sizeMap[selectedSize] || sizeMap['A2'];
+ 
+    document.documentElement.style.setProperty('--print-page-size', target.css);
+ 
+    var scale = Math.min(target.w / model.totalWidth, target.h / model.totalHeight);
+    document.documentElement.style.setProperty('--print-scale', scale);
+     
+    var box = document.getElementById('printScaleBox');
+    box.style.width = (model.totalWidth * scale) + 'px';
+    box.style.height = (model.totalHeight * scale) + 'px';
+  }
+ 
+  function parseNames(text){
+    return text.split('\n').map(function(s){ return s.trim(); }).filter(function(s){ return s.length > 0; });
+  }
+ 
+  function updateCounts(){
+    var a = parseNames(document.getElementById('namesA').value).length;
+    var b = parseNames(document.getElementById('namesB').value).length;
+    document.getElementById('countA').textContent = a + (a === 1 ? ' name' : ' names');
+    document.getElementById('countB').textContent = b + (b === 1 ? ' name' : ' names');
+  }
+ 
+  function shuffle(arr){
+    var a = arr.slice();
+    for(var i = a.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+ 
+  function generate(){
+    var namesA = parseNames(document.getElementById('namesA').value);
+    var namesB = parseNames(document.getElementById('namesB').value);
+    var validation = document.getElementById('validation');
+ 
+    if(namesA.length === 0 && namesB.length === 0){
+      validation.textContent = 'Add at least one name to either side before drawing the bracket.';
+      return;
+    }
+    validation.textContent = '';
+ 
+    if(document.getElementById('shuffleChk').checked){
+      namesA = shuffle(namesA);
+      namesB = shuffle(namesB);
+    }
+ 
+    var labelA = document.getElementById('labelA').value.trim() || 'Side A';
+    var labelB = document.getElementById('labelB').value.trim() || 'Side B';
+    var title = document.getElementById('tourneyTitle').value.trim() || 'Knockout Draw';
+ 
+    var model = build(namesA, namesB, { labelA: labelA, labelB: labelB });
+    if(!model) return;
+    currentModel = model;
+ 
+    document.getElementById('sheetTitle').textContent = title;
+    renderModel(model);
+    computePrintScale(model);
+ 
+    var resultSection = document.getElementById('resultSection');
+    resultSection.classList.remove('hidden');
+    resultSection.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+ 
+  document.getElementById('namesA').addEventListener('input', updateCounts);
+  document.getElementById('namesB').addEventListener('input', updateCounts);
+  document.getElementById('genBtn').addEventListener('click', generate);
+  document.getElementById('pageSizeSel').addEventListener('change', function(){
+    if(currentModel) computePrintScale(currentModel);
+  });
+ 
+  document.getElementById('exampleBtn').addEventListener('click', function(){
+    var currentTheme = document.getElementById('sportThemeSel').value;
+    if (currentTheme === 'foosball') {
+       document.getElementById('labelA').value = 'Red Strikers';
+       document.getElementById('labelB').value = 'Blue Defenders';
+       document.getElementById('namesA').value = 'Marcus\nLucas\nClara\nOliver\nHannah\nBen\nThomas\nEmily';
+       document.getElementById('namesB').value = 'Matias\nEmma\nSophia\nLeo\nJonas\nAlex\nChris\nZoe';
+       document.getElementById('tourneyTitle').value = 'Foosball Table Showdown';
+    } else if (currentTheme === 'pingpong') {
+       document.getElementById('labelA').value = 'Topspin Master';
+       document.getElementById('labelB').value = 'Backspin Elite';
+       document.getElementById('namesA').value = 'Zheng\nWang\nChen\nLin';
+       document.getElementById('namesB').value = 'Takahashi\nSato\nKim\nLee\nPark';
+       document.getElementById('tourneyTitle').value = 'Ping Pong Club Open';
+    } else {
+       document.getElementById('labelA').value = 'Pencil & Ink';
+       document.getElementById('labelB').value = 'Colour Work';
+       document.getElementById('namesA').value = 'Study no.1\nStudy no.2\nStudy no.3\nStudy no.4\nStudy no.5';
+       document.getElementById('namesB').value = 'Piece A\nPiece B\nPiece C\nPiece D\nPiece E\nPiece F\nPiece G';
+       document.getElementById('tourneyTitle').value = 'Portfolio Knockout';
+    }
+    updateCounts();
+    generate();
+  });
+ 
+  document.getElementById('clearBtn').addEventListener('click', function(){
+    document.getElementById('namesA').value = '';
+    document.getElementById('namesB').value = '';
+    document.getElementById('labelA').value = 'Side A';
+    document.getElementById('labelB').value = 'Side B';
+    document.getElementById('tourneyTitle').value = 'Knockout Draw';
+    document.getElementById('shuffleChk').checked = false;
+    document.getElementById('validation').textContent = '';
+    updateCounts();
+    document.getElementById('resultSection').classList.add('hidden');
+  });
+ 
+  document.getElementById('printBtn').addEventListener('click', function(){
+    if(currentModel) computePrintScale(currentModel);
+    window.print();
+  });
+ 
+  window.addEventListener('beforeprint', function(){
+    if(currentModel) computePrintScale(currentModel);
+  });
+  updateCounts();
+})();
+</script>
+</body>
+</html>
