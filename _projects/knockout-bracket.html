@@ -595,21 +595,32 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
     return leaves;
   }
   function buildLevels(leaves){
-    if(leaves.length === 0) return [{ value: null, isBye: true, forced: true }];
-    var levels = [leaves.map(function(v){ return { value: v === 'BYE' ? null : v, isBye: v === 'BYE', forced: false }; })];
+    if(leaves.length === 0) return [{ value: null, isBye: true, forced: true, hadByeSibling: false }];
+    
+    // Check first round siblings for BYEs to hide skipped matches dynamically
+    var initialLevel = [];
+    for(var i=0; i < leaves.length; i++) {
+      var val = leaves[i];
+      var siblingIdx = i % 2 === 0 ? i + 1 : i - 1;
+      var siblingVal = leaves[siblingIdx];
+      var hasByeSibling = (siblingVal === 'BYE');
+      initialLevel.push({ value: val === 'BYE' ? null : val, isBye: val === 'BYE', forced: false, hadByeSibling: hasByeSibling });
+    }
+    
+    var levels = [initialLevel];
     var prev = levels[0];
     while(prev.length > 1){
       var cur = [];
       for(var i = 0; i < prev.length; i += 2){
         var a = prev[i], b = prev[i+1];
         if(a.isBye && b.isBye){ 
-          cur.push({ value:null, isBye:true, forced:true }); 
+          cur.push({ value:null, isBye:true, forced:true, hadByeSibling: false }); 
         } else if(a.isBye){ 
-          cur.push({ value:b.value, isBye:false, forced:true }); 
+          cur.push({ value:b.value, isBye:false, forced:true, hadByeSibling: false }); 
         } else if(b.isBye){ 
-          cur.push({ value:a.value, isBye:false, forced:true }); 
+          cur.push({ value:a.value, isBye:false, forced:true, hadByeSibling: false }); 
         } else { 
-          cur.push({ value:null, isBye:false, forced:false }); 
+          cur.push({ value:null, isBye:false, forced:false, hadByeSibling: false }); 
         }
       }
       levels.push(cur);
@@ -683,7 +694,7 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
     
     var semiBox = {
       x: xSemi, y: semiCy - BOX_H/2, cy: semiCy, w: BOX_W, h: BOX_H,
-      slot: { value: null, isBye: false, forced: false }, level: finalSemiRoundLvl, index: 0, isSemiFinalNode: true
+      slot: { value: null, isBye: false, forced: false, hadByeSibling: false }, level: finalSemiRoundLvl, index: 0, isSemiFinalNode: true
     };
     boxesByLevel[finalSemiRoundLvl].push(semiBox);
     
@@ -702,8 +713,14 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
     if(b.slot.isBye){
       cls += ' bye-slot';
     } else if(b.slot.value){
-      text = b.slot.value;
-      if(b.slot.forced) cls += ' forced';
+      // REVEAL RULE: If it's round 0 and they have a BYE sibling, mask their first box as "Player"
+      if(b.level === 0 && b.slot.hadByeSibling) {
+        text = 'Player';
+        cls += ' forced';
+      } else {
+        text = b.slot.value;
+        if(b.slot.forced) cls += ' forced';
+      }
     } else {
       editable = true;
       if (isSemiFinal) placeholder = 'Semi Winner';
