@@ -6,6 +6,33 @@ permalink: /shop/
 ---
 
 <style>
+    /* ---------- Search Box Styling ---------- */
+    .shop-search-container {
+        margin: 20px 0 40px;
+        display: flex;
+        justify-content: center;
+    }
+    .shop-search-input {
+        width: 100%;
+        max-width: 500px;
+        padding: 14px 20px;
+        font-size: 1rem;
+        font-weight: 600;
+        font-family: inherit;
+        color: #1b2a41;
+        background-color: #ffffff;
+        border: 3px solid #1b2a41;
+        border-radius: 12px;
+        box-shadow: 4px 4px 0px #1b2a41;
+        outline: none;
+        transition: all 0.15s ease;
+    }
+    .shop-search-input:focus {
+        box-shadow: 6px 6px 0px #b23a2e;
+        transform: translate(-2px, -2px);
+    }
+
+    /* ---------- Shop Grid System ---------- */
     .shop-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -85,11 +112,28 @@ permalink: /shop/
         border-color: #b23a2e;
         color: #ffffff;
     }
+
+    /* Message card if query doesn't match items */
+    .shop-no-results {
+        display: none;
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 40px;
+        background: #ffffff;
+        border: 3px dashed #1b2a41;
+        border-radius: 16px;
+        font-weight: 700;
+    }
 </style>
 
-<div class="shop-grid">
+<!-- Clean Search Input Field -->
+<div class="shop-search-container">
+    <input type="text" id="shopSearch" class="shop-search-input" placeholder="🔍 Search items on sale...">
+</div>
+
+<div class="shop-grid" id="shopGrid">
     {% for item in site.items %}
-    <div class="item-card">
+    <div class="item-card shop-item-card">
         <div class="item-img-container">
             <img src="{{ item.image | relative_url }}" alt="{{ item.title }}">
         </div>
@@ -98,8 +142,7 @@ permalink: /shop/
             <h3 class="item-title">{{ item.title }}</h3>
             <p class="item-desc">{{ item.description }}</p>
             
-            <!-- Smart Mail Link: Pre-fills email subject title text instantly -->
-            <a href="mailto:joelcbeattie@gmail.com?subject=Inquiry regarding: {{ item.title | url_encode }}" class="buy-btn">
+            <a href="mailto:joelbeattie654@gmail.com?subject=Inquiry regarding: {{ item.title | url_encode }}" class="buy-btn">
                 Inquire to Buy →
             </a>
         </div>
@@ -110,4 +153,39 @@ permalink: /shop/
         <p>No items listed quite yet. Add a document markdown file to your <code>_items</code> folder to populate the shop shelf.</p>
     </div>
     {% endfor %}
+
+    <div id="shopNoResultsMessage" class="shop-no-results">
+        <h3>No matching products on the shelf 🔍</h3>
+        <p>Try looking for something else!</p>
+    </div>
 </div>
+
+<!-- Instant Filtering Logic -->
+<script>
+    const shopSearchInput = document.getElementById('shopSearch');
+    const itemCards = document.querySelectorAll('.shop-item-card');
+    const shopNoResultsMessage = document.getElementById('shopNoResultsMessage');
+
+    shopSearchInput.addEventListener('input', function(e) {
+        const query = e.target.value.toLowerCase().trim();
+        let matchesFound = false;
+
+        itemCards.forEach(card => {
+            const title = card.querySelector('.item-title').textContent.toLowerCase();
+            const description = card.querySelector('.item-desc').textContent.toLowerCase();
+
+            if (title.includes(query) || description.includes(query)) {
+                card.style.display = 'flex';
+                matchesFound = true;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        if (matchesFound || query === '') {
+            shopNoResultsMessage.style.display = 'none';
+        } else {
+            shopNoResultsMessage.style.display = 'block';
+        }
+    });
+</script>
