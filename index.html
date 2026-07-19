@@ -94,7 +94,6 @@ layout: null
             <h1>Joel Space</h1>
             <div class="subtitle">Creative Portfolio & Interactive Apps</div>
         </header>
-
         <main class="grid">
             {% for project in site.projects %}
             <div class="card">
@@ -103,6 +102,11 @@ layout: null
                     <p>{{ project.description }}</p>
                 </div>
                 <a href="{{ project.url | relative_url }}" class="btn">Launch Project →</a>
+            </div>
+            {% else %}
+            <div class="card" style="grid-column: 1 / -1; text-align: center;">
+                <h3>Looking for projects...</h3>
+                <p>If you see this card, GitHub is still processing your <code>_projects</code> folder. Give it up to two minutes to compile!</p>
             </div>
             {% endfor %}
         </main>
