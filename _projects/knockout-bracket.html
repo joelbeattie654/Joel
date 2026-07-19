@@ -2,7 +2,7 @@
 layout: default
 title: "Knockout Bracket Generator"
 description: "Generate beautiful wall-chart tournament brackets."
----﻿
+---
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,7 +14,6 @@ description: "Generate beautiful wall-chart tournament brackets."
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Rubik+Mono+One&family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    /* Default Classic Paper Theme */
     --bg-main: linear-gradient(rgba(27,42,65,0.07) 1px, transparent 1px) 0 0/100% 28px, #F4EFE3;
     --paper:#F4EFE3;
     --card:#FFFFFF;
@@ -31,10 +30,8 @@ description: "Generate beautiful wall-chart tournament brackets."
     --bg-graphic: none;
     --print-line-color: #1B2A41;
   }
-
-  /* --- SPORT THEMES --- */
   html[data-theme="foosball"] {
-    --bg-main: radial-gradient(circle, #1e293b 20%, #0f172a 100%); /* Clean Charcoal Slate instead of muddy brown */
+    --bg-main: radial-gradient(circle, #1e293b 20%, #0f172a 100%);
     --paper: #1e4623; 
     --card: #153319;
     --ink: #ffffff;
@@ -49,7 +46,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     --print-line-color: #143318;
     --bg-graphic: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><line x1='50' y1='0' x2='50' y2='100' stroke='rgba(255,255,255,0.15)' stroke-width='1'/><circle cx='50' cy='50' r='15' fill='none' stroke='rgba(255,255,255,0.15)' stroke-width='1'/></svg>");
   }
-
   html[data-theme="connect4"] {
     --bg-main: #111827;
     --paper: #1e40af; 
@@ -66,7 +62,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     --print-line-color: #1e3a8a;
     --bg-graphic: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'><circle cx='20' cy='20' r='14' fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='2'/></svg>");
   }
-
   html[data-theme="pingpong"] {
     --bg-main: #0f172a;
     --paper: #0284c7; 
@@ -83,9 +78,7 @@ description: "Generate beautiful wall-chart tournament brackets."
     --print-line-color: #0c4a6e;
     --bg-graphic: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='10'><line x1='0' y1='5' x2='100' y2='5' stroke='rgba(255,255,255,0.2)' stroke-dasharray='2,2' stroke-width='1'/></svg>");
   }
- 
   *{ box-sizing:border-box; }
- 
   html,body{
     margin:0;
     background: var(--bg-main);
@@ -93,14 +86,11 @@ description: "Generate beautiful wall-chart tournament brackets."
     font-family:'Inter', sans-serif;
     transition: all 0.3s ease;
   }
- 
   .page{
     max-width:1180px;
     margin:0 auto;
     padding:40px 28px 90px;
   }
- 
-  /* ---------- Masthead ---------- */
   .masthead{
     border-bottom:3px solid var(--ink);
     padding-bottom:18px;
@@ -132,8 +122,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     max-width:340px;
     margin:0;
   }
- 
-  /* ---------- Controls ---------- */
   .setup-grid{
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -141,7 +129,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     margin-bottom:18px;
   }
   @media (max-width:720px){ .setup-grid{ grid-template-columns:1fr; } }
- 
   .side-card{
     background:var(--card);
     border:1px solid var(--border);
@@ -158,7 +145,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     border-radius: var(--radius) 0 0 var(--radius);
   }
   .side-card.side-b::before{ background:var(--ink); }
- 
   .field-label{
     display:block;
     font-family:'IBM Plex Mono', monospace;
@@ -181,7 +167,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     color:var(--ink);
   }
   .label-input:focus{ outline:none; border-bottom-color:var(--accent); }
- 
   textarea{
     width:100%;
     min-height:190px;
@@ -196,7 +181,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     background: rgba(0,0,0,0.02);
   }
   textarea:focus{ outline:none; border-color:var(--accent); }
- 
   .count{
     margin-top:8px;
     font-family:'IBM Plex Mono', monospace;
@@ -204,7 +188,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     color:var(--ink-faint);
     letter-spacing:0.04em;
   }
- 
   .setup-row{
     display:grid;
     grid-template-columns: 2fr 1fr 1fr;
@@ -217,7 +200,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     margin-bottom:18px;
   }
   @media (max-width: 768px) { .setup-row { grid-template-columns: 1fr; } }
-
   .setup-row input[type="text"], .setup-row select{
     width:100%;
     font-family:'Inter', sans-serif;
@@ -237,9 +219,7 @@ description: "Generate beautiful wall-chart tournament brackets."
     color:var(--ink-soft);
     white-space:nowrap;
   }
- 
   .actions{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
- 
   .btn{
     font-family:'Inter', sans-serif;
     font-weight:600;
@@ -255,18 +235,14 @@ description: "Generate beautiful wall-chart tournament brackets."
   .btn.primary:hover { opacity: 0.9; }
   .btn.ghost{ background:transparent; color:var(--ink); border-color:var(--border); }
   .btn.ghost:hover{ border-color:var(--ink); }
- 
   .hint{
     font-size:13px;
     color:var(--accent);
     min-height:18px;
     margin:4px 0 0;
   }
- 
-  /* ---------- Result / Bracket ---------- */
   .result{ margin-top:36px; }
   .result.hidden{ display:none; }
- 
   .toolbar{
     display:flex;
     align-items:center;
@@ -275,12 +251,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     flex-wrap:wrap;
     margin-bottom:14px;
   }
-  .toolbar-hint{
-    font-size:12.5px;
-    color:var(--ink-faint);
-    max-width:420px;
-  }
- 
   #printArea{
     background: var(--paper);
     background-image: var(--bg-graphic);
@@ -289,7 +259,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     padding:35px 20px;
     transition: all 0.3s ease;
   }
- 
   .sheet-header{
     text-align:center;
     margin-bottom:18px;
@@ -309,16 +278,13 @@ description: "Generate beautiful wall-chart tournament brackets."
     letter-spacing:0.18em;
     color:var(--accent);
   }
- 
   #canvasScroll{
     overflow-x:auto;
     padding-bottom:6px;
   }
- 
   #bracketCanvas{
     position:relative;
   }
- 
   .slot{
     position:absolute;
     display:flex;
@@ -361,7 +327,6 @@ description: "Generate beautiful wall-chart tournament brackets."
   .slot.hidden-bye {
     display: none !important;
   }
- 
   .seed-el{
     position:absolute;
     font-family:'IBM Plex Mono', monospace;
@@ -369,7 +334,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     color:var(--ink-faint);
     text-align:right;
   }
- 
   .spine-el{
     position:absolute;
     font-family:'IBM Plex Mono', monospace;
@@ -382,7 +346,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     font-weight:600;
   }
   .spine-el.flip{ transform:rotate(180deg); }
- 
   svg.lines-layer{
     position:absolute;
     top:0; left:0;
@@ -393,8 +356,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     stroke:var(--ink);
     stroke-width: var(--line-w);
   }
-
-  /* Dynamic Overrides for Ink Saver Toggle Mode */
   html[data-print-mode="clean"] #printArea {
     background: #ffffff !important;
     background-image: none !important;
@@ -418,7 +379,6 @@ description: "Generate beautiful wall-chart tournament brackets."
   html[data-print-mode="clean"] #printArea .spine-el {
     color: #4b5563 !important;
   }
- 
   @media print {
     @page { 
       size: var(--print-page-size); 
@@ -436,7 +396,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     }
     .no-print, .masthead, .controls, .toolbar { display:none !important; }
     .page { max-width:none !important; padding:0 !important; margin:0 !important; width: 100%; height: 100%; }
-    
     #printArea { 
       border:none !important; 
       padding:40px 20px !important; 
@@ -448,8 +407,6 @@ description: "Generate beautiful wall-chart tournament brackets."
       align-items: center;
       box-sizing: border-box; 
     }
-
-    /* Strict ink saver structural bypass rule rules */
     html[data-print-mode="clean"] #printArea {
       background: #ffffff !important;
       background-image: none !important;
@@ -462,7 +419,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     html[data-print-mode="clean"] .bracket-line {
       stroke: var(--print-line-color) !important;
     }
-
     .sheet-header {
       width: 100%;
       margin-bottom: 30px;
@@ -490,7 +446,6 @@ description: "Generate beautiful wall-chart tournament brackets."
 </head>
 <body>
 <div class="page">
- 
   <div class="masthead">
     <div>
       <p class="eyebrow" id="mastheadEyebrow">🏆 Tournament Draw Generator</p>
@@ -498,7 +453,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     </div>
     <p class="tag">Enter the names for each side, pick your setup design, then output a styled wall chart.</p>
   </div>
- 
   <section class="controls no-print" id="controls">
     <div class="setup-grid">
       <div class="side-card">
@@ -508,7 +462,6 @@ description: "Generate beautiful wall-chart tournament brackets."
         <textarea id="namesA" placeholder="Alice&#10;Bob&#10;Carol&#10;Dave"></textarea>
         <div class="count" id="countA">0 names</div>
       </div>
- 
       <div class="side-card side-b">
         <span class="field-label">Side B label</span>
         <input class="label-input" id="labelB" value="Side B" maxlength="40">
@@ -517,7 +470,6 @@ description: "Generate beautiful wall-chart tournament brackets."
         <div class="count" id="countB">0 names</div>
       </div>
     </div>
- 
     <div class="setup-row">
       <div>
         <span class="field-label">Tournament title</span>
@@ -542,11 +494,9 @@ description: "Generate beautiful wall-chart tournament brackets."
         </select>
       </div>
     </div>
-     
     <div style="margin-bottom: 18px;">
        <label class="check-field"><input type="checkbox" id="shuffleChk"> Shuffle order within each side</label>
     </div>
- 
     <div class="actions">
       <button class="btn primary" id="genBtn">Draw the bracket</button>
       <button class="btn ghost" id="exampleBtn">Try an example</button>
@@ -554,7 +504,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     </div>
     <p class="hint" id="validation"></p>
   </section>
- 
   <section class="result hidden" id="resultSection">
     <div class="toolbar no-print">
       <div style="display: flex; align-items: center; gap: 14px;">
@@ -579,26 +528,21 @@ description: "Generate beautiful wall-chart tournament brackets."
     </div>
   </section>
 </div>
- 
 <script>
 (function(){
   var BOX_W = 152, BOX_H = 32, COL_GAP = 64, COL_PITCH = BOX_W + COL_GAP, LEAF_PITCH = 46;
   var SIDE_PAD = 70, TOP_PAD = 50, FINAL_GAP = COL_PITCH * 1.4;
   var currentModel = null;
- 
   var themeConfig = {
     classic: { eyebrow: "🏆 Tournament Draw Generator", sub: "OFFICIAL DRAW SHEET" },
     foosball: { eyebrow: "⚽ Table Football Cup Arena", sub: "TABLE FOOTBALL STADIUM BRACKET" },
     connect4: { eyebrow: "🔵 Connect 4 Tactical Grid", sub: "CONNECT FOUR CHAMPIONSHIP MATRIX" },
     pingpong: { eyebrow: "🏓 Ping Pong Table Matchup", sub: "TABLE TENNIS PRO TOURNAMENT SHEET" }
   };
-
-  // Configure print layout visibility mode
   document.documentElement.setAttribute('data-print-mode', 'clean');
   document.getElementById('printModeSel').addEventListener('change', function(e) {
     document.documentElement.setAttribute('data-print-mode', e.target.value);
   });
-
   document.getElementById('sportThemeSel').addEventListener('change', function(e) {
     var val = e.target.value;
     if (val === 'classic') {
@@ -606,28 +550,23 @@ description: "Generate beautiful wall-chart tournament brackets."
     } else {
       document.documentElement.setAttribute('data-theme', val);
     }
-    
     var cfg = themeConfig[val] || themeConfig.classic;
     document.getElementById('mastheadEyebrow').textContent = cfg.eyebrow;
     document.getElementById('sheetSubTitle').textContent = cfg.sub;
-    
     if(currentModel) {
       renderModel(currentModel);
       computePrintScale(currentModel);
     }
   });
-
   function buildLeavesDistributed(names){
     if(names.length === 0) return [];
     var nextPower = 1;
     while(nextPower < names.length) nextPower *= 2;
     if(nextPower < 2) nextPower = 2;
- 
     var byes = nextPower - names.length;
     var totalPairs = nextPower / 2;
     var leaves = new Array(nextPower);
     var idx = 0;
- 
     for(var i = 0; i < totalPairs; i++){
       if(i < byes){
         leaves[2*i] = names[idx++];
@@ -639,7 +578,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     }
     return leaves;
   }
- 
   function buildLevels(leaves){
     var levels = [leaves.map(function(v){ return { value: v === 'BYE' ? null : v, isBye: v === 'BYE', hadBye: v === 'BYE' }; })];
     var prev = levels[0];
@@ -662,7 +600,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     }
     return levels;
   }
- 
   function sideGeometry(levels, direction, originX, yOffset){
     var size = levels[0].length;
     var centersPrev = [];
@@ -685,18 +622,15 @@ description: "Generate beautiful wall-chart tournament brackets."
     });
     return { boxesByLevel:boxesByLevel, totalHeight:size * LEAF_PITCH, rounds:levels.length - 1, width:(levels.length - 1) * COL_PITCH + BOX_W };
   }
- 
   function elbow(p1, p2){
     var xmid = (p1.x + p2.x) / 2;
     return 'M ' + p1.x + ' ' + p1.y + ' H ' + xmid + ' V ' + p2.y + ' H ' + p2.x;
   }
- 
   function slotBox(b, opts){
     var cls = 'slot';
     var text = '';
     var editable = false;
     var placeholder = '';
- 
     if(b.slot.isBye){
       cls += ' bye-slot';
       text = '';
@@ -709,46 +643,37 @@ description: "Generate beautiful wall-chart tournament brackets."
       cls += ' editable';
     }
     if(opts.championLevel && b.level === opts.championLevel){ cls += ' champion'; }
- 
     return {
       x:b.x, y:b.y, w:b.w, h:b.h, cls:cls, text:text,
       editable:editable, placeholder:placeholder
     };
   }
- 
   function build(namesA, namesB, opts){
     var leavesA = namesA.length ? buildLeavesDistributed(namesA) : null;
     var leavesB = namesB.length ? buildLeavesDistributed(namesB) : null;
     if(!leavesA && !leavesB) return null;
- 
     var lines = [];
     var boxes = [];
- 
     function addSeeds(geo, side){
       geo.boxesByLevel[0].forEach(function(b, i){
         if(b.slot.isBye) return;
-        
         var siblingIdx = i % 2 === 0 ? i + 1 : i - 1;
         var sibling = geo.boxesByLevel[0][siblingIdx];
-        
         var targetBox = b;
         if (sibling && sibling.slot.isBye) {
           var parentIdx = Math.floor(i / 2);
           targetBox = geo.boxesByLevel[1][parentIdx];
         }
-        
         boxes.push({
           x: side === 'A' ? targetBox.x - 36 : targetBox.x + targetBox.w + 6,
           y: targetBox.cy - 8, w:22, h:16, cls:'seed-el', text:String(i+1), isLabel:true
         });
       });
     }
- 
     function pushSideBoxes(geo, championLevel, isSingle){
       geo.boxesByLevel.forEach(function(levelArr, lvl){
         levelArr.forEach(function(b){
           var rendered = slotBox(b, { championLevel: isSingle ? geo.rounds : null });
-          
           if (lvl === 0) {
             var siblingIdx = b.index % 2 === 0 ? b.index + 1 : b.index - 1;
             var sibling = geo.boxesByLevel[0][siblingIdx];
@@ -760,17 +685,14 @@ description: "Generate beautiful wall-chart tournament brackets."
         });
       });
     }
- 
     function pushSideConnectors(geo, direction){
       for(var lvl = 1; lvl < geo.boxesByLevel.length; lvl++){
         geo.boxesByLevel[lvl].forEach(function(parent, i){
           var c1 = geo.boxesByLevel[lvl-1][2*i];
           var c2 = geo.boxesByLevel[lvl-1][2*i+1];
-          
           if (lvl === 1 && (c1.slot.isBye || c2.slot.isBye)) {
             return; 
           }
-          
           [c1, c2].forEach(function(child){
             var childPt = direction === 1 ? { x: child.x + child.w, y: child.cy } : { x: child.x, y: child.cy };
             var parentPt = direction === 1 ? { x: parent.x, y: parent.cy } : { x: parent.x + parent.w, y: parent.cy };
@@ -779,46 +701,38 @@ description: "Generate beautiful wall-chart tournament brackets."
         });
       }
     }
- 
     if(leavesA && leavesB){
       var levelsA = buildLevels(leavesA);
       var levelsB = buildLevels(leavesB);
       var widthA = (levelsA.length - 1) * COL_PITCH + BOX_W;
       var widthB = (levelsB.length - 1) * COL_PITCH + BOX_W;
       var totalWidth = SIDE_PAD * 2 + widthA + widthB + FINAL_GAP;
- 
       var heightAraw = leavesA.length * LEAF_PITCH;
       var heightBraw = leavesB.length * LEAF_PITCH;
       var maxHeight = Math.max(heightAraw, heightBraw);
       var offsetA = TOP_PAD + (maxHeight - heightAraw) / 2;
       var offsetB = TOP_PAD + (maxHeight - heightBraw) / 2;
       var totalHeight = TOP_PAD * 2 + maxHeight;
- 
       var geoA = sideGeometry(levelsA, 1, SIDE_PAD, offsetA);
       var geoB = sideGeometry(levelsB, -1, totalWidth - SIDE_PAD, offsetB);
       geoA._yTop = offsetA; geoB._yTop = offsetB;
- 
       pushSideBoxes(geoA, null, false);
       pushSideBoxes(geoB, null, false);
       pushSideConnectors(geoA, 1);
       pushSideConnectors(geoB, -1);
       addSeeds(geoA, 'A');
       addSeeds(geoB, 'B');
- 
       var champA = geoA.boxesByLevel[geoA.boxesByLevel.length - 1][0];
       var champB = geoB.boxesByLevel[geoB.boxesByLevel.length - 1][0];
       var finalX = SIDE_PAD + widthA + (FINAL_GAP - BOX_W) / 2;
       var finalCy = (champA.cy + champB.cy) / 2;
       var finalBox = { x: finalX, y: finalCy - BOX_H/2, w: BOX_W, h: BOX_H, cy: finalCy };
- 
       boxes.push({
         x: finalBox.x, y: finalBox.y, w: finalBox.w, h: finalBox.h,
         cls: 'slot champion editable', text:'', editable:true, placeholder:'Champion'
       });
- 
       lines.push(elbow({ x: champA.x + champA.w, y: champA.cy }, { x: finalBox.x, y: finalBox.cy }));
       lines.push(elbow({ x: champB.x, y: champB.cy }, { x: finalBox.x + finalBox.w, y: finalBox.cy }));
- 
       boxes.push({
         x: SIDE_PAD - 62, y: offsetA + heightAraw/2 - 60, w:20, h:120,
         cls:'spine-el', text: opts.labelA, isLabel:true, editableText: true
@@ -827,10 +741,8 @@ description: "Generate beautiful wall-chart tournament brackets."
         x: totalWidth - SIDE_PAD + 34, y: offsetB + heightBraw/2 - 60, w:20, h:120,
         cls:'spine-el flip', text: opts.labelB, isLabel:true, editableText: true
       });
- 
       return { totalWidth: totalWidth, totalHeight: totalHeight, lines: lines, boxes: boxes };
     }
- 
     var only = leavesA ? leavesA : leavesB;
     var onlySideLetter = leavesA ? 'A' : 'B';
     var onlyLabel = leavesA ? opts.labelA : opts.labelB;
@@ -839,28 +751,22 @@ description: "Generate beautiful wall-chart tournament brackets."
     var height = only.length * LEAF_PITCH;
     var totalWidthS = SIDE_PAD * 2 + width;
     var totalHeightS = TOP_PAD * 2 + height;
-     
     var geo = sideGeometry(levels, 1, SIDE_PAD, TOP_PAD);
     geo._yTop = TOP_PAD;
- 
     pushSideBoxes(geo, geo.rounds, true);
     pushSideConnectors(geo, 1);
     addSeeds(geo, onlySideLetter);
- 
     boxes.push({
       x: SIDE_PAD - 62, y: TOP_PAD + height/2 - 60, w:20, h:120,
       cls:'spine-el', text: onlyLabel, isLabel:true, editableText: true
     });
- 
     return { totalWidth: totalWidthS, totalHeight: totalHeightS, lines: lines, boxes: boxes };
   }
- 
   function renderModel(model){
     var canvas = document.getElementById('bracketCanvas');
     canvas.innerHTML = '';
     canvas.style.width = model.totalWidth + 'px';
     canvas.style.height = model.totalHeight + 'px';
- 
     var svgNS = 'http://www.w3.org/2000/svg';
     var svg = document.createElementNS(svgNS, 'svg');
     svg.setAttribute('class', 'lines-layer');
@@ -873,7 +779,6 @@ description: "Generate beautiful wall-chart tournament brackets."
       svg.appendChild(path);
     });
     canvas.appendChild(svg);
- 
     model.boxes.forEach(function(b){
       var el = document.createElement('div');
       el.className = b.cls;
@@ -897,7 +802,6 @@ description: "Generate beautiful wall-chart tournament brackets."
       canvas.appendChild(el);
     });
   }
- 
   function computePrintScale(model){
     var sizeMap = {
       'A4': {w: 1040, h: 680, css: 'A4 landscape'}, 
@@ -908,28 +812,22 @@ description: "Generate beautiful wall-chart tournament brackets."
     };
     var selectedSize = document.getElementById('pageSizeSel').value;
     var target = sizeMap[selectedSize] || sizeMap['A2'];
- 
     document.documentElement.style.setProperty('--print-page-size', target.css);
- 
     var scale = Math.min(target.w / model.totalWidth, target.h / model.totalHeight);
     document.documentElement.style.setProperty('--print-scale', scale);
-     
     var box = document.getElementById('printScaleBox');
     box.style.width = (model.totalWidth * scale) + 'px';
     box.style.height = (model.totalHeight * scale) + 'px';
   }
- 
   function parseNames(text){
     return text.split('\n').map(function(s){ return s.trim(); }).filter(function(s){ return s.length > 0; });
   }
- 
   function updateCounts(){
     var a = parseNames(document.getElementById('namesA').value).length;
     var b = parseNames(document.getElementById('namesB').value).length;
     document.getElementById('countA').textContent = a + (a === 1 ? ' name' : ' names');
     document.getElementById('countB').textContent = b + (b === 1 ? ' name' : ' names');
   }
- 
   function shuffle(arr){
     var a = arr.slice();
     for(var i = a.length - 1; i > 0; i--){
@@ -938,47 +836,38 @@ description: "Generate beautiful wall-chart tournament brackets."
     }
     return a;
   }
- 
   function generate(){
     var namesA = parseNames(document.getElementById('namesA').value);
-    var namesB = parseNames(document.getElementById('namesB').value);
+    varnamesB = parseNames(document.getElementById('namesB').value);
     var validation = document.getElementById('validation');
- 
     if(namesA.length === 0 && namesB.length === 0){
       validation.textContent = 'Add at least one name to either side before drawing the bracket.';
       return;
     }
     validation.textContent = '';
- 
     if(document.getElementById('shuffleChk').checked){
       namesA = shuffle(namesA);
       namesB = shuffle(namesB);
     }
- 
     var labelA = document.getElementById('labelA').value.trim() || 'Side A';
     var labelB = document.getElementById('labelB').value.trim() || 'Side B';
     var title = document.getElementById('tourneyTitle').value.trim() || 'Knockout Draw';
- 
     var model = build(namesA, namesB, { labelA: labelA, labelB: labelB });
     if(!model) return;
     currentModel = model;
- 
     document.getElementById('sheetTitle').textContent = title;
     renderModel(model);
     computePrintScale(model);
- 
     var resultSection = document.getElementById('resultSection');
     resultSection.classList.remove('hidden');
     resultSection.scrollIntoView({ behavior:'smooth', block:'start' });
   }
- 
   document.getElementById('namesA').addEventListener('input', updateCounts);
   document.getElementById('namesB').addEventListener('input', updateCounts);
   document.getElementById('genBtn').addEventListener('click', generate);
   document.getElementById('pageSizeSel').addEventListener('change', function(){
     if(currentModel) computePrintScale(currentModel);
   });
- 
   document.getElementById('exampleBtn').addEventListener('click', function(){
     var currentTheme = document.getElementById('sportThemeSel').value;
     if (currentTheme === 'foosball') {
@@ -1003,7 +892,6 @@ description: "Generate beautiful wall-chart tournament brackets."
     updateCounts();
     generate();
   });
- 
   document.getElementById('clearBtn').addEventListener('click', function(){
     document.getElementById('namesA').value = '';
     document.getElementById('namesB').value = '';
@@ -1015,12 +903,10 @@ description: "Generate beautiful wall-chart tournament brackets."
     updateCounts();
     document.getElementById('resultSection').classList.add('hidden');
   });
- 
   document.getElementById('printBtn').addEventListener('click', function(){
     if(currentModel) computePrintScale(currentModel);
     window.print();
   });
- 
   window.addEventListener('beforeprint', function(){
     if(currentModel) computePrintScale(currentModel);
   });
