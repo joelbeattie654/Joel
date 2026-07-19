@@ -595,32 +595,21 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
     return leaves;
   }
   function buildLevels(leaves){
-    if(leaves.length === 0) return [{ value: null, isBye: true, forced: true, hadByeSibling: false }];
-    
-    // Check first round siblings for BYEs to hide skipped matches dynamically
-    var initialLevel = [];
-    for(var i=0; i < leaves.length; i++) {
-      var val = leaves[i];
-      var siblingIdx = i % 2 === 0 ? i + 1 : i - 1;
-      var siblingVal = leaves[siblingIdx];
-      var hasByeSibling = (siblingVal === 'BYE');
-      initialLevel.push({ value: val === 'BYE' ? null : val, isBye: val === 'BYE', forced: false, hadByeSibling: hasByeSibling });
-    }
-    
-    var levels = [initialLevel];
+    if(leaves.length === 0) return [{ value: null, isBye: true, forced: true }];
+    var levels = [leaves.map(function(v){ return { value: v === 'BYE' ? null : v, isBye: v === 'BYE', forced: false }; })];
     var prev = levels[0];
     while(prev.length > 1){
       var cur = [];
       for(var i = 0; i < prev.length; i += 2){
         var a = prev[i], b = prev[i+1];
         if(a.isBye && b.isBye){ 
-          cur.push({ value:null, isBye:true, forced:true, hadByeSibling: false }); 
+          cur.push({ value:null, isBye:true, forced:true }); 
         } else if(a.isBye){ 
-          cur.push({ value:b.value, isBye:false, forced:true, hadByeSibling: false }); 
+          cur.push({ value:b.value, isBye:false, forced:true }); 
         } else if(b.isBye){ 
-          cur.push({ value:a.value, isBye:false, forced:true, hadByeSibling: false }); 
+          cur.push({ value:a.value, isBye:false, forced:true }); 
         } else { 
-          cur.push({ value:null, isBye:false, forced:false, hadByeSibling: false }); 
+          cur.push({ value:null, isBye:false, forced:false }); 
         }
       }
       levels.push(cur);
@@ -694,7 +683,7 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
     
     var semiBox = {
       x: xSemi, y: semiCy - BOX_H/2, cy: semiCy, w: BOX_W, h: BOX_H,
-      slot: { value: null, isBye: false, forced: false, hadByeSibling: false }, level: finalSemiRoundLvl, index: 0, isSemiFinalNode: true
+      slot: { value: null, isBye: false, forced: false }, level: finalSemiRoundLvl, index: 0, isSemiFinalNode: true
     };
     boxesByLevel[finalSemiRoundLvl].push(semiBox);
     
@@ -713,14 +702,8 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
     if(b.slot.isBye){
       cls += ' bye-slot';
     } else if(b.slot.value){
-      // REVEAL RULE: If it's round 0 and they have a BYE sibling, mask their first box as "Player"
-      if(b.level === 0 && b.slot.hadByeSibling) {
-        text = 'Player';
-        cls += ' forced';
-      } else {
-        text = b.slot.value;
-        if(b.slot.forced) cls += ' forced';
-      }
+      text = b.slot.value;
+      if(b.slot.forced) cls += ' forced';
     } else {
       editable = true;
       if (isSemiFinal) placeholder = 'Semi Winner';
@@ -854,10 +837,62 @@ description: "Generate beautiful wall-chart tournament brackets with custom quad
     document.getElementById('sheetTitle').textContent = title;
     renderModel(currentModel);
     computePrintScale(currentModel);
+    
+    // Safely apply mask post-render 
+    applyRound1Mask();
+
     var rSec = document.getElementById('resultSection');
     rSec.classList.remove('hidden');
     rSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+  
+  function applyRound1Mask() {
+    var allSlots = Array.from(document.querySelectorAll('#bracketCanvas .slot'));
+    
+    // Group slots by their horizontal columns (their left coordinates)
+    var columnsMap = {};
+    allSlots.forEach(function(slot) {
+      var x = parseInt(slot.style.left, 10);
+      if (!columnsMap[x]) columnsMap[x] = [];
+      columnsMap[x].push(slot);
+    });
+    
+    var sortedXPositions = Object.keys(columnsMap).map(Number).sort((a,b)=>a-b);
+    if(sortedXPositions.length < 2) return;
+    
+    // Left-most and right-most columns are Round 1 inputs
+    var leftColumnX = sortedXPositions[0];
+    var rightColumnX = sortedXPositions[sortedXPositions.length - 1];
+    
+    function maskColumnIfUncontested(slotsInColumn) {
+      // Sort slots vertically from top to bottom
+      slotsInColumn.sort((a,b) => parseInt(a.style.top,10) - parseInt(b.style.top,10));
+      
+      for(var i=0; i < slotsInColumn.length; i += 2) {
+        var slot1 = slotsInColumn[i];
+        var slot2 = slotsInColumn[i+1];
+        
+        if(slot1 && slot2) {
+          var s1Hidden = slot1.classList.contains('hidden-bye') || slot1.classList.contains('bye-slot');
+          var s2Hidden = slot2.classList.contains('hidden-bye') || slot2.classList.contains('bye-slot');
+          
+          // If one slot is hidden or completely blank due to a BYE, mask the lone remaining player
+          if(s1Hidden && !s2Hidden && slot2.textContent.trim() !== '') {
+            slot2.textContent = 'Player';
+            slot2.classList.add('forced');
+          }
+          if(s2Hidden && !slot1.classList.contains('hidden-bye') && !slot1.classList.contains('bye-slot') && slot1.textContent.trim() !== '') {
+            slot1.textContent = 'Player';
+            slot1.classList.add('forced');
+          }
+        }
+      }
+    }
+    
+    maskColumnIfUncontested(columnsMap[leftColumnX]);
+    maskColumnIfUncontested(columnsMap[rightColumnX]);
+  }
+
   function renderModel(model){
     var cv = document.getElementById('bracketCanvas');
     cv.innerHTML = '';
