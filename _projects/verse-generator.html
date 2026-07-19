@@ -1,0 +1,129 @@
+---
+layout: default
+title: "Daily Verse Generator"
+description: "Fetch live daily Bible verses instantly via API."
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Verse Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            
+            /* Recreates the grid & gradient style from image 1000037323.png */
+            background-color: #f7f4eb;
+            background-image: 
+                linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255,255,255,0.4), rgba(240,225,210,0.3));
+            background-size: 40px 40px, 40px 40px, auto;
+        }
+        
+        .card {
+            background-color: #fcfbf7;
+            border: 3px solid #333;
+            border-radius: 24px;
+            padding: 0;
+            width: 350px; /* Widened to give text breathing room */
+            text-align: center;
+            box-shadow: 8px 8px 0px #555;
+            overflow: hidden;
+        }
+
+        .header-banner {
+            background-color: #0b94bf;
+            color: white;
+            font-size: 28px;
+            font-weight: 900;
+            padding: 15px 0;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-bottom: 3px solid #333;
+        }
+
+        .btn-body {
+            padding: 35px 15px;
+            background: none;
+            border: none;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .btn-text {
+            font-size: 16px; /* Sized down perfectly to prevent tight vertical stacking */
+            font-weight: 800;
+            color: #4a4a4a;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            line-height: 1.4;
+        }
+
+        #verse-container {
+            margin-top: 30px;
+            max-width: 350px;
+            text-align: center;
+            font-size: 18px;
+            color: #333;
+            background-color: rgba(255, 255, 255, 0.85);
+            border: 2px solid #333;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 4px 4px 0px #555;
+            display: none; /* Hidden until clicked */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Main Button Container -->
+    <div class="card">
+        <button class="btn-body" onclick="getVerse()">
+            <div class="header-banner">CLICK</div>
+            <div style="height: 20px;"></div>
+            <!-- All text on one line without breaks to let it space naturally -->
+            <div class="btn-text">GENERATE VERSE OF THE DAY</div>
+        </button>
+    </div>
+
+    <!-- Live Verse Display Box -->
+    <div id="verse-container"></div>
+
+    <script>
+        function getVerse() {
+            const container = document.getElementById('verse-container');
+            container.style.display = "block";
+            container.innerText = "Loading script...";
+            
+            /* Grabs the official curated daily verse */
+            fetch('https://labs.bible.org/api/?passage=votd&type=json&formatting=plain')
+                .then(response => response.json())
+                .then(data => {
+                    const verse = data[0];
+                    const searchClean = encodeURIComponent(`${verse.bookname} ${verse.chapter}`);
+                    const contextLink = `https://www.biblegateway.com/passage/?search=${searchClean}&version=NET`;
+
+                    container.innerHTML = `
+                        <strong>${verse.bookname} ${verse.chapter}:${verse.verse}</strong><br><br>
+                        "${verse.text}"<br><br>
+                        <a href="${contextLink}" target="_blank" style="display:inline-block; margin-top:5px; color:#0b94bf; font-size:14px; font-weight:bold; text-decoration:none;">
+                            📖 Read Full Chapter →
+                        </a>
+                    `;
+                })
+                .catch(error => {
+                    container.innerText = "Oops! Couldn't load the verse. Try again.";
+                });
+        }
+    </script>
+
+</body>
+</html>
