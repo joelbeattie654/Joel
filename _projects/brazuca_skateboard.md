@@ -10,5 +10,4 @@ The world cup logo has been edited on
 
 <img src="{{ '/images/skateboard.jpg' | relative_url }}" alt="Brazuca Surfskate" style="max-width: 400px; width: 100%; border-radius: 12px; display: block; margin: 20px 0;">
 
-available to buy 
-<a href"https://joelbeattie654.github.io/Joel/shop/>at the shop</a>
+available to buy [at the shop](https://joelbeattie654.github.io/Joel/shop/)
