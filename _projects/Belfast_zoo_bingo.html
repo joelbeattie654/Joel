@@ -15,6 +15,7 @@ description: "Photo bingo game for Belfast zoo"
             --safari-gold: #f4b41a;
             --wild-white: #f7f9f6;
             --dark-beast: #1c281a;
+            --danger-red: #b32d2d;
         }
 
         body {
@@ -77,6 +78,7 @@ description: "Photo bingo game for Belfast zoo"
         button:active { transform: scale(0.98); }
         button.secondary { background-color: #4a6b45; }
         button.action-btn { background-color: var(--safari-gold); color: var(--dark-beast); }
+        button.danger-btn { background-color: var(--danger-red); color: white; }
         button:disabled { background-color: #cccccc; cursor: not-allowed; }
 
         .btn-group { display: flex; gap: 10px; justify-content: center; }
@@ -188,7 +190,8 @@ description: "Photo bingo game for Belfast zoo"
             <button id="startBtn" onclick="startAdventure()">🐾 Start Safari</button>
             <button id="finishBtn" onclick="finishAdventure()" class="action-btn" disabled>🏁 Finish & Flex</button>
         </div>
-        <button onclick="generateNewSheet()" class="secondary" id="regenBtn">🔄 Regenerate Sheet (Resets Progress)</button>
+        <button onclick="generateNewSheet()" class="secondary" id="regenBtn">🔄 Swap Out Items</button>
+        <button onclick="wipeEverything()" class="danger-btn" id="wipeBtn">🚨 Nuke & Reset Everything</button>
     </div>
 
     <div class="grid" id="bingoGrid"></div>
@@ -232,7 +235,6 @@ description: "Photo bingo game for Belfast zoo"
         let startTime = null;
         let timerInterval = null;
 
-        // Offline Safety: Load everything from LocalStorage if it exists
         window.onload = function() {
             if (localStorage.getItem('zoo_bingo_criteria')) {
                 currentCriteria = JSON.parse(localStorage.getItem('zoo_bingo_criteria'));
@@ -245,23 +247,52 @@ description: "Photo bingo game for Belfast zoo"
                     document.getElementById('startBtn').disabled = true;
                     document.getElementById('finishBtn').disabled = false;
                     startTimerInterval();
+                } else {
+                    // If there's criteria but no start time, calculate absolute elapsed if needed, otherwise just render
+                    updateTimerDisplay(0);
                 }
                 renderGrid();
                 renderRandomGallery();
             } else {
-                generateNewSheet();
+                initialSheetGeneration();
             }
         };
 
+        function initialSheetGeneration() {
+            let shuffled = [...criteriaPool].sort(() => 0.5 - Math.random());
+            currentCriteria = shuffled.slice(0, 8);
+            uploadedImages = {};
+            localStorage.setItem('zoo_bingo_criteria', JSON.stringify(currentCriteria));
+            renderGrid();
+        }
+
         function generateNewSheet() {
-            if (confirm("Are you shore? This will delete your current progress! Don't seal your fate early.")) {
-                // Shuffle pool
+            if (confirm("Swap out your current board tiles? Your uploaded photos will be removed!")) {
                 let shuffled = [...criteriaPool].sort(() => 0.5 - Math.random());
-                currentCriteria = shuffled.slice(0, 8); // 4x2 grid fits best on mobile viewports
+                currentCriteria = shuffled.slice(0, 8);
                 uploadedImages = {};
                 localStorage.setItem('zoo_bingo_criteria', JSON.stringify(currentCriteria));
                 localStorage.removeItem('zoo_bingo_images');
                 renderGrid();
+            }
+        }
+
+        function wipeEverything() {
+            if (confirm("Are you absolute shore? This will delete ALL photos, wipe the random gallery, and RESET the timer back to zero!")) {
+                clearInterval(timerInterval);
+                localStorage.clear();
+                
+                uploadedImages = {};
+                randomImages = [];
+                startTime = null;
+                
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('finishBtn').disabled = true;
+                document.getElementById('timer').innerText = "00:00:00";
+                document.getElementById('collageSection').style.display = 'none';
+                
+                document.getElementById('randomGallery').innerHTML = '';
+                initialSheetGeneration();
             }
         }
 
@@ -322,7 +353,6 @@ description: "Photo bingo game for Belfast zoo"
             });
         }
 
-        // Robust Timer Logic that survives crashes/signal drops
         function startAdventure() {
             startTime = Date.now();
             localStorage.setItem('zoo_bingo_start', startTime);
@@ -334,11 +364,15 @@ description: "Photo bingo game for Belfast zoo"
         function startTimerInterval() {
             timerInterval = setInterval(() => {
                 const diff = Date.now() - startTime;
-                const hrs = Math.floor(diff / 3600000).toString().padStart(2, '0');
-                const mins = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
-                const secs = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
-                document.getElementById('timer').innerText = `${hrs}:${mins}:${secs}`;
+                updateTimerDisplay(diff);
             }, 1000);
+        }
+
+        function updateTimerDisplay(diff) {
+            const hrs = Math.floor(diff / 3600000).toString().padStart(2, '0');
+            const mins = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
+            const secs = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+            document.getElementById('timer').innerText = `${hrs}:${mins}:${secs}`;
         }
 
         function finishAdventure() {
@@ -347,14 +381,12 @@ description: "Photo bingo game for Belfast zoo"
             document.getElementById('finalTimeScore').innerText = `⏱️ Completion Time: ${finalTimeStr} - Absolutely owl-standing!`;
             document.getElementById('collageSection').style.display = 'block';
             
-            // Generate the collages
             buildCollage('postCanvas', 1080, 1080, finalTimeStr);
             buildCollage('storyCanvas', 1080, 1920, finalTimeStr);
             
             document.getElementById('collageSection').scrollIntoView({ behavior: 'smooth' });
         }
 
-        // Canvas Engine to construct stunning Social assets offline
         function buildCollage(canvasId, width, height, timeText) {
             const canvas = document.getElementById(canvasId);
             canvas.width = width;
@@ -362,16 +394,13 @@ description: "Photo bingo game for Belfast zoo"
             canvas.style.display = 'block';
             const ctx = canvas.getContext('2d');
 
-            // Draw Background Jungle Color
             ctx.fillStyle = "#2d5a27";
             ctx.fillRect(0, 0, width, height);
 
-            // Draw Decorative Safari Accents
             ctx.fillStyle = "#f4b41a";
             ctx.fillRect(0, 0, width, 40);
             ctx.fillRect(0, height - 50, width, 50);
 
-            // Header Text
             ctx.fillStyle = "#ffffff";
             ctx.font = `bold ${width * 0.05}px sans-serif`;
             ctx.textAlign = "center";
@@ -381,7 +410,6 @@ description: "Photo bingo game for Belfast zoo"
             ctx.font = `italic ${width * 0.035}px sans-serif`;
             ctx.fillText(`⏱️ Track Time: ${timeText} | Certified Wild`, width / 2, height * 0.12);
 
-            // Collect all images available
             let imagesToDraw = Object.values(uploadedImages).concat(randomImages);
             if(imagesToDraw.length === 0) {
                 ctx.fillStyle = "#ffffff";
@@ -390,7 +418,6 @@ description: "Photo bingo game for Belfast zoo"
                 return;
             }
 
-            // Collage configuration depending on layout
             let startY = height * 0.18;
             let availableHeight = height * 0.75;
             let cols = width === 1080 && height === 1080 ? 3 : 2; 
@@ -399,7 +426,7 @@ description: "Photo bingo game for Belfast zoo"
             let gap = 15;
             let boxW = (width - (gap * (cols + 1))) / cols;
             let boxH = (availableHeight - (gap * (rows + 1))) / rows;
-            if(boxH > boxW * 1.3) boxH = boxW * 1.3; // Lock dynamic aspect distortion
+            if(boxH > boxW * 1.3) boxH = boxW * 1.3;
 
             let loadedCount = 0;
             imagesToDraw.forEach((src, idx) => {
@@ -411,7 +438,6 @@ description: "Photo bingo game for Belfast zoo"
                     let x = gap + col * (boxW + gap);
                     let y = startY + gap + row * (boxH + gap);
 
-                    // Math for scaling object-fit: cover inside canvas context
                     let imgW = img.width;
                     let imgH = img.height;
                     let aspect = imgW / imgH;
@@ -430,7 +456,6 @@ description: "Photo bingo game for Belfast zoo"
                         sy = (imgH - sh) / 2;
                     }
 
-                    // Draw image border / container card
                     ctx.fillStyle = "#ffffff";
                     ctx.fillRect(x - 4, y - 4, boxW + 8, boxH + 8);
                     ctx.drawImage(img, sx, sy, sw, sh, x, y, boxW, boxH);
@@ -450,3 +475,4 @@ description: "Photo bingo game for Belfast zoo"
     </script>
 </body>
 </html>
+
