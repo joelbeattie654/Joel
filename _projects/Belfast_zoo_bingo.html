@@ -11,188 +11,192 @@ description: "Photo bingo game for Belfast zoo"
     <title>Belfast Zoo Photo Bingo</title>
     <style>
         :root {
-            --jungle-green: #2d5a27;
-            --safari-gold: #f4b41a;
-            --wild-white: #f7f9f6;
-            --dark-beast: #1c281a;
-            --danger-red: #b32d2d;
+            --jungle: #1e3f20;
+            --mint: #eef5ee;
+            --accent: #dca11d;
+            --card-bg: #ffffff;
+            --text-main: #2b3a2b;
+            --text-muted: #6b7c6b;
+            --danger: #d94343;
+            --shadow: 0 4px 12px rgba(0,0,0,0.05);
+            --radius: 16px;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--wild-white);
-            color: var(--dark-beast);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f4;
+            color: var(--text-main);
             margin: 0;
-            padding: 15px;
-            text-align: center;
+            padding: 16px;
+            -webkit-font-smoothing: antialiased;
         }
 
         header {
-            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1534567153574-2b12153a87f0?auto=format&fit=crop&w=500&q=80');
-            background-size: cover;
-            background-position: center;
+            background: linear-gradient(135deg, var(--jungle), #2a522c);
             color: white;
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 24px 16px;
+            border-radius: var(--radius);
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
         }
 
-        h1 { margin: 0; font-size: 1.8rem; text-transform: uppercase; letter-spacing: 1px;}
-        p.tagline { font-style: italic; margin: 5px 0 0 0; color: var(--safari-gold); }
+        h1 { margin: 0; font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; }
+        .tagline { margin: 6px 0 0 0; font-size: 0.9rem; color: var(--accent); opacity: 0.95; font-weight: 500; }
 
-        .controls, .feature-section {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 20px;
-            background: white;
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        .panel {
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: var(--radius);
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(0,0,0,0.02);
         }
 
         .timer-display {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--jungle-green);
-            font-family: monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--jungle);
+            font-variant-numeric: tabular-nums;
+            margin-bottom: 12px;
+        }
+
+        .btn-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
         }
 
         button {
-            background-color: var(--jungle-green);
+            background-color: var(--jungle);
             color: white;
             border: none;
-            padding: 12px 20px;
-            font-size: 1rem;
-            font-weight: bold;
-            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 12px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 6px;
         }
 
-        button:active { transform: scale(0.98); }
-        button.secondary { background-color: #4a6b45; }
-        button.action-btn { background-color: var(--safari-gold); color: var(--dark-beast); }
-        button.danger-btn { background-color: var(--danger-red); color: white; }
-        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        button:active { transform: scale(0.97); }
+        button.secondary { background-color: var(--mint); color: var(--jungle); }
+        button.action { background-color: var(--accent); color: white; }
+        button.danger { background-color: transparent; color: var(--danger); font-size: 0.85rem; padding: 6px; }
 
-        .btn-group { display: flex; gap: 10px; justify-content: center; }
-
-        .team-photo-box {
-            border: 3px dashed var(--safari-gold);
-            background: #fffdf3;
+        .team-box {
+            background: var(--mint);
+            border: 2px dashed rgba(30, 63, 32, 0.2);
             padding: 12px;
-            border-radius: 10px;
+            border-radius: 12px;
             cursor: pointer;
+            margin: 12px 0;
+            font-size: 0.9rem;
         }
-        .team-photo-preview {
+        .team-box strong { color: var(--jungle); display: block; margin-bottom: 2px;}
+        .team-preview {
             width: 100%;
-            height: 140px;
+            height: 120px;
             object-fit: cover;
-            border-radius: 6px;
+            border-radius: 8px;
             margin-top: 8px;
             display: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
         }
 
         #boothCameraView {
             width: 100%;
-            max-width: 400px;
-            height: auto;
-            border-radius: 8px;
-            background: #000;
+            max-width: 320px;
+            border-radius: 12px;
             display: none;
             margin: 10px auto;
             transform: scaleX(-1);
         }
-        .countdown-overlay {
-            font-size: 3rem;
-            font-weight: bold;
-            color: var(--safari-gold);
-            margin: 5px 0;
+        .countdown {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--accent);
             display: none;
         }
-        .booth-strip-canvas {
-            max-width: 200px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            border-radius: 4px;
-            margin: 15px auto;
+        .strip-preview {
+            max-width: 160px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             display: none;
+            margin: 12px auto;
         }
 
         .grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 12px;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .bingo-box {
-            background: white;
-            border: 3px solid var(--jungle-green);
-            border-radius: 12px;
-            padding: 8px;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 10px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
             align-items: center;
-            position: relative;
-            min-height: 140px;
-            overflow: hidden;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.05);
+            justify-content: space-between;
+            min-height: 150px;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: border 0.2s ease;
+            border: 2px solid transparent;
+        }
+        .bingo-box.completed {
+            border-color: var(--accent);
         }
 
-        .bingo-box.completed { border-color: var(--safari-gold); background-color: #fffdf3; }
-
-        .image-container {
+        .img-slot {
             width: 100%;
-            height: 90px;
-            border-radius: 6px;
+            height: 95px;
+            border-radius: 10px;
             overflow: hidden;
-            background: #eee;
+            background: var(--mint);
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
+        }
+        .img-slot img { width: 100%; height: 100%; object-fit: cover; }
+        .img-slot span { font-size: 1.8rem; opacity: 0.4; }
+
+        .box-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-main);
+            line-height: 1.2;
+            text-align: center;
         }
 
-        .image-container img { width: 100%; height: 100%; object-fit: cover; }
-        .placeholder-icon { font-size: 2rem; color: #aaa; }
-        .box-text { font-size: 0.8rem; font-weight: 600; color: var(--dark-beast); text-align: center; }
         .file-input { display: none; }
 
-        .random-section {
-            background: white;
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            border: 2px dashed var(--jungle-green);
-        }
-
-        .random-gallery {
+        .gallery {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
+            gap: 6px;
             margin-top: 10px;
         }
+        .gallery img { width: 100%; height: 65px; object-fit: cover; border-radius: 8px; }
 
-        .random-gallery img { width: 100%; height: 75px; object-fit: cover; border-radius: 6px; }
-
-        .collage-section {
+        .results {
             display: none;
-            background: white;
+            background: var(--card-bg);
             padding: 20px;
-            border-radius: 12px;
-            margin-top: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
         }
+        .results h2 { margin-top: 0; color: var(--jungle); }
 
-        .main-canvas { display: none; max-width: 100%; height: auto; border-radius: 8px; margin-top: 10px; }
-        .download-zone { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+        .output-canvas { display: none; max-width: 100%; height: auto; border-radius: 12px; margin: 12px 0; box-shadow: var(--shadow); }
     </style>
 </head>
 <body>
@@ -202,56 +206,55 @@ description: "Photo bingo game for Belfast zoo"
         <p class="tagline">Stop monkeying around and beat your mate!</p>
     </header>
 
-    <div class="controls">
+    <div class="panel">
         <div class="timer-display" id="timer">00:00:00</div>
-        <div class="btn-group">
+        <div class="btn-row">
             <button id="startBtn" onclick="startAdventure()">🐾 Start Safari</button>
-            <button id="finishBtn" onclick="finishAdventure()" class="action-btn" disabled>🏁 Finish & Flex</button>
+            <button id="finishBtn" onclick="finishAdventure()" class="action" disabled>🏁 Finish & Flex</button>
         </div>
         
-        <div class="team-photo-box" onclick="document.getElementById('teamPhotoInput').click()">
-            <strong>📸 Primary Squad / Team Photo</strong>
-            <p style="font-size:0.8rem; margin:4px 0;">This anchors the dead center of your final collages!</p>
+        <div class="team-box" onclick="document.getElementById('teamPhotoInput').click()">
+            <strong>📸 Team / Squad Photo</strong>
+            <span style="font-size:0.75rem; color: var(--text-muted);">Anchors the center of final layouts</span>
             <input type="file" id="teamPhotoInput" class="file-input" accept="image/*" onchange="uploadTeamPhoto(this)">
-            <img id="teamPhotoPreview" class="team-photo-preview" src="" alt="Team preview">
+            <img id="teamPhotoPreview" class="team-preview" src="" alt="Team preview">
         </div>
 
-        <button onclick="generateNewSheet()" class="secondary" id="regenBtn">🔄 Swap Out Items</button>
-        <button onclick="wipeEverything()" class="danger-btn" id="wipeBtn">🚨 Nuke & Reset Everything</button>
+        <div class="btn-row" style="margin-top: 10px;">
+            <button onclick="generateNewSheet()" class="secondary">🔄 Swap Tiles</button>
+            <button onclick="wipeEverything()" class="danger">🚨 Wipe All Data</button>
+        </div>
     </div>
 
-    <div class="feature-section">
-        <h3>🐒 Cave Hill Retro Photo Booth</h3>
-        <p style="font-size: 0.85rem; margin-top:-5px;">Takes 3 photos automatically (5s apart) into a classic printed strip layout!</p>
-        <button onclick="startPhotoBooth()" class="action-btn" id="boothBtn">📸 Launch Photo Booth</button>
-        <div class="countdown-overlay" id="boothCountdown">3</div>
+    <div class="panel">
+        <h3 style="margin: 0 0 4px 0; font-size: 1.05rem;">🐒 Cave Hill Photo Booth</h3>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 10px 0;">Snaps 3 quick pictures automatically</p>
+        <button onclick="startPhotoBooth()" class="secondary" id="boothBtn" style="width: 100%;">📸 Launch Booth</button>
+        <div class="countdown" id="boothCountdown">3</div>
         <video id="boothCameraView" autoplay playsinline></video>
-        <canvas id="boothStripCanvas" class="booth-strip-canvas"></canvas>
-        <button id="downloadStripBtn" onclick="downloadCanvas('boothStripCanvas', 'Belfast_Zoo_Booth_Strip.png')" style="display:none; margin: 10px auto; background-color:#1c281a;">💾 Download Strips</button>
+        <canvas id="boothStripCanvas" class="strip-preview"></canvas>
+        <button id="downloadStripBtn" onclick="downloadCanvas('boothStripCanvas', 'Belfast_Zoo_Booth_Strip.png')" style="display:none; width:100%; margin-top:10px;">💾 Download Strip</button>
     </div>
 
     <div class="grid" id="bingoGrid"></div>
 
-    <div class="random-section">
-        <h3>📸 Koala-ty Snapshots</h3>
-        <p style="font-size: 0.85rem; margin-top:-5px;">Upload random wild moments from your day here!</p>
-        <button onclick="document.getElementById('randomInput').click()" class="secondary">➕ Add Random Pic</button>
+    <div class="panel">
+        <h3 style="margin: 0 0 4px 0; font-size: 1.05rem;">📸 Snapshots Gallery</h3>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 10px 0;">Drop extra casual/funny pics from your day here</p>
+        <button onclick="document.getElementById('randomInput').click()" class="secondary" style="width: 100%;">➕ Add Extra Picture</button>
         <input type="file" id="randomInput" class="file-input" accept="image/*" onchange="uploadRandom(this)">
-        <div class="random-gallery" id="randomGallery"></div>
+        <div class="gallery" id="randomGallery"></div>
     </div>
 
-    <div class="collage-section" id="collageSection">
-        <h2>🏆 Triumphant Results!</h2>
-        <p id="finalTimeScore"></p>
-        <p>Your custom bragging assets are generated below. Un-bear-able excellence!</p>
+    <div class="results" id="collageSection">
+        <h2>🏆 Safari Completed!</h2>
+        <p id="finalTimeScore" style="font-weight:600; color:var(--text-muted);"></p>
         
-        <div class="download-zone">
-            <button onclick="downloadCanvas('postCanvas', 'Insta_Post_Bingo.png')">📱 Download Instagram Post (1:1)</button>
-            <canvas id="postCanvas" class="main-canvas"></canvas>
-            
-            <button onclick="downloadCanvas('storyCanvas', 'Insta_Story_Bingo.png')">🤳 Download Instagram Story (9:16)</button>
-            <canvas id="storyCanvas" class="main-canvas"></canvas>
-        </div>
+        <button onclick="downloadCanvas('postCanvas', 'Insta_Post_Bingo.png')" style="width: 100%; margin-bottom: 8px;">📱 Download Square Post (1:1)</button>
+        <canvas id="postCanvas" class="output-canvas"></canvas>
+        
+        <button onclick="downloadCanvas('storyCanvas', 'Insta_Story_Bingo.png')" style="width: 100%;">Lunar Story (9:16)</button>
+        <canvas id="storyCanvas" class="output-canvas"></canvas>
     </div>
 
     <script>
@@ -319,7 +322,7 @@ description: "Photo bingo game for Belfast zoo"
         }
 
         function wipeEverything() {
-            if (confirm("Are you absolute shore? This will delete ALL photos, wipe the random gallery, and RESET the timer back to zero!")) {
+            if (confirm("Are you sure? This will delete all photos, wipe galleries, and reset the timer back to zero!")) {
                 clearInterval(timerInterval);
                 localStorage.clear();
                 uploadedImages = {};
@@ -360,14 +363,14 @@ description: "Photo bingo game for Belfast zoo"
                 box.className = `bingo-box ${isDone ? 'completed' : ''}`;
                 box.onclick = () => document.getElementById(`file-${index}`).click();
                 
-                let mediaHtml = `<div class="image-container"><span class="placeholder-icon">📸</span></div>`;
+                let mediaHtml = `<div class="img-slot"><span>📷</span></div>`;
                 if (isDone) {
-                    mediaHtml = `<div class="image-container"><img src="${uploadedImages[index]}" alt="Zoo snap"></div>`;
+                    mediaHtml = `<div class="img-slot"><img src="${uploadedImages[index]}" alt="Zoo snap"></div>`;
                 }
 
                 box.innerHTML = `
                     ${mediaHtml}
-                    <div class="box-text">${text}</div>
+                    <div class="box-label">${text}</div>
                     <input type="file" id="file-${index}" class="file-input" accept="image/*" onchange="uploadBoxImage(this, ${index})">
                 `;
                 grid.appendChild(box);
@@ -472,7 +475,7 @@ description: "Photo bingo game for Belfast zoo"
             boothSnaps.push(hiddenCanvas.toDataURL('image/png'));
         }
 
-        function buildPhotoStrip() {
+                function buildPhotoStrip() {
             const canvas = document.getElementById('boothStripCanvas');
             canvas.style.display = "block";
             document.getElementById('downloadStripBtn').style.display = "block";
@@ -521,7 +524,7 @@ description: "Photo bingo game for Belfast zoo"
         function finishAdventure() {
             clearInterval(timerInterval);
             const finalTimeStr = document.getElementById('timer').innerText;
-            document.getElementById('finalTimeScore').innerText = `⏱️ Completion Time: ${finalTimeStr} - Absolutely owl-standing!`;
+            document.getElementById('finalTimeScore').innerText = `⏱️ Time: ${finalTimeStr} - Absolutely owl-standing!`;
             document.getElementById('collageSection').style.display = 'block';
             
             buildStructuredCollage('postCanvas', 1080, 1080, finalTimeStr);
@@ -555,7 +558,6 @@ description: "Photo bingo game for Belfast zoo"
 
             let allPhotos = Object.values(uploadedImages).concat(randomImages);
 
-            // Clean background layout setup
             let gridCols = width === 1080 && height === 1080 ? 3 : 2; 
             let gridRows = width === 1080 && height === 1080 ? 3 : 4; 
 
@@ -591,7 +593,6 @@ description: "Photo bingo game for Belfast zoo"
 
                 let currentGridIndex = 0;
 
-                // 1. Draw all standard user items into background slots seamlessly
                 for (let r = 0; r < gridRows; r++) {
                     for (let c = 0; c < gridCols; c++) {
                         let x = gap + c * (boxW + gap);
@@ -604,19 +605,13 @@ description: "Photo bingo game for Belfast zoo"
                     }
                 }
 
-                // 2. Overlay Team Frame directly on top in the exact center of canvas viewport
                 if (teamImgObj) {
                     let teamImg = teamImgObj.img;
-                    
-                    // Center calculations for the whole canvas template area
                     let centerY = startY + (availableHeight / 2);
                     let centerX = width / 2;
-                    
-                    // Fixed aspect size constraints for the floating badge layout
                     let targetW = width * 0.55;
                     let targetH = targetW * (teamImg.height / teamImg.width);
 
-                    // Clamp check if picture height stretches too long vertically
                     if (targetH > availableHeight * 0.4) {
                         targetH = availableHeight * 0.4;
                         targetW = targetH * (teamImg.width / teamImg.height);
@@ -625,23 +620,18 @@ description: "Photo bingo game for Belfast zoo"
                     let frameX = centerX - (targetW / 2);
                     let frameY = centerY - (targetH / 2) - 15;
 
-                    // Draw golden card background base shadow
                     ctx.fillStyle = "rgba(0,0,0,0.4)";
                     ctx.fillRect(frameX - 6, frameY - 6, targetW + 16, targetH + 36);
 
-                    // White Polaroid Board Outer Layout Frame
                     ctx.fillStyle = "#ffffff";
                     ctx.fillRect(frameX - 10, frameY - 10, targetW + 20, targetH + 40);
 
-                    // Safari Border accent stroke line outline
                     ctx.strokeStyle = "#f4b41a";
                     ctx.lineWidth = 4;
                     ctx.strokeRect(frameX - 10, frameY - 10, targetW + 20, targetH + 40);
 
-                    // Draw clean original aspect landscape team asset directly inside frame
                     ctx.drawImage(teamImg, frameX, frameY, targetW, targetH);
                     
-                    // Bottom Caption Tagging Text Block line row
                     ctx.fillStyle = "#1c281a";
                     ctx.font = `bold ${width * 0.026}px sans-serif`;
                     ctx.textAlign = "center";
