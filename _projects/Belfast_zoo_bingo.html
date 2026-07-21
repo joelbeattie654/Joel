@@ -41,7 +41,7 @@ description: "Photo bingo game for Belfast zoo"
         h1 { margin: 0; font-size: 1.8rem; text-transform: uppercase; letter-spacing: 1px;}
         p.tagline { font-style: italic; margin: 5px 0 0 0; color: var(--safari-gold); }
 
-        .controls {
+        .controls, .feature-section {
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -83,6 +83,48 @@ description: "Photo bingo game for Belfast zoo"
 
         .btn-group { display: flex; gap: 10px; justify-content: center; }
 
+        .team-photo-box {
+            border: 3px dashed var(--safari-gold);
+            background: #fffdf3;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .team-photo-preview {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        /* Booth System UI */
+        #boothCameraView {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            border-radius: 8px;
+            background: #000;
+            display: none;
+            margin: 10px auto;
+            transform: scaleX(-1); /* Mirror view for selfies */
+        }
+        .countdown-overlay {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--safari-gold);
+            margin: 5px 0;
+            display: none;
+        }
+        .booth-strip-canvas {
+            max-width: 200px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            border-radius: 4px;
+            margin: 15px auto;
+            display: none;
+        }
+
         .grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -119,21 +161,9 @@ description: "Photo bingo game for Belfast zoo"
             margin-bottom: 6px;
         }
 
-        .image-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
+        .image-container img { width: 100%; height: 100%; object-fit: cover; }
         .placeholder-icon { font-size: 2rem; color: #aaa; }
-
-        .box-text {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: var(--dark-beast);
-            text-align: center;
-        }
-
+        .box-text { font-size: 0.8rem; font-weight: 600; color: var(--dark-beast); text-align: center; }
         .file-input { display: none; }
 
         .random-section {
@@ -151,12 +181,7 @@ description: "Photo bingo game for Belfast zoo"
             margin-top: 10px;
         }
 
-        .random-gallery img {
-            width: 100%;
-            height: 50px;
-            object-fit: cover;
-            border-radius: 4px;
-        }
+        .random-gallery img { width: 100%; height: 50px; object-fit: cover; border-radius: 4px; }
 
         .collage-section {
             display: none;
@@ -167,14 +192,8 @@ description: "Photo bingo game for Belfast zoo"
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
-        canvas { display: none; max-width: 100%; height: auto; border-radius: 8px; margin-top: 10px;}
-
-        .download-zone {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 15px;
-        }
+        .main-canvas { display: none; max-width: 100%; height: auto; border-radius: 8px; margin-top: 10px; }
+        .download-zone { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
     </style>
 </head>
 <body>
@@ -190,8 +209,28 @@ description: "Photo bingo game for Belfast zoo"
             <button id="startBtn" onclick="startAdventure()">🐾 Start Safari</button>
             <button id="finishBtn" onclick="finishAdventure()" class="action-btn" disabled>🏁 Finish & Flex</button>
         </div>
+        
+        <!-- Team Photo Block -->
+        <div class="team-photo-box" onclick="document.getElementById('teamPhotoInput').click()">
+            <strong>📸 Primary Squad / Team Photo</strong>
+            <p style="font-size:0.8rem; margin:4px 0;">This anchors the dead center of your final collages!</p>
+            <input type="file" id="teamPhotoInput" class="file-input" accept="image/*" onchange="uploadTeamPhoto(this)">
+            <img id="teamPhotoPreview" class="team-photo-preview" src="" alt="Team preview">
+        </div>
+
         <button onclick="generateNewSheet()" class="secondary" id="regenBtn">🔄 Swap Out Items</button>
         <button onclick="wipeEverything()" class="danger-btn" id="wipeBtn">🚨 Nuke & Reset Everything</button>
+    </div>
+
+    <!-- Retro 3-Shot Photo Booth Section -->
+    <div class="feature-section">
+        <h3>🐒 Cave Hill Retro Photo Booth</h3>
+        <p style="font-size: 0.85rem; margin-top:-5px;">Takes 3 photos automatically (5s apart) into a classic printed strip layout!</p>
+        <button onclick="startPhotoBooth()" class="action-btn" id="boothBtn">📸 Launch Photo Booth</button>
+        <div class="countdown-overlay" id="boothCountdown">3</div>
+        <video id="boothCameraView" autoplay playsinline></video>
+        <canvas id="boothStripCanvas" class="booth-strip-canvas"></canvas>
+        <button id="downloadStripBtn" onclick="downloadCanvas('boothStripCanvas', 'Belfast_Zoo_Booth_Strip.png')" style="display:none; margin: 10px auto; background-color:#1c281a;">💾 Download Strips</button>
     </div>
 
     <div class="grid" id="bingoGrid"></div>
@@ -211,10 +250,10 @@ description: "Photo bingo game for Belfast zoo"
         
         <div class="download-zone">
             <button onclick="downloadCanvas('postCanvas', 'Insta_Post_Bingo.png')">📱 Download Instagram Post (1:1)</button>
-            <canvas id="postCanvas"></canvas>
+            <canvas id="postCanvas" class="main-canvas"></canvas>
             
             <button onclick="downloadCanvas('storyCanvas', 'Insta_Story_Bingo.png')">🤳 Download Instagram Story (9:16)</button>
-            <canvas id="storyCanvas"></canvas>
+            <canvas id="storyCanvas" class="main-canvas"></canvas>
         </div>
     </div>
 
@@ -232,14 +271,17 @@ description: "Photo bingo game for Belfast zoo"
         let currentCriteria = [];
         let uploadedImages = {};
         let randomImages = [];
+        let teamPhoto = null;
         let startTime = null;
         let timerInterval = null;
+        let boothSnaps = [];
 
         window.onload = function() {
             if (localStorage.getItem('zoo_bingo_criteria')) {
                 currentCriteria = JSON.parse(localStorage.getItem('zoo_bingo_criteria'));
                 uploadedImages = JSON.parse(localStorage.getItem('zoo_bingo_images') || '{}');
                 randomImages = JSON.parse(localStorage.getItem('zoo_bingo_random') || '[]');
+                teamPhoto = localStorage.getItem('zoo_bingo_team') || null;
                 startTime = localStorage.getItem('zoo_bingo_start');
                 
                 if (startTime) {
@@ -247,9 +289,11 @@ description: "Photo bingo game for Belfast zoo"
                     document.getElementById('startBtn').disabled = true;
                     document.getElementById('finishBtn').disabled = false;
                     startTimerInterval();
-                } else {
-                    // If there's criteria but no start time, calculate absolute elapsed if needed, otherwise just render
-                    updateTimerDisplay(0);
+                }
+                if (teamPhoto) {
+                    const img = document.getElementById('teamPhotoPreview');
+                    img.src = teamPhoto;
+                    img.style.display = 'block';
                 }
                 renderGrid();
                 renderRandomGallery();
@@ -281,18 +325,32 @@ description: "Photo bingo game for Belfast zoo"
             if (confirm("Are you absolute shore? This will delete ALL photos, wipe the random gallery, and RESET the timer back to zero!")) {
                 clearInterval(timerInterval);
                 localStorage.clear();
-                
                 uploadedImages = {};
                 randomImages = [];
+                teamPhoto = null;
                 startTime = null;
                 
                 document.getElementById('startBtn').disabled = false;
                 document.getElementById('finishBtn').disabled = true;
                 document.getElementById('timer').innerText = "00:00:00";
                 document.getElementById('collageSection').style.display = 'none';
-                
+                document.getElementById('teamPhotoPreview').style.display = 'none';
                 document.getElementById('randomGallery').innerHTML = '';
                 initialSheetGeneration();
+            }
+        }
+
+        function uploadTeamPhoto(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    teamPhoto = e.target.result;
+                    localStorage.setItem('zoo_bingo_team', teamPhoto);
+                    const img = document.getElementById('teamPhotoPreview');
+                    img.src = teamPhoto;
+                    img.style.display = 'block';
+                }
+                reader.readAsDataURL(input.files[0]);
             }
         }
 
@@ -364,15 +422,109 @@ description: "Photo bingo game for Belfast zoo"
         function startTimerInterval() {
             timerInterval = setInterval(() => {
                 const diff = Date.now() - startTime;
-                updateTimerDisplay(diff);
+                const hrs = Math.floor(diff / 3600000).toString().padStart(2, '0');
+                const mins = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
+                const secs = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+                document.getElementById('timer').innerText = `${hrs}:${mins}:${secs}`;
             }, 1000);
         }
 
-        function updateTimerDisplay(diff) {
-            const hrs = Math.floor(diff / 3600000).toString().padStart(2, '0');
-            const mins = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
-            const secs = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
-            document.getElementById('timer').innerText = `${hrs}:${mins}:${secs}`;
+        /* 📸 Photo Booth System Engine */
+        async function startPhotoBooth() {
+            const video = document.getElementById('boothCameraView');
+            const countdown = document.getElementById('boothCountdown');
+            const btn = document.getElementById('boothBtn');
+            boothSnaps = [];
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+                video.srcObject = stream;
+                video.style.display = "block";
+                countdown.style.display = "block";
+                btn.disabled = true;
+
+                for (let i = 0; i < 3; i++) {
+                    // 3 Sec count down loop
+                    for (let count = 3; count > 0; count--) {
+                        countdown.innerText = `📸 Snap ${i+1} in: ${count}`;
+                        await new Promise(r => setTimeout(r, 1000));
+                    }
+                    countdown.innerText = "SMILE! 🧀";
+                    captureBoothFrame(video);
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+
+                // Cleanup hardware threads
+                stream.getTracks().forEach(track => track.stop());
+                video.style.display = "none";
+                countdown.style.display = "none";
+                btn.disabled = false;
+                
+                buildPhotoStrip();
+            } catch (err) {
+                alert("Camera access denied or unsupported on this device. Make sure HTTPS/localhost is active!");
+                btn.disabled = false;
+            }
+        }
+
+        function captureBoothFrame(video) {
+            const hiddenCanvas = document.createElement('canvas');
+            hiddenCanvas.width = video.videoWidth || 640;
+            hiddenCanvas.height = video.videoHeight || 480;
+            const ctx = hiddenCanvas.getContext('2d');
+            // Mirror image processing to look like a retail booth shell
+            ctx.translate(hiddenCanvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
+            boothSnaps.push(hiddenCanvas.toDataURL('image/png'));
+        }
+
+        function buildPhotoStrip() {
+            const canvas = document.getElementById('boothStripCanvas');
+            canvas.style.display = "block";
+            document.getElementById('downloadStripBtn').style.display = "block";
+            const ctx = canvas.getContext('2d');
+
+            const w = 400;
+            const itemH = 300;
+            const borderPadding = 20;
+            const middleGaps = 15;
+            const footerH = 90;
+
+            canvas.width = w;
+            canvas.height = (borderPadding * 2) + (itemH * 3) + (middleGaps * 2) + footerH;
+
+            // Draw vintage photo card background
+            ctx.fillStyle = "#faf6ee"; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            let loadedCount = 0;
+            boothSnaps.forEach((src, idx) => {
+                const img = new Image();
+                img.src = src;
+                img.onload = function() {
+                    let x = borderPadding;
+                    let y = borderPadding + idx * (itemH + middleGaps);
+
+                    // Render inner borders
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(x - 4, y - 4, w - (borderPadding * 2) + 8, itemH + 8);
+                    ctx.drawImage(img, x, y, w - (borderPadding * 2), itemH);
+                    
+                    loadedCount++;
+                    if(loadedCount === 3) {
+                        // Render Branding Details on bottom area
+                        ctx.fillStyle = "#2d5a27";
+                        ctx.font = "bold 20px sans-serif";
+                        ctx.textAlign = "center";
+                        ctx.fillText("BELFAST ZOO PHOTO BOOTH", w / 2, canvas.height - 50);
+                        
+                        ctx.fillStyle = "#f4b41a";
+                        ctx.font = "italic 15px sans-serif";
+                        ctx.fillText("🐾 Wild Times on Cave Hill 🐾", w / 2, canvas.height - 25);
+                    }
+                }
+            });
         }
 
         function finishAdventure() {
@@ -411,58 +563,87 @@ description: "Photo bingo game for Belfast zoo"
             ctx.fillText(`⏱️ Track Time: ${timeText} | Certified Wild`, width / 2, height * 0.12);
 
             let imagesToDraw = Object.values(uploadedImages).concat(randomImages);
-            if(imagesToDraw.length === 0) {
-                ctx.fillStyle = "#ffffff";
-                ctx.font = "30px sans-serif";
-                ctx.fillText("No photos uploaded! A purr-fectly empty sheet.", width / 2, height / 2);
-                return;
-            }
 
             let startY = height * 0.18;
             let availableHeight = height * 0.75;
             let cols = width === 1080 && height === 1080 ? 3 : 2; 
-            let rows = Math.ceil(imagesToDraw.length / cols);
+            let rows = Math.max(3, Math.ceil((imagesToDraw.length + 1) / cols));
             
             let gap = 15;
             let boxW = (width - (gap * (cols + 1))) / cols;
             let boxH = (availableHeight - (gap * (rows + 1))) / rows;
             if(boxH > boxW * 1.3) boxH = boxW * 1.3;
 
-            let loadedCount = 0;
+            // Render out standard Grid slots
             imagesToDraw.forEach((src, idx) => {
+                let positionIndex = idx >= Math.floor((rows*cols)/2) ? idx + 1 : idx; // Skip middle position
+                let col = positionIndex % cols;
+                let row = Math.floor(positionIndex / cols);
+                if(row >= rows) return;
+
                 const img = new Image();
                 img.src = src;
                 img.onload = function() {
-                    let col = idx % cols;
-                    let row = Math.floor(idx / cols);
                     let x = gap + col * (boxW + gap);
                     let y = startY + gap + row * (boxH + gap);
-
-                    let imgW = img.width;
-                    let imgH = img.height;
-                    let aspect = imgW / imgH;
-                    let boxAspect = boxW / boxH;
-                    let sx, sy, sw, sh;
-
-                    if (aspect > boxAspect) {
-                        sh = imgH;
-                        sw = imgH * boxAspect;
-                        sx = (imgW - sw) / 2;
-                        sy = 0;
-                    } else {
-                        sw = imgW;
-                        sh = imgW / boxAspect;
-                        sx = 0;
-                        sy = (imgH - sh) / 2;
-                    }
-
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(x - 4, y - 4, boxW + 8, boxH + 8);
-                    ctx.drawImage(img, sx, sy, sw, sh, x, y, boxW, boxH);
-
-                    loadedCount++;
+                    drawCoverImage(ctx, img, x, y, boxW, boxH);
                 };
             });
+
+            // Draw the Hero Center Team Photo Section
+            if (teamPhoto) {
+                const teamImg = new Image();
+                teamImg.src = teamPhoto;
+                teamImg.onload = function() {
+                    let centerCol = Math.floor(cols / 2);
+                    let centerRow = Math.floor(rows / 2);
+                    let x = gap + centerCol * (boxW + gap);
+                    let y = startY + gap + centerRow * (boxH + gap);
+                    
+                    // Scale it up significantly larger than the surrounding grid boxes
+                    let scaleMultiplier = 1.2;
+                    let heroW = boxW * scaleMultiplier;
+                    let heroH = boxH * scaleMultiplier;
+                    let offsetW = (heroW - boxW) / 2;
+                    let offsetH = (heroH - boxH) / 2;
+
+                    ctx.fillStyle = "#f4b41a"; // Golden frame outline
+                    ctx.fillRect(x - offsetW - 8, y - offsetH - 8, heroW + 16, heroH + 16);
+                    
+                    drawCoverImage(ctx, teamImg, x - offsetW, y - offsetH, heroW, heroH);
+                    
+                    // Mini Squad Tag Overlay
+                    ctx.fillStyle = "rgba(0,0,0,0.6)";
+                    ctx.fillRect(x - offsetW, y - offsetH + heroH - 30, heroW, 30);
+                    ctx.fillStyle = "#ffffff";
+                    ctx.font = `bold ${width * 0.025}px sans-serif`;
+                    ctx.fillText("👑 THE SQUAD", (x - offsetW) + (heroW/2), (y - offsetH + heroH - 10));
+                };
+            }
+        }
+
+        function drawCoverImage(ctx, img, x, y, w, h) {
+            let imgW = img.width;
+            let imgH = img.height;
+            let aspect = imgW / imgH;
+            let boxAspect = w / h;
+            let sx, sy, sw, sh;
+
+            if (aspect > boxAspect) {
+                sh = imgH;
+                sw = imgH * boxAspect;
+                sx = (imgW - sw) / 2;
+                sy = 0;
+            } else {
+                sw = imgW;
+                sh = imgW / boxAspect;
+                sx = 0;
+                sy = (imgH - sh) / 2;
+            }
+
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(x - 4, y - 4, w + 8, h + 8);
+            ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
         }
 
         function downloadCanvas(canvasId, filename) {
@@ -475,4 +656,3 @@ description: "Photo bingo game for Belfast zoo"
     </script>
 </body>
 </html>
-
