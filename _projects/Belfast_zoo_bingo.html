@@ -1,0 +1,452 @@
+---
+layout: app
+title: "Pass the Parcel 3000 Machine"
+description: "The ultimate automatic musical game companion."
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Belfast Zoo Photo Bingo</title>
+    <style>
+        :root {
+            --jungle-green: #2d5a27;
+            --safari-gold: #f4b41a;
+            --wild-white: #f7f9f6;
+            --dark-beast: #1c281a;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--wild-white);
+            color: var(--dark-beast);
+            margin: 0;
+            padding: 15px;
+            text-align: center;
+        }
+
+        header {
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1534567153574-2b12153a87f0?auto=format&fit=crop&w=500&q=80');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        h1 { margin: 0; font-size: 1.8rem; text-transform: uppercase; letter-spacing: 1px;}
+        p.tagline { font-style: italic; margin: 5px 0 0 0; color: var(--safari-gold); }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .timer-display {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--jungle-green);
+            font-family: monospace;
+        }
+
+        button {
+            background-color: var(--jungle-green);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:active { transform: scale(0.98); }
+        button.secondary { background-color: #4a6b45; }
+        button.action-btn { background-color: var(--safari-gold); color: var(--dark-beast); }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+
+        .btn-group { display: flex; gap: 10px; justify-content: center; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .bingo-box {
+            background: white;
+            border: 3px solid var(--jungle-green);
+            border-radius: 12px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            min-height: 140px;
+            overflow: hidden;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.05);
+        }
+
+        .bingo-box.completed { border-color: var(--safari-gold); background-color: #fffdf3; }
+
+        .image-container {
+            width: 100%;
+            height: 90px;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 6px;
+        }
+
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .placeholder-icon { font-size: 2rem; color: #aaa; }
+
+        .box-text {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--dark-beast);
+            text-align: center;
+        }
+
+        .file-input { display: none; }
+
+        .random-section {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 2px dashed var(--jungle-green);
+        }
+
+        .random-gallery {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .random-gallery img {
+            width: 100%;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .collage-section {
+            display: none;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        canvas { display: none; max-width: 100%; height: auto; border-radius: 8px; margin-top: 10px;}
+
+        .download-zone {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Belfast Zoo-per Bingo</h1>
+        <p class="tagline">Stop monkeying around and beat your mate!</p>
+    </header>
+
+    <div class="controls">
+        <div class="timer-display" id="timer">00:00:00</div>
+        <div class="btn-group">
+            <button id="startBtn" onclick="startAdventure()">🐾 Start Safari</button>
+            <button id="finishBtn" onclick="finishAdventure()" class="action-btn" disabled>🏁 Finish & Flex</button>
+        </div>
+        <button onclick="generateNewSheet()" class="secondary" id="regenBtn">🔄 Regenerate Sheet (Resets Progress)</button>
+    </div>
+
+    <div class="grid" id="bingoGrid"></div>
+
+    <div class="random-section">
+        <h3>📸 Koala-ty Snapshots</h3>
+        <p style="font-size: 0.85rem; margin-top:-5px;">Upload random wild moments from your day here!</p>
+        <button onclick="document.getElementById('randomInput').click()" class="secondary">➕ Add Random Pic</button>
+        <input type="file" id="randomInput" class="file-input" accept="image/*" onchange="uploadRandom(this)">
+        <div class="random-gallery" id="randomGallery"></div>
+    </div>
+
+    <div class="collage-section" id="collageSection">
+        <h2>🏆 Triumphant Results!</h2>
+        <p id="finalTimeScore"></p>
+        <p>Your custom bragging assets are generated below. Un-bear-able excellence!</p>
+        
+        <div class="download-zone">
+            <button onclick="downloadCanvas('postCanvas', 'Insta_Post_Bingo.png')">📱 Download Instagram Post (1:1)</button>
+            <canvas id="postCanvas"></canvas>
+            
+            <button onclick="downloadCanvas('storyCanvas', 'Insta_Story_Bingo.png')">🤳 Download Instagram Story (9:16)</button>
+            <canvas id="storyCanvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const criteriaPool = [
+            "Animal giving pure side-eye", "Sleeping in a ridiculous position", "Meerkat scout on tip-toes",
+            "A bird ruining a nice shot", "Monkey swinging or showing off", "Animal caught mid-snack",
+            "Animal acting like your mate", "Panoramic view of Belfast Lough", "Sea lion zooming underwater",
+            "Human toddler throwing a fit", "Adult wearing heels/slides on the hill", "Animal ignoring warning sign",
+            "Animal opening jaw in giant yawn", "Enclosure where animal is invisible", "Animal staring right into lens",
+            "Two animals doing the same thing", "Elephant doing absolutely nothing", "Giraffe looking elegantly stupid",
+            "Highly overpriced zoo snack", "A sign featuring an egregious pun"
+        ];
+
+        let currentCriteria = [];
+        let uploadedImages = {};
+        let randomImages = [];
+        let startTime = null;
+        let timerInterval = null;
+
+        // Offline Safety: Load everything from LocalStorage if it exists
+        window.onload = function() {
+            if (localStorage.getItem('zoo_bingo_criteria')) {
+                currentCriteria = JSON.parse(localStorage.getItem('zoo_bingo_criteria'));
+                uploadedImages = JSON.parse(localStorage.getItem('zoo_bingo_images') || '{}');
+                randomImages = JSON.parse(localStorage.getItem('zoo_bingo_random') || '[]');
+                startTime = localStorage.getItem('zoo_bingo_start');
+                
+                if (startTime) {
+                    startTime = parseInt(startTime);
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('finishBtn').disabled = false;
+                    startTimerInterval();
+                }
+                renderGrid();
+                renderRandomGallery();
+            } else {
+                generateNewSheet();
+            }
+        };
+
+        function generateNewSheet() {
+            if (confirm("Are you shore? This will delete your current progress! Don't seal your fate early.")) {
+                // Shuffle pool
+                let shuffled = [...criteriaPool].sort(() => 0.5 - Math.random());
+                currentCriteria = shuffled.slice(0, 8); // 4x2 grid fits best on mobile viewports
+                uploadedImages = {};
+                localStorage.setItem('zoo_bingo_criteria', JSON.stringify(currentCriteria));
+                localStorage.removeItem('zoo_bingo_images');
+                renderGrid();
+            }
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('bingoGrid');
+            grid.innerHTML = '';
+            currentCriteria.forEach((text, index) => {
+                const isDone = uploadedImages[index];
+                const box = document.createElement('div');
+                box.className = `bingo-box ${isDone ? 'completed' : ''}`;
+                box.onclick = () => document.getElementById(`file-${index}`).click();
+                
+                let mediaHtml = `<div class="image-container"><span class="placeholder-icon">📸</span></div>`;
+                if (isDone) {
+                    mediaHtml = `<div class="image-container"><img src="${uploadedImages[index]}" alt="Zoo snap"></div>`;
+                }
+
+                box.innerHTML = `
+                    ${mediaHtml}
+                    <div class="box-text">${text}</div>
+                    <input type="file" id="file-${index}" class="file-input" accept="image/*" onchange="uploadBoxImage(this, ${index})">
+                `;
+                grid.appendChild(box);
+            });
+        }
+
+        function uploadBoxImage(input, index) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedImages[index] = e.target.result;
+                    localStorage.setItem('zoo_bingo_images', JSON.stringify(uploadedImages));
+                    renderGrid();
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function uploadRandom(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    randomImages.push(e.target.result);
+                    localStorage.setItem('zoo_bingo_random', JSON.stringify(randomImages));
+                    renderRandomGallery();
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function renderRandomGallery() {
+            const gallery = document.getElementById('randomGallery');
+            gallery.innerHTML = '';
+            randomImages.forEach(src => {
+                const img = document.createElement('img');
+                img.src = src;
+                gallery.appendChild(img);
+            });
+        }
+
+        // Robust Timer Logic that survives crashes/signal drops
+        function startAdventure() {
+            startTime = Date.now();
+            localStorage.setItem('zoo_bingo_start', startTime);
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('finishBtn').disabled = false;
+            startTimerInterval();
+        }
+
+        function startTimerInterval() {
+            timerInterval = setInterval(() => {
+                const diff = Date.now() - startTime;
+                const hrs = Math.floor(diff / 3600000).toString().padStart(2, '0');
+                const mins = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
+                const secs = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+                document.getElementById('timer').innerText = `${hrs}:${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function finishAdventure() {
+            clearInterval(timerInterval);
+            const finalTimeStr = document.getElementById('timer').innerText;
+            document.getElementById('finalTimeScore').innerText = `⏱️ Completion Time: ${finalTimeStr} - Absolutely owl-standing!`;
+            document.getElementById('collageSection').style.display = 'block';
+            
+            // Generate the collages
+            buildCollage('postCanvas', 1080, 1080, finalTimeStr);
+            buildCollage('storyCanvas', 1080, 1920, finalTimeStr);
+            
+            document.getElementById('collageSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Canvas Engine to construct stunning Social assets offline
+        function buildCollage(canvasId, width, height, timeText) {
+            const canvas = document.getElementById(canvasId);
+            canvas.width = width;
+            canvas.height = height;
+            canvas.style.display = 'block';
+            const ctx = canvas.getContext('2d');
+
+            // Draw Background Jungle Color
+            ctx.fillStyle = "#2d5a27";
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw Decorative Safari Accents
+            ctx.fillStyle = "#f4b41a";
+            ctx.fillRect(0, 0, width, 40);
+            ctx.fillRect(0, height - 50, width, 50);
+
+            // Header Text
+            ctx.fillStyle = "#ffffff";
+            ctx.font = `bold ${width * 0.05}px sans-serif`;
+            ctx.textAlign = "center";
+            ctx.fillText("BELFAST ZOO-PER BINGO", width / 2, height * 0.08);
+
+            ctx.fillStyle = "#f4b41a";
+            ctx.font = `italic ${width * 0.035}px sans-serif`;
+            ctx.fillText(`⏱️ Track Time: ${timeText} | Certified Wild`, width / 2, height * 0.12);
+
+            // Collect all images available
+            let imagesToDraw = Object.values(uploadedImages).concat(randomImages);
+            if(imagesToDraw.length === 0) {
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "30px sans-serif";
+                ctx.fillText("No photos uploaded! A purr-fectly empty sheet.", width / 2, height / 2);
+                return;
+            }
+
+            // Collage configuration depending on layout
+            let startY = height * 0.18;
+            let availableHeight = height * 0.75;
+            let cols = width === 1080 && height === 1080 ? 3 : 2; 
+            let rows = Math.ceil(imagesToDraw.length / cols);
+            
+            let gap = 15;
+            let boxW = (width - (gap * (cols + 1))) / cols;
+            let boxH = (availableHeight - (gap * (rows + 1))) / rows;
+            if(boxH > boxW * 1.3) boxH = boxW * 1.3; // Lock dynamic aspect distortion
+
+            let loadedCount = 0;
+            imagesToDraw.forEach((src, idx) => {
+                const img = new Image();
+                img.src = src;
+                img.onload = function() {
+                    let col = idx % cols;
+                    let row = Math.floor(idx / cols);
+                    let x = gap + col * (boxW + gap);
+                    let y = startY + gap + row * (boxH + gap);
+
+                    // Math for scaling object-fit: cover inside canvas context
+                    let imgW = img.width;
+                    let imgH = img.height;
+                    let aspect = imgW / imgH;
+                    let boxAspect = boxW / boxH;
+                    let sx, sy, sw, sh;
+
+                    if (aspect > boxAspect) {
+                        sh = imgH;
+                        sw = imgH * boxAspect;
+                        sx = (imgW - sw) / 2;
+                        sy = 0;
+                    } else {
+                        sw = imgW;
+                        sh = imgW / boxAspect;
+                        sx = 0;
+                        sy = (imgH - sh) / 2;
+                    }
+
+                    // Draw image border / container card
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(x - 4, y - 4, boxW + 8, boxH + 8);
+                    ctx.drawImage(img, sx, sy, sw, sh, x, y, boxW, boxH);
+
+                    loadedCount++;
+                };
+            });
+        }
+
+        function downloadCanvas(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+</body>
+</html>
