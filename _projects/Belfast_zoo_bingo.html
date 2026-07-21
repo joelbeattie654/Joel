@@ -524,7 +524,6 @@ description: "Photo bingo game for Belfast zoo"
             document.getElementById('finalTimeScore').innerText = `⏱️ Completion Time: ${finalTimeStr} - Absolutely owl-standing!`;
             document.getElementById('collageSection').style.display = 'block';
             
-            // Generate clean sync layouts
             buildStructuredCollage('postCanvas', 1080, 1080, finalTimeStr);
             buildStructuredCollage('storyCanvas', 1080, 1920, finalTimeStr);
             
@@ -538,7 +537,6 @@ description: "Photo bingo game for Belfast zoo"
             canvas.style.display = 'block';
             const ctx = canvas.getContext('2d');
 
-            // Draw clean background block
             ctx.fillStyle = "#2d5a27";
             ctx.fillRect(0, 0, width, height);
 
@@ -555,9 +553,9 @@ description: "Photo bingo game for Belfast zoo"
             ctx.font = `italic ${width * 0.035}px sans-serif`;
             ctx.fillText(`⏱️ Track Time: ${timeText} | Certified Wild`, width / 2, height * 0.12);
 
-            // Package files cleanly
             let allPhotos = Object.values(uploadedImages).concat(randomImages);
 
+            // Clean background layout setup
             let gridCols = width === 1080 && height === 1080 ? 3 : 2; 
             let gridRows = width === 1080 && height === 1080 ? 3 : 4; 
 
@@ -568,13 +566,7 @@ description: "Photo bingo game for Belfast zoo"
             let boxW = (width - (gap * (gridCols + 1))) / gridCols;
             let boxH = (availableHeight - (gap * (gridRows + 1))) / gridRows;
 
-            // Compute geometric center block
-            let centerCol = Math.floor(gridCols / 2);
-            let centerRow = Math.floor(gridRows / 2);
-
-            // Sync loading process to guarantee images show up properly
             let loadPromises = [];
-
             allPhotos.forEach((src) => {
                 loadPromises.push(new Promise(res => {
                     const img = new Image();
@@ -599,32 +591,61 @@ description: "Photo bingo game for Belfast zoo"
 
                 let currentGridIndex = 0;
 
+                // 1. Draw all standard user items into background slots seamlessly
                 for (let r = 0; r < gridRows; r++) {
                     for (let c = 0; c < gridCols; c++) {
                         let x = gap + c * (boxW + gap);
                         let y = startY + gap + r * (boxH + gap);
 
-                        // If it's the calculated middle row/col, insert Squad image exclusively
-                        if (r === centerRow && c === centerCol) {
-                            if (teamImgObj) {
-                                ctx.fillStyle = "#f4b41a";
-                                ctx.fillRect(x - 6, y - 6, boxW + 12, boxH + 12);
-                                drawCoverImage(ctx, teamImgObj.img, x, y, boxW, boxH);
-                                
-                                ctx.fillStyle = "rgba(0,0,0,0.6)";
-                                ctx.fillRect(x, y + boxH - 25, boxW, 25);
-                                ctx.fillStyle = "#ffffff";
-                                ctx.font = `bold ${width * 0.022}px sans-serif`;
-                                ctx.fillText("👑 THE SQUAD", x + (boxW/2), y + boxH - 7);
-                            }
-                        } else {
-                            // Pull from standard assets array if available
-                            if (currentGridIndex < gridImages.length) {
-                                drawCoverImage(ctx, gridImages[currentGridIndex], x, y, boxW, boxH);
-                                currentGridIndex++;
-                            }
+                        if (currentGridIndex < gridImages.length) {
+                            drawCoverImage(ctx, gridImages[currentGridIndex], x, y, boxW, boxH);
+                            currentGridIndex++;
                         }
                     }
+                }
+
+                // 2. Overlay Team Frame directly on top in the exact center of canvas viewport
+                if (teamImgObj) {
+                    let teamImg = teamImgObj.img;
+                    
+                    // Center calculations for the whole canvas template area
+                    let centerY = startY + (availableHeight / 2);
+                    let centerX = width / 2;
+                    
+                    // Fixed aspect size constraints for the floating badge layout
+                    let targetW = width * 0.55;
+                    let targetH = targetW * (teamImg.height / teamImg.width);
+
+                    // Clamp check if picture height stretches too long vertically
+                    if (targetH > availableHeight * 0.4) {
+                        targetH = availableHeight * 0.4;
+                        targetW = targetH * (teamImg.width / teamImg.height);
+                    }
+
+                    let frameX = centerX - (targetW / 2);
+                    let frameY = centerY - (targetH / 2) - 15;
+
+                    // Draw golden card background base shadow
+                    ctx.fillStyle = "rgba(0,0,0,0.4)";
+                    ctx.fillRect(frameX - 6, frameY - 6, targetW + 16, targetH + 36);
+
+                    // White Polaroid Board Outer Layout Frame
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(frameX - 10, frameY - 10, targetW + 20, targetH + 40);
+
+                    // Safari Border accent stroke line outline
+                    ctx.strokeStyle = "#f4b41a";
+                    ctx.lineWidth = 4;
+                    ctx.strokeRect(frameX - 10, frameY - 10, targetW + 20, targetH + 40);
+
+                    // Draw clean original aspect landscape team asset directly inside frame
+                    ctx.drawImage(teamImg, frameX, frameY, targetW, targetH);
+                    
+                    // Bottom Caption Tagging Text Block line row
+                    ctx.fillStyle = "#1c281a";
+                    ctx.font = `bold ${width * 0.026}px sans-serif`;
+                    ctx.textAlign = "center";
+                    ctx.fillText("👑 THE ZOO SQUAD", centerX, frameY + targetH + 22);
                 }
             });
         }
