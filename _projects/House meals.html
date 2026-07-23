@@ -249,9 +249,9 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
             return;
         }
 
-        // Initialize connection with the correct Legacy Anon JWT
+        // Initialize connection with the CORRECT URL and Legacy Anon JWT
         supabaseApp = window.supabase.createClient(
-            "https://dxunhtpuplnkfwohig.supabase.co", 
+            "https://dkxnihdpupfrlkfwohig.supabase.co", 
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRreG5paGRwdXBmcmxrZndvaGlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4Mzc5NzEsImV4cCI6MjEwMDQxMzk3MX0.d3GE1nXbOCpJo_XLcqLX0PmB4Os4qFfw4-RrYH3r9Wg"
         );
 
@@ -299,7 +299,7 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
                 }
             } catch (err) {
                 statusBox.className = "status-box status-error";
-                statusBox.innerText = "Network Error: Could not reach database. Check Site URL configuration.";
+                statusBox.innerText = "Network Error: Could not reach database.";
             }
 
             // Unlock UI
