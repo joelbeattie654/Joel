@@ -1,7 +1,7 @@
 ---
 layout: app
-title: "House Meals Command Center"
-description: "The official tracker for meals, dynamic wagers, and Beattie Bucks."
+title: "The Meal HQ"
+description: "House cooking schedule and rankings."
 ---
 
 <!DOCTYPE html>
@@ -9,7 +9,7 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>House Meals Command Center</title>
+  <title>The Meal HQ</title>
   
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
@@ -21,8 +21,6 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       --text-muted: #6C757D;
       --accent-orange: #FF6B4A;
       --accent-yellow: #FFD166;
-      --accent-mint: #06D6A0;
-      --accent-blue: #118AB2;
       --border-color: #E9ECEF;
     }
 
@@ -35,7 +33,7 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
     }
 
     .app-container {
-      max-width: 760px;
+      max-width: 900px;
       margin: 0 auto;
       padding-top: 130px; 
     }
@@ -49,351 +47,369 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.04);
     }
 
-    h1 {
-      font-weight: 800;
-      letter-spacing: -1.5px;
-      margin: 0 0 8px 0;
-      font-size: 2.5rem;
-    }
+    h1, h2, h3 { margin-top: 0; font-weight: 800; }
+    h1 { font-size: 2.5rem; letter-spacing: -1.5px; text-align: center; margin-bottom: 24px; }
+    .fun-text { color: var(--accent-orange); }
 
-    h2 {
-      font-weight: 800;
-      font-size: 1.5rem;
-      letter-spacing: -0.5px;
-      margin-top: 0;
-      margin-bottom: 16px;
-    }
-
-    p {
-      color: var(--text-muted);
-      margin: 0 0 16px 0;
-      line-height: 1.5;
-    }
-
-    .fun-text {
-      color: var(--accent-orange);
-    }
-
-    .status-box {
-      padding: 16px;
-      border-radius: 14px;
-      font-weight: 600;
-      margin-bottom: 20px;
-      text-align: center;
-      transition: all 0.3s ease;
-    }
-    .status-error { background: #FFE3E3; color: #D63030; border: 1px solid #FFA8A8; }
-    .status-info { background: #F1F3F5; color: var(--text-main); border: 1px solid var(--border-color); }
-    .status-success { background: #E3FCEF; color: #00875A; border: 1px solid #ABF5D1; }
-
-    input, select {
-      width: 100%;
-      padding: 16px;
-      margin: 8px 0 16px 0;
-      border-radius: 14px;
-      border: 1.5px solid var(--border-color);
-      background: #F8F9FA;
-      color: var(--text-main);
-      font-family: inherit;
-      font-weight: 600;
-      box-sizing: border-box;
+    input {
+      width: 100%; padding: 14px; margin: 8px 0 16px 0;
+      border-radius: 12px; border: 1.5px solid var(--border-color);
+      background: #F8F9FA; color: var(--text-main);
+      font-family: inherit; font-weight: 600; box-sizing: border-box;
     }
 
     button {
-      width: 100%;
-      padding: 16px;
-      margin: 8px 0;
-      border-radius: 14px;
-      border: none;
-      background-color: var(--text-main);
-      color: #FFFFFF;
-      font-family: inherit;
-      font-weight: 700;
-      font-size: 1rem;
+      width: 100%; padding: 14px; margin: 8px 0;
+      border-radius: 12px; border: none;
+      background-color: var(--text-main); color: #FFFFFF;
+      font-family: inherit; font-weight: 700; font-size: 1rem;
       cursor: pointer;
     }
-
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    button.secondary-btn { background-color: #E9ECEF; color: var(--text-main); }
     button.accent-btn { background-color: var(--accent-orange); }
+    button.secondary-btn { background-color: #E9ECEF; color: var(--text-main); }
+    button.admin-btn { background-color: var(--accent-yellow); color: var(--text-main); }
 
+    /* Calendar Grid */
+    .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .calendar-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 16px;
-      margin-top: 20px;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
     }
-
-    .day-card {
-      background: #F8F9FA;
-      padding: 20px;
-      border-radius: 18px;
-      border: 1.5px solid transparent;
-      text-align: center;
+    .day-name { text-align: center; font-weight: 800; font-size: 0.85rem; color: var(--text-muted); padding-bottom: 8px; }
+    .day-cell {
+      background: #F8F9FA; border-radius: 12px; padding: 8px;
+      min-height: 80px; display: flex; flex-direction: column;
+      border: 1.5px solid transparent; text-align: center;
     }
+    .day-number { font-size: 0.9rem; font-weight: 800; opacity: 0.5; margin-bottom: 4px; text-align: right; }
+    .day-cook { font-weight: 700; font-size: 0.9rem; color: var(--accent-orange); display: flex; flex-direction: column; align-items: center; gap: 4px;}
+    .day-cook img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
 
-    .day-card.shared {
-      background: rgba(6, 214, 160, 0.06);
-      border-color: var(--accent-mint);
-    }
-
-    .leaderboard-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
+    /* Leaderboard */
     .user-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #F8F9FA;
-      padding: 16px 20px;
-      border-radius: 16px;
-      font-weight: 600;
+      display: flex; justify-content: space-between; align-items: center;
+      background: #F8F9FA; padding: 12px 20px; border-radius: 16px; margin-bottom: 8px; font-weight: 600;
     }
+    .user-info { display: flex; align-items: center; gap: 12px; }
+    .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: #E9ECEF; object-fit: cover; }
+
+    #auth-overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center;
+    }
+    .auth-box { background: white; padding: 32px; border-radius: 24px; width: 90%; max-width: 400px; }
   </style>
 </head>
 <body>
 
   <div class="app-container">
     
-    <div class="app-card" style="text-align: center; border: none; box-shadow: none; background: transparent; padding-bottom: 0;">
-      <h1>🍽️ Beattie's <span class="fun-text">Meal HQ</span></h1>
-      <p>The bright, modern space for roomie cooking scores, calendar overrides, and wagers.</p>
-    </div>
+    <h1>The <span class="fun-text">Meal HQ</span></h1>
 
-    <!-- ENTRY GATEWAY -->
-    <div id="auth-panel" class="app-card">
-      <h2>🏠 Resident Gateway</h2>
-      <p>Sign in or register a profile below to launch your weekly dashboard layout.</p>
-      
-      <div id="auth-status-box" class="status-box status-info">⏳ Connecting to Database Server...</div>
-
-      <input type="email" id="email" placeholder="House Email Address">
-      <input type="password" id="password" placeholder="Account Password (Min. 6 characters)">
-      <button id="login-btn" class="accent-btn" disabled>Sign In</button>
-      <button id="signup-btn" class="secondary-btn" disabled>Register New Profile</button>
-    </div>
-
-    <!-- MASTER HUB INTERFACE -->
-    <div id="hub-panel" style="display: none;">
-      <div class="app-card" style="display: flex; justify-content: space-between; align-items: center;">
+    <!-- TOP CONTROL BAR -->
+    <div class="app-card" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 32px;">
+      <div id="guest-header">
+        <h2 style="margin:0;">Viewing as Guest</h2>
+        <p style="margin: 4px 0 0 0; font-size: 0.9rem;">Read-only mode.</p>
+      </div>
+      <div id="user-header" style="display: none; align-items: center; gap: 16px;">
+        <img id="my-avatar" src="" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">
         <div>
-          <h2 style="margin:0;">Hey, <span id="user-display" class="fun-text">Chef</span>!</h2>
-          <p style="margin: 4px 0 0 0; font-weight: 600;">Wallet: <span style="color: var(--accent-blue);" id="balance-display">0</span> Beattie Bucks</p>
-        </div>
-        <button id="logout-btn" class="secondary-btn" style="width: auto; margin:0; padding: 10px 20px;">Sign Out</button>
-      </div>
-
-      <div class="app-card">
-        <h2>📅 The Cooking Rotation</h2>
-        <div class="calendar-grid">
-          <div class="day-card"><h3>Monday</h3><div style="font-weight:700; color:var(--accent-orange);">Unassigned</div></div>
-          <div class="day-card"><h3>Tuesday</h3><div style="font-weight:700; color:var(--accent-orange);">Unassigned</div></div>
-          <div class="day-card shared"><h3>Wednesday</h3><div style="font-weight:700; color:var(--accent-mint);">Shared Effort</div></div>
-          <div class="day-card"><h3>Thursday</h3><div style="font-weight:700; color:var(--accent-orange);">Unassigned</div></div>
+          <h2 style="margin:0;">Chef <span id="display-name" style="text-transform: capitalize;" class="fun-text"></span></h2>
+          <p style="margin: 4px 0 0 0; font-weight: 600;">💰 <span id="display-bucks">0</span> BBs</p>
         </div>
       </div>
+      <button id="nav-login-btn" class="accent-btn" style="width: auto; margin:0; padding: 10px 24px;" onclick="document.getElementById('auth-overlay').style.display='flex'">Sign In</button>
+      <button id="nav-logout-btn" class="secondary-btn" style="display:none; width: auto; margin:0; padding: 10px 24px;" onclick="handleLogout()">Sign Out</button>
+    </div>
 
-      <div class="app-card">
-        <h2>🎰 Beattie Bucks Sportsbook</h2>
-        <select id="bet-type">
-          <option value="over_under">Over/Under 4.2 Stars on Next Meal</option>
-          <option value="clock_watch">Meal is packed in fridge before 6:00 PM</option>
-          <option value="lolly_prop">Bye-week person drops brand-name ice lollies</option>
-        </select>
-        <input type="number" id="bet-amount" placeholder="Amount to wager...">
-        <button id="wager-btn" class="accent-btn">Lock In Forced Wager</button>
+    <!-- PROFILE SETTINGS (Hidden for guests) -->
+    <div id="profile-settings" class="app-card" style="display: none;">
+      <h3 style="margin-bottom: 12px;">🖼️ Set Your Funny Picture</h3>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="avatar-url-input" placeholder="Paste a JPEG/PNG image link here..." style="margin:0;">
+        <button onclick="updateAvatar()" class="secondary-btn" style="margin:0; width: auto; white-space: nowrap;">Update Photo</button>
       </div>
+    </div>
 
-      <div class="app-card">
-        <h2>🍔 House Cravings Board</h2>
-        <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; margin-bottom: 16px;">
-          <input type="text" id="nomination-title" placeholder="Suggest a dish..." style="margin:0;">
-          <input type="number" id="nomination-bounty" placeholder="Bounty" style="margin:0; max-width: 100px;">
-        </div>
-        <button id="nominate-btn" class="accent-btn">Publish Idea</button>
-        <div id="nominations-container" style="margin-top: 16px;"></div>
-      </div>
+    <!-- ADMIN PANEL (Hidden unless Beattie) -->
+    <div id="admin-panel" class="app-card" style="display: none; border-color: var(--accent-yellow); background: #FFFAEB;">
+      <h2 style="color: #D49A00;">👑 Admin Controls</h2>
+      <button onclick="generateWeek()" class="admin-btn">🎲 Algorithmic Generate (Next 7 Days)</button>
+      <button id="friday-bucks-btn" onclick="releaseBucks()" class="accent-btn" style="display: none; margin-top: 12px;">💸 FRIDAY UNLOCKED: Release Weekly Bucks!</button>
+    </div>
 
-      <div class="app-card">
-        <h2>🏆 Coefficient Rankings</h2>
-        <div class="leaderboard-list" id="leaderboard-output"></div>
+    <!-- CALENDAR -->
+    <div class="app-card">
+      <div class="calendar-header">
+        <button onclick="changeMonth(-1)" class="secondary-btn" style="width: auto; padding: 8px 16px;">&larr; Prev</button>
+        <h2 id="month-title" style="margin:0;">Month</h2>
+        <button onclick="changeMonth(1)" class="secondary-btn" style="width: auto; padding: 8px 16px;">Next &rarr;</button>
       </div>
+      
+      <div class="calendar-grid">
+        <div class="day-name">SUN</div><div class="day-name">MON</div><div class="day-name">TUE</div>
+        <div class="day-name">WED</div><div class="day-name">THU</div><div class="day-name">FRI</div><div class="day-name">SAT</div>
+      </div>
+      <div class="calendar-grid" id="calendar-body">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+    <!-- LEADERBOARD -->
+    <div class="app-card">
+      <h2>🏆 Coefficient Rankings</h2>
+      <div class="leaderboard-list" id="leaderboard-output"></div>
+    </div>
+
+  </div>
+
+  <!-- AUTH POPUP -->
+  <div id="auth-overlay">
+    <div class="auth-box">
+      <h2 style="text-align: center; margin-bottom: 24px;">Resident Login</h2>
+      <select id="username-select" style="width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 12px; font-weight:bold;">
+        <option value="beattie">Beattie</option>
+        <option value="kelso">Kelso</option>
+        <option value="rainy">Rainy</option>
+        <option value="lobby">Lobby</option>
+        <option value="watt">Watt</option>
+      </select>
+      <input type="password" id="password" placeholder="Password (food654)">
+      <button onclick="handleLogin()" class="accent-btn">Enter HQ</button>
+      <button onclick="document.getElementById('auth-overlay').style.display='none'" class="secondary-btn">Cancel</button>
     </div>
   </div>
 
-  <!-- External Library Loader -->
+  <!-- Supabase Core -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
+    const SUPABASE_URL = "https://dkxnihdpupfrlkfwohig.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRreG5paGRwdXBmcmxrZndvaGlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4Mzc5NzEsImV4cCI6MjEwMDQxMzk3MX0.d3GE1nXbOCpJo_XLcqLX0PmB4Os4qFfw4-RrYH3r9Wg";
+    
     let supabaseApp = null;
-    let userProfile = null;
+    let currentUserProfile = null;
+    let currentDate = new Date(); // Current viewed month
+    let allProfiles = [];
 
-    // Wait until the page and external scripts are 100% loaded before doing ANYTHING
-    window.addEventListener('load', function() {
+    window.addEventListener('load', async function() {
+        if (!window.supabase) return alert("Browser blocked script.");
+        supabaseApp = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        const statusBox = document.getElementById('auth-status-box');
-        const loginBtn = document.getElementById('login-btn');
-        const signupBtn = document.getElementById('signup-btn');
-
-        // Check if library downloaded properly
-        if (!window.supabase) {
-            statusBox.className = "status-box status-error";
-            statusBox.innerText = "Fatal Error: Database library blocked by browser or network.";
-            return;
-        }
-
-        // Initialize connection with the CORRECT URL and Legacy Anon JWT
-        supabaseApp = window.supabase.createClient(
-            "https://dkxnihdpupfrlkfwohig.supabase.co", 
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRreG5paGRwdXBmcmxrZndvaGlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4Mzc5NzEsImV4cCI6MjEwMDQxMzk3MX0.d3GE1nXbOCpJo_XLcqLX0PmB4Os4qFfw4-RrYH3r9Wg"
-        );
-
-        statusBox.className = "status-box status-success";
-        statusBox.innerText = "System Ready. Please Sign In or Register.";
-        loginBtn.disabled = false;
-        signupBtn.disabled = false;
-
-        // Auto-login check
-        supabaseApp.auth.getSession().then(({ data: { session } }) => {
-            if (session) setupUserHub(session.user);
-        });
-
-        // --- BUTTON CLICKS ---
-        signupBtn.addEventListener('click', async function() {
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            
-            if (!email || !password) {
-                statusBox.className = "status-box status-error";
-                statusBox.innerText = "Error: Email and Password are required!";
-                return;
-            }
-
-            // Lock UI while processing
-            signupBtn.innerText = "Processing...";
-            signupBtn.disabled = true;
-            loginBtn.disabled = true;
-            statusBox.className = "status-box status-info";
-            statusBox.innerText = "Transmitting registration to server...";
-
-            try {
-                const { data, error } = await supabaseApp.auth.signUp({ email, password });
-                
-                if (error) {
-                    statusBox.className = "status-box status-error";
-                    statusBox.innerText = "Registration Failed: " + error.message;
-                } else if (data && data.user) {
-                    // Create their profile entry
-                    await supabaseApp.from('profiles').insert([
-                        { id: data.user.id, username: email.split('@')[0], beattie_bucks: 100, coefficient: 4.0 }
-                    ]);
-                    statusBox.className = "status-box status-success";
-                    statusBox.innerText = "Success! Account registered. You may now Sign In.";
-                }
-            } catch (err) {
-                statusBox.className = "status-box status-error";
-                statusBox.innerText = "Network Error: Could not reach database.";
-            }
-
-            // Unlock UI
-            signupBtn.innerText = "Register New Profile";
-            signupBtn.disabled = false;
-            loginBtn.disabled = false;
-        });
-
-        loginBtn.addEventListener('click', async function() {
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            
-            loginBtn.innerText = "Signing In...";
-            loginBtn.disabled = true;
-            signupBtn.disabled = true;
-            statusBox.className = "status-box status-info";
-            statusBox.innerText = "Verifying credentials...";
-
-            try {
-                const { data, error } = await supabaseApp.auth.signInWithPassword({ email, password });
-                if (error) {
-                    statusBox.className = "status-box status-error";
-                    statusBox.innerText = "Login Failed: " + error.message;
-                } else {
-                    setupUserHub(data.user);
-                }
-            } catch (err) {
-                statusBox.className = "status-box status-error";
-                statusBox.innerText = "Network Error: Fetch blocked.";
-            }
-
-            loginBtn.innerText = "Sign In";
-            loginBtn.disabled = false;
-            signupBtn.disabled = false;
-        });
-
-        document.getElementById('logout-btn').addEventListener('click', async function() {
-            await supabaseApp.auth.signOut();
-            location.reload();
-        });
+        // Initial Fetch
+        await fetchProfiles();
+        renderCalendar();
+        
+        // Auto Login Check
+        const { data: { session } } = await supabaseApp.auth.getSession();
+        if (session) setupUserInterface(session.user);
     });
 
-    async function setupUserHub(user) {
-        document.getElementById('auth-panel').style.display = 'none';
-        document.getElementById('hub-panel').style.display = 'block';
+    // --- AUTH & AUTO-SETUP ---
+    async function handleLogin() {
+        const username = document.getElementById('username-select').value;
+        const password = document.getElementById('password').value;
+        const fakeEmail = `${username}@mealhq.com`; // Backend trick to bypass email requirement
 
+        if(!password) return alert("Enter the house password.");
+
+        // Try logging in
+        let { data, error } = await supabaseApp.auth.signInWithPassword({ email: fakeEmail, password });
+        
+        // If login fails (user doesn't exist yet), silently register them on the spot
+        if (error && error.message.includes("Invalid login")) {
+            const res = await supabaseApp.auth.signUp({ email: fakeEmail, password });
+            if (res.error) return alert("Setup Error: " + res.error.message);
+            
+            // Build their database profile
+            const isAdmin = (username === 'beattie');
+            await supabaseApp.from('profiles').insert([
+                { id: res.data.user.id, username: username, is_admin: isAdmin, beattie_bucks: 100 }
+            ]);
+            data = res.data;
+        } else if (error) {
+            return alert(error.message);
+        }
+
+        document.getElementById('auth-overlay').style.display = 'none';
+        setupUserInterface(data.user);
+    }
+
+    async function handleLogout() {
+        await supabaseApp.auth.signOut();
+        location.reload();
+    }
+
+    // --- INTERFACE SETUP ---
+    async function setupUserInterface(user) {
+        // Switch UI to logged-in mode
+        document.getElementById('guest-header').style.display = 'none';
+        document.getElementById('nav-login-btn').style.display = 'none';
+        document.getElementById('user-header').style.display = 'flex';
+        document.getElementById('nav-logout-btn').style.display = 'block';
+        document.getElementById('profile-settings').style.display = 'block';
+
+        // Load profile data
         const { data: profile } = await supabaseApp.from('profiles').select('*').eq('id', user.id).single();
         if (profile) {
-            userProfile = profile;
-            document.getElementById('user-display').innerText = profile.username;
-            document.getElementById('balance-display').innerText = profile.beattie_bucks;
-        } else {
-            document.getElementById('user-display').innerText = user.email.split('@')[0];
+            currentUserProfile = profile;
+            document.getElementById('display-name').innerText = profile.username;
+            document.getElementById('display-bucks').innerText = profile.beattie_bucks;
+            document.getElementById('my-avatar').src = profile.avatar_url;
+            
+            // ADMIN PERKS
+            if (profile.is_admin) {
+                document.getElementById('admin-panel').style.display = 'block';
+                checkFridayBucks();
+            }
         }
-        
-        loadLeaderboard();
-        loadNominations();
     }
 
-    async function loadLeaderboard() {
-        const { data: profiles } = await supabaseApp.from('profiles').select('*').order('coefficient', { ascending: false });
+    async function fetchProfiles() {
+        const { data } = await supabaseApp.from('profiles').select('*').order('coefficient', { ascending: false });
+        allProfiles = data || [];
+        
         const out = document.getElementById('leaderboard-output');
         out.innerHTML = '';
-        if (!profiles) return;
-
-        profiles.forEach((p, idx) => {
+        allProfiles.forEach((p, idx) => {
             out.innerHTML += `
             <div class="user-row">
-                <span><strong>#${idx+1} ${p.username}</strong></span>
-                <span>🌟 ${p.coefficient.toFixed(1)} <span style="color: var(--border-color); margin: 0 4px;">|</span> 💰 ${p.beattie_bucks} BBs</span>
+                <div class="user-info">
+                  <span style="color:var(--accent-orange);">#${idx+1}</span>
+                  <img src="${p.avatar_url}" class="user-avatar">
+                  <span style="text-transform: capitalize;">${p.username}</span>
+                </div>
+                <span>🌟 ${p.coefficient.toFixed(1)} <span style="color: var(--border-color); margin: 0 4px;">|</span> 💰 ${p.beattie_bucks}</span>
             </div>`;
         });
     }
 
-    async function loadNominations() {
-        const { data: noms } = await supabaseApp.from('nominations').select('*, profiles(username)');
-        const container = document.getElementById('nominations-container');
-        container.innerHTML = '';
+    async function updateAvatar() {
+        const url = document.getElementById('avatar-url-input').value.trim();
+        if(!url) return;
+        await supabaseApp.from('profiles').update({ avatar_url: url }).eq('id', currentUserProfile.id);
+        document.getElementById('avatar-url-input').value = '';
+        location.reload(); // Quick refresh to update everything
+    }
 
-        if(!noms || noms.length === 0) {
-            container.innerHTML = '<p style="font-size:0.9rem; opacity:0.6;">No current marketplace suggestions.</p>';
-            return;
+    // --- CALENDAR ENGINE ---
+    async function renderCalendar() {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        document.getElementById('month-title').innerText = `${monthNames[month]} ${year}`;
+
+        // Fetch assignments for this month
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        
+        const { data: assignments } = await supabaseApp.from('calendar_days')
+            .select('date, profiles(username, avatar_url)')
+            .gte('date', firstDay.toISOString().split('T')[0])
+            .lte('date', lastDay.toISOString().split('T')[0]);
+
+        const assignmentMap = {};
+        if (assignments) {
+            assignments.forEach(a => assignmentMap[a.date] = a.profiles);
         }
 
-        noms.forEach(n => {
-            container.innerHTML += `
-            <div style="background: #F8F9FA; padding:16px; border-radius:14px; margin-top:12px; display:flex; justify-content:space-between; align-items:center; border: 1.5px solid var(--border-color);">
-                <div>
-                <strong>${n.title}</strong><br>
-                <span style="font-size:0.8rem; color: var(--text-muted);">From: ${n.profiles?.username || 'Roomie'}</span>
-                </div>
-                <span style="color:var(--accent-blue); font-weight:bold;">💰 ${n.bounty} BBs</span>
-            </div>`;
-        });
+        const body = document.getElementById('calendar-body');
+        body.innerHTML = '';
+
+        // Blanks for start of month
+        for (let i = 0; i < firstDay.getDay(); i++) {
+            body.innerHTML += `<div class="day-cell" style="background: transparent; border: none;"></div>`;
+        }
+
+        // Days
+        for (let i = 1; i <= lastDay.getDate(); i++) {
+            const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+            const cook = assignmentMap[dateStr];
+            
+            let contentHtml = '';
+            if (cook) {
+                contentHtml = `
+                  <div class="day-cook">
+                    <img src="${cook.avatar_url}">
+                    <span style="text-transform: capitalize;">${cook.username}</span>
+                  </div>`;
+            }
+
+            // Highlight today
+            const today = new Date();
+            let isToday = (i === today.getDate() && month === today.getMonth() && year === today.getFullYear());
+            let borderStyle = isToday ? 'border-color: var(--accent-orange); background: #FFF5F2;' : '';
+
+            body.innerHTML += `
+              <div class="day-cell" style="${borderStyle}">
+                <div class="day-number">${i}</div>
+                ${contentHtml}
+              </div>`;
+        }
+    }
+
+    function changeMonth(offset) {
+        currentDate.setMonth(currentDate.getMonth() + offset);
+        renderCalendar();
+    }
+
+    // --- ADMIN ALGORITHMS ---
+    async function generateWeek() {
+        if (!allProfiles || allProfiles.length === 0) return alert("No profiles exist yet. Everyone needs to log in at least once!");
+        if (!confirm("This will randomly assign cooks (weighted by their coefficient) for the next 7 days. Proceed?")) return;
+
+        const newAssignments = [];
+        const today = new Date();
+
+        for(let i=0; i<7; i++) {
+            let targetDate = new Date(today);
+            targetDate.setDate(today.getDate() + i);
+            const dateStr = targetDate.toISOString().split('T')[0];
+
+            // Simple Randomizer (Could be mapped by coefficient weights in the future)
+            const randomCook = allProfiles[Math.floor(Math.random() * allProfiles.length)];
+            
+            newAssignments.push({ date: dateStr, cook_id: randomCook.id });
+        }
+
+        await supabaseApp.from('calendar_days').upsert(newAssignments);
+        renderCalendar();
+        alert("Next 7 days successfully generated!");
+    }
+
+    async function checkFridayBucks() {
+        const today = new Date();
+        // 5 = Friday
+        if (today.getDay() === 5) {
+            const { data: settings } = await supabaseApp.from('house_settings').select('*').single();
+            if (settings) {
+                const lastDistrib = new Date(settings.last_bucks_distribution);
+                
+                // If the last distribution was BEFORE today (meaning it hasn't been clicked today)
+                if (lastDistrib.toDateString() !== today.toDateString()) {
+                    document.getElementById('friday-bucks-btn').style.display = 'block';
+                }
+            }
+        }
+    }
+
+    async function releaseBucks() {
+        document.getElementById('friday-bucks-btn').disabled = true;
+        document.getElementById('friday-bucks-btn').innerText = "Distributing...";
+
+        // Add 50 Bucks to everyone
+        for (let user of allProfiles) {
+            await supabaseApp.from('profiles').update({ beattie_bucks: user.beattie_bucks + 50 }).eq('id', user.id);
+        }
+        
+        // Update the timestamp so it disappears
+        await supabaseApp.from('house_settings').update({ last_bucks_distribution: new Date().toISOString() }).eq('id', 1);
+        
+        alert("Weekly bucks have been deposited to all accounts!");
+        location.reload();
     }
   </script>
 </body>
