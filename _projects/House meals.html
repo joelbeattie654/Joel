@@ -80,6 +80,7 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       font-weight: 600;
       margin-bottom: 20px;
       text-align: center;
+      transition: all 0.3s ease;
     }
     .status-error { background: #FFE3E3; color: #D63030; border: 1px solid #FFA8A8; }
     .status-info { background: #F1F3F5; color: var(--text-main); border: 1px solid var(--border-color); }
@@ -112,14 +113,13 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       cursor: pointer;
     }
 
-    button.secondary-btn {
-      background-color: #E9ECEF;
-      color: var(--text-main);
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
-    button.accent-btn {
-      background-color: var(--accent-orange);
-    }
+    button.secondary-btn { background-color: #E9ECEF; color: var(--text-main); }
+    button.accent-btn { background-color: var(--accent-orange); }
 
     .calendar-grid {
       display: grid;
@@ -172,12 +172,12 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       <h2>🏠 Resident Gateway</h2>
       <p>Sign in or register a profile below to launch your weekly dashboard layout.</p>
       
-      <div id="auth-status-box" class="status-box status-info">System Standing By...</div>
+      <div id="auth-status-box" class="status-box status-info">⏳ Connecting to Database Server...</div>
 
       <input type="email" id="email" placeholder="House Email Address">
       <input type="password" id="password" placeholder="Account Password (Min. 6 characters)">
-      <button id="login-btn" class="accent-btn">Sign In</button>
-      <button id="signup-btn" class="secondary-btn">Register New Profile</button>
+      <button id="login-btn" class="accent-btn" disabled>Sign In</button>
+      <button id="signup-btn" class="secondary-btn" disabled>Register New Profile</button>
     </div>
 
     <!-- MASTER HUB INTERFACE -->
@@ -228,167 +228,172 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
     </div>
   </div>
 
-  <!-- Traditional Global script layer to completely dodge mobile module browser blocks -->
+  <!-- External Library Loader -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
-    const SUPABASE_URL = "https://dxunhtpuplnkfwohig.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_wsCGlEMhNPwK2-bVtPksLA_8-9konuo";
-    
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let supabaseApp = null;
     let userProfile = null;
 
-    const statusBox = document.getElementById('auth-status-box');
-
-    document.getElementById('signup-btn').addEventListener('click', handleSignup);
-    document.getElementById('login-btn').addEventListener('click', handleLogin);
-    document.getElementById('logout-btn').addEventListener('click', handleLogout);
-    document.getElementById('nominate-btn').addEventListener('click', createNomination);
-
-    async function checkUser() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) setupUserHub(session.user);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    checkUser();
-
-    async function handleSignup() {
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value;
-      
-      if (!email || !password) {
-        statusBox.className = "status-box status-error";
-        statusBox.innerText = "Error: Fill out all entry inputs!";
-        return;
-      }
-
-      statusBox.className = "status-box status-info";
-      statusBox.innerText = "Transmitting profile payload...";
-
-      try {
-        const { data, error } = await supabase.auth.signUp({ email, password });
+    // Wait until the page and external scripts are 100% loaded before doing ANYTHING
+    window.addEventListener('load', function() {
         
-        if (error) {
-          statusBox.className = "status-box status-error";
-          statusBox.innerText = "Fail: " + error.message;
-          return;
-        }
-        
-        if (data?.user) {
-          await supabase.from('profiles').insert([
-            { id: data.user.id, username: email.split('@')[0], beattie_bucks: 100, coefficient: 4.0 }
-          ]);
-          statusBox.className = "status-box status-success";
-          statusBox.innerText = "Success! Profile built. Enter credentials and click Sign In.";
-        }
-      } catch (err) {
-        statusBox.className = "status-box status-error";
-        statusBox.innerText = "Network Error: Local connection blocked by device settings.";
-      }
-    }
+        const statusBox = document.getElementById('auth-status-box');
+        const loginBtn = document.getElementById('login-btn');
+        const signupBtn = document.getElementById('signup-btn');
 
-    async function handleLogin() {
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value;
-      
-      statusBox.className = "status-box status-info";
-      statusBox.innerText = "Authorizing credentials against cloud ledger...";
-
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        
-        if (error) {
-          statusBox.className = "status-box status-error";
-          statusBox.innerText = "Denied: " + error.message;
-        } else {
-          setupUserHub(data.user);
+        // Check if library downloaded properly
+        if (!window.supabase) {
+            statusBox.className = "status-box status-error";
+            statusBox.innerText = "Fatal Error: Database library blocked by browser or network.";
+            return;
         }
-      } catch (err) {
-        statusBox.className = "status-box status-error";
-        statusBox.innerText = "Network Error: Blocked endpoint fetch.";
-      }
-    }
 
-    async function handleLogout() {
-      await supabase.auth.signOut();
-      location.reload();
-    }
+        // Initialize connection
+        supabaseApp = window.supabase.createClient(
+            "https://dxunhtpuplnkfwohig.supabase.co", 
+            "sb_publishable_wsCGlEMhNPwK2-bVtPksLA_8-9konuo"
+        );
+
+        statusBox.className = "status-box status-success";
+        statusBox.innerText = "System Ready. Please Sign In or Register.";
+        loginBtn.disabled = false;
+        signupBtn.disabled = false;
+
+        // Auto-login check
+        supabaseApp.auth.getSession().then(({ data: { session } }) => {
+            if (session) setupUserHub(session.user);
+        });
+
+        // --- BUTTON CLICKS ---
+        signupBtn.addEventListener('click', async function() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                statusBox.className = "status-box status-error";
+                statusBox.innerText = "Error: Email and Password are required!";
+                return;
+            }
+
+            // Lock UI while processing
+            signupBtn.innerText = "Processing...";
+            signupBtn.disabled = true;
+            loginBtn.disabled = true;
+            statusBox.className = "status-box status-info";
+            statusBox.innerText = "Transmitting registration to server...";
+
+            try {
+                const { data, error } = await supabaseApp.auth.signUp({ email, password });
+                
+                if (error) {
+                    statusBox.className = "status-box status-error";
+                    statusBox.innerText = "Registration Failed: " + error.message;
+                } else if (data && data.user) {
+                    // Create their profile entry
+                    await supabaseApp.from('profiles').insert([
+                        { id: data.user.id, username: email.split('@')[0], beattie_bucks: 100, coefficient: 4.0 }
+                    ]);
+                    statusBox.className = "status-box status-success";
+                    statusBox.innerText = "Success! Account registered. You may now Sign In.";
+                }
+            } catch (err) {
+                statusBox.className = "status-box status-error";
+                statusBox.innerText = "Network Error: Could not reach database. Check Site URL configuration.";
+            }
+
+            // Unlock UI
+            signupBtn.innerText = "Register New Profile";
+            signupBtn.disabled = false;
+            loginBtn.disabled = false;
+        });
+
+        loginBtn.addEventListener('click', async function() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            
+            loginBtn.innerText = "Signing In...";
+            loginBtn.disabled = true;
+            signupBtn.disabled = true;
+            statusBox.className = "status-box status-info";
+            statusBox.innerText = "Verifying credentials...";
+
+            try {
+                const { data, error } = await supabaseApp.auth.signInWithPassword({ email, password });
+                if (error) {
+                    statusBox.className = "status-box status-error";
+                    statusBox.innerText = "Login Failed: " + error.message;
+                } else {
+                    setupUserHub(data.user);
+                }
+            } catch (err) {
+                statusBox.className = "status-box status-error";
+                statusBox.innerText = "Network Error: Fetch blocked.";
+            }
+
+            loginBtn.innerText = "Sign In";
+            loginBtn.disabled = false;
+            signupBtn.disabled = false;
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', async function() {
+            await supabaseApp.auth.signOut();
+            location.reload();
+        });
+    });
 
     async function setupUserHub(user) {
-      document.getElementById('auth-panel').style.display = 'none';
-      document.getElementById('hub-panel').style.display = 'block';
+        document.getElementById('auth-panel').style.display = 'none';
+        document.getElementById('hub-panel').style.display = 'block';
 
-      try {
-        const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        const { data: profile } = await supabaseApp.from('profiles').select('*').eq('id', user.id).single();
         if (profile) {
-          userProfile = profile;
-          document.getElementById('user-display').innerText = profile.username;
-          document.getElementById('balance-display').innerText = profile.beattie_bucks;
+            userProfile = profile;
+            document.getElementById('user-display').innerText = profile.username;
+            document.getElementById('balance-display').innerText = profile.beattie_bucks;
+        } else {
+            document.getElementById('user-display').innerText = user.email.split('@')[0];
         }
+        
         loadLeaderboard();
         loadNominations();
-      } catch (err) {
-        console.error(err);
-      }
     }
 
     async function loadLeaderboard() {
-      const { data: profiles } = await supabase.from('profiles').select('*').order('coefficient', { ascending: false });
-      const out = document.getElementById('leaderboard-output');
-      out.innerHTML = '';
-      if (!profiles) return;
+        const { data: profiles } = await supabaseApp.from('profiles').select('*').order('coefficient', { ascending: false });
+        const out = document.getElementById('leaderboard-output');
+        out.innerHTML = '';
+        if (!profiles) return;
 
-      profiles.forEach((p, idx) => {
-        out.innerHTML += `
-          <div class="user-row">
-            <span><strong>#${idx+1} ${p.username}</strong></span>
-            <span>🌟 ${p.coefficient.toFixed(1)} <span style="color: var(--border-color); margin: 0 4px;">|</span> 💰 ${p.beattie_bucks} BBs</span>
-          </div>
-        `;
-      });
-    }
-
-    async function createNomination() {
-      const title = document.getElementById('nomination-title').value;
-      const bounty = parseInt(document.getElementById('nomination-bounty').value) || 0;
-
-      if (!title) return;
-      if (bounty > userProfile.beattie_bucks) { alert("Insufficient funds."); return; }
-
-      await supabase.from('nominations').insert([{ title, suggested_by: userProfile.id, bounty }]);
-      if (bounty > 0) {
-        await supabase.from('profiles').update({ beattie_bucks: userProfile.beattie_bucks - bounty }).eq('id', userProfile.id);
-      }
-
-      document.getElementById('nomination-title').value = '';
-      document.getElementById('nomination-bounty').value = '';
-      setupUserHub({ id: userProfile.id });
+        profiles.forEach((p, idx) => {
+            out.innerHTML += `
+            <div class="user-row">
+                <span><strong>#${idx+1} ${p.username}</strong></span>
+                <span>🌟 ${p.coefficient.toFixed(1)} <span style="color: var(--border-color); margin: 0 4px;">|</span> 💰 ${p.beattie_bucks} BBs</span>
+            </div>`;
+        });
     }
 
     async function loadNominations() {
-      const { data: noms } = await supabase.from('nominations').select('*, profiles(username)');
-      const container = document.getElementById('nominations-container');
-      container.innerHTML = '';
+        const { data: noms } = await supabaseApp.from('nominations').select('*, profiles(username)');
+        const container = document.getElementById('nominations-container');
+        container.innerHTML = '';
 
-      if(!noms || noms.length === 0) {
-        container.innerHTML = '<p style="font-size:0.9rem; opacity:0.6;">No current marketplace suggestions.</p>';
-        return;
-      }
+        if(!noms || noms.length === 0) {
+            container.innerHTML = '<p style="font-size:0.9rem; opacity:0.6;">No current marketplace suggestions.</p>';
+            return;
+        }
 
-      noms.forEach(n => {
-        container.innerHTML += `
-          <div style="background: #F8F9FA; padding:16px; border-radius:14px; margin-top:12px; display:flex; justify-content:space-between; align-items:center; border: 1.5px solid var(--border-color);">
-            <div>
-              <strong>${n.title}</strong><br>
-              <span style="font-size:0.8rem; color: var(--text-muted);">From: ${n.profiles?.username || 'Roomie'}</span>
-            </div>
-            <span style="color:var(--accent-blue); font-weight:bold;">💰 ${n.bounty} BBs</span>
-          </div>
-        `;
-      });
+        noms.forEach(n => {
+            container.innerHTML += `
+            <div style="background: #F8F9FA; padding:16px; border-radius:14px; margin-top:12px; display:flex; justify-content:space-between; align-items:center; border: 1.5px solid var(--border-color);">
+                <div>
+                <strong>${n.title}</strong><br>
+                <span style="font-size:0.8rem; color: var(--text-muted);">From: ${n.profiles?.username || 'Roomie'}</span>
+                </div>
+                <span style="color:var(--accent-blue); font-weight:bold;">💰 ${n.bounty} BBs</span>
+            </div>`;
+        });
     }
   </script>
 </body>
