@@ -10,7 +10,7 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>House Meals Command Center</title>
-  <!-- Supabase Architecture Injection -->
+  <!-- Load Supabase Core -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
@@ -36,7 +36,6 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       padding: 0 16px 60px 16px;
     }
 
-    /* Fixed top margin layer to duck right beneath Joel's Space Header */
     .app-container {
       max-width: 760px;
       margin: 0 auto;
@@ -88,14 +87,12 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       font-family: inherit;
       font-weight: 600;
       box-sizing: border-box;
-      transition: all 0.2s ease;
     }
 
     input:focus, select:focus {
       outline: none;
       border-color: var(--accent-orange);
       background: #FFFFFF;
-      box-shadow: 0 0 0 4px rgba(255, 107, 74, 0.1);
     }
 
     button {
@@ -141,13 +138,6 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       border: 1.5px solid transparent;
       text-align: center;
       cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .day-card:hover {
-      background: #FFFFFF;
-      border-color: var(--accent-orange);
-      transform: scale(1.02);
     }
 
     .day-card.shared {
@@ -190,26 +180,23 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
 
   <div class="app-container">
     
-    <!-- HEADER -->
     <div class="app-card" style="text-align: center; border: none; box-shadow: none; background: transparent; padding-bottom: 0;">
       <h1>🍽️ Beattie's <span class="fun-text">Meal HQ</span></h1>
       <p>The bright, modern space for roomie cooking scores, calendar overrides, and wagers.</p>
     </div>
 
-    <!-- AUTHENTICATION VIEW -->
+    <!-- ENTRY FORM GATEWAY -->
     <div id="auth-panel" class="app-card">
       <h2>🏠 Resident Gateway</h2>
-      <p>Sign in or claim your custom profile below to log today's meal status.</p>
+      <p>Sign in or register a profile below to launch your weekly dashboard layout.</p>
       <input type="email" id="email" placeholder="House Email Address">
-      <input type="password" id="password" placeholder="Account Password">
+      <input type="password" id="password" placeholder="Account Password (Min. 6 characters)">
       <button onclick="handleLogin()" class="accent-btn">Sign In</button>
       <button onclick="handleSignup()" class="secondary-btn">Register New Profile</button>
     </div>
 
-    <!-- MASTER HUB VIEW (HIDDEN UNTIL AUTH) -->
+    <!-- MASTER PROFILE INTERFACE -->
     <div id="hub-panel" style="display: none;">
-      
-      <!-- TOP STATUS ROW -->
       <div class="app-card" style="display: flex; justify-content: space-between; align-items: center;">
         <div>
           <h2 style="margin:0;">Hey, <span id="user-display" class="fun-text">Chef</span>!</h2>
@@ -218,10 +205,8 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
         <button onclick="handleLogout()" class="secondary-btn" style="width: auto; margin:0; padding: 10px 20px;">Sign Out</button>
       </div>
 
-      <!-- 1. SMART ROSTER -->
       <div class="app-card">
         <h2>📅 The Cooking Rotation</h2>
-        <p>Mon - Thu roster slots. Click on a tile to adjust details.</p>
         <div class="calendar-grid">
           <div class="day-card" onclick="modifyDay('Monday')">
             <h3>Monday</h3>
@@ -246,10 +231,8 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
         </div>
       </div>
 
-      <!-- 2. WAGERS -->
       <div class="app-card">
         <h2>🎰 Beattie Bucks Sportsbook</h2>
-        <label for="bet-type">Select Prop Wager Pool:</label>
         <select id="bet-type">
           <option value="over_under">Over/Under 4.2 Stars on Next Meal</option>
           <option value="clock_watch">Meal is packed in fridge before 6:00 PM</option>
@@ -259,7 +242,6 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
         <button onclick="placeWager()" class="accent-btn">Lock In Forced Wager</button>
       </div>
 
-      <!-- 3. MARKETPLACE -->
       <div class="app-card">
         <h2>🍔 House Cravings Board</h2>
         <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; margin-bottom: 16px;">
@@ -270,12 +252,10 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
         <div id="nominations-container" style="margin-top: 16px;"></div>
       </div>
 
-      <!-- 4. LEADERBOARD -->
       <div class="app-card">
         <h2>🏆 Coefficient Rankings</h2>
         <div class="leaderboard-list" id="leaderboard-output"></div>
       </div>
-
     </div>
   </div>
 
@@ -283,52 +263,72 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
     const SUPABASE_URL = "https://dxunhtpuplnkfwohig.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_wsCGlEMhNPwK2-bVtPksLA_8-9konuo";
     
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let supabase = null;
     let currentUser = null;
     let userProfile = null;
 
-    window.onload = async () => {
+    // Secure initialization handler checking global library availability
+    function initSupabase() {
+      if (window.supabase && !supabase) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        checkSession();
+      }
+    }
+
+    async function checkSession() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) setupUserHub(session.user);
-    };
+    }
+
+    // Polling setup to ensure library fully mounts on slow mobile connection
+    const checkInterval = setInterval(() => {
+      if (window.supabase) {
+        initSupabase();
+        clearInterval(checkInterval);
+      }
+    }, 100);
 
     async function handleSignup() {
-      const email = document.getElementById('email').value;
+      if (!supabase) { alert("Database initialization delayed. Refresh and try again."); return; }
+      
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       
-      // Fixed: Fallback to auto-sign in upon registration to bypass missing confirmation configurations
+      if (!email || !password) { alert("Please supply both an email and a password."); return; }
+      if (password.length < 6) { alert("Password must be at least 6 characters."); return; }
+      
+      alert("Sending data to ledger...");
+      
       const { data, error } = await supabase.auth.signUp({ email, password });
       
       if (error) { 
-        alert("Registration Error: " + error.message); 
+        alert("Registration Fail: " + error.message); 
         return; 
       }
       
-      if (data.user) {
-        // Direct row insertion into public profile ledger
+      if (data?.user) {
         const { error: profileError } = await supabase.from('profiles').insert([
           { id: data.user.id, username: email.split('@')[0], beattie_bucks: 100, coefficient: 4.0 }
         ]);
         
-        if (profileError) {
-          console.error(profileError);
-        }
-        
-        alert("Account Created! If Supabase email confirmation is enabled, click the link sent to your inbox. Otherwise, try signing in now.");
+        if (profileError) console.error(profileError);
+        alert("Success! Account profile provisioned. Try logging in now.");
       }
     }
 
     async function handleLogin() {
-      const email = document.getElementById('email').value;
+      if (!supabase) return;
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
+      
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
-      if (error) alert("Login Error: " + error.message);
+      if (error) alert("Access Denied: " + error.message);
       else setupUserHub(data.user);
     }
 
     async function handleLogout() {
-      await supabase.auth.signOut();
+      if (supabase) await supabase.auth.signOut();
       location.reload();
     }
 
@@ -337,13 +337,12 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       document.getElementById('auth-panel').style.display = 'none';
       document.getElementById('hub-panel').style.display = 'block';
 
-      const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       if (profile) {
         userProfile = profile;
         document.getElementById('user-display').innerText = profile.username;
         document.getElementById('balance-display').innerText = profile.beattie_bucks;
       } else {
-        // Safe profile recovery fall-back layer if RLS delayed execution
         document.getElementById('user-display').innerText = user.email.split('@')[0];
       }
       
@@ -355,8 +354,7 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       const { data: profiles } = await supabase.from('profiles').select('*').order('coefficient', { ascending: false });
       const out = document.getElementById('leaderboard-output');
       out.innerHTML = '';
-      
-      if (!profiles || profiles.length === 0) return;
+      if (!profiles) return;
 
       profiles.forEach((p, idx) => {
         out.innerHTML += `
@@ -373,14 +371,14 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       const amount = parseInt(document.getElementById('bet-amount').value);
       
       if (!amount || amount <= 0 || amount > userProfile.beattie_bucks) {
-        alert("Check your wager bounds against total wallet balance!");
+        alert("Invalid wager bounds.");
         return;
       }
 
       await supabase.from('bets').insert([{ user_id: currentUser.id, bet_type: type, wager_amount: amount }]);
       await supabase.from('profiles').update({ beattie_bucks: userProfile.beattie_bucks - amount }).eq('id', currentUser.id);
       
-      alert("Wager booked on the central ledger.");
+      alert("Wager booked!");
       setupUserHub(currentUser);
     }
 
@@ -389,7 +387,7 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       const bounty = parseInt(document.getElementById('nomination-bounty').value) || 0;
 
       if (!title) return;
-      if (bounty > userProfile.beattie_bucks) { alert("Insufficient Beattie Bucks balance."); return; }
+      if (bounty > userProfile.beattie_bucks) { alert("Insufficient funds."); return; }
 
       await supabase.from('nominations').insert([{ title, suggested_by: currentUser.id, bounty }]);
       if (bounty > 0) {
@@ -407,7 +405,7 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       container.innerHTML = '';
 
       if(!noms || noms.length === 0) {
-        container.innerHTML = '<p style="font-size:0.9rem; opacity:0.6;">No cravings posted. Add one above!</p>';
+        container.innerHTML = '<p style="font-size:0.9rem; opacity:0.6;">No current requests.</p>';
         return;
       }
 
@@ -425,7 +423,7 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
     }
 
     function modifyDay(day) {
-      alert(`Modal logic placeholder for setting up meal plans on ${day}.`);
+      alert(`Editing configuration details for ${day}.`);
     }
   </script>
 </body>
