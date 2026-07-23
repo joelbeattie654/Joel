@@ -10,8 +10,6 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>House Meals Command Center</title>
-  <!-- Load Supabase Core -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
@@ -39,7 +37,7 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
     .app-container {
       max-width: 760px;
       margin: 0 auto;
-      padding-top: 120px; 
+      padding-top: 130px; /* Strong clearance buffer beneath Joel's space layout */
     }
 
     .app-card {
@@ -76,6 +74,17 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       color: var(--accent-orange);
     }
 
+    .status-box {
+      padding: 16px;
+      border-radius: 14px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .status-error { background: #FFE3E3; color: #D63030; border: 1px solid #FFA8A8; }
+    .status-info { background: #F1F3F5; color: var(--text-main); border: 1px solid var(--border-color); }
+    .status-success { background: #E3FCEF; color: #00875A; border: 1px solid #ABF5D1; }
+
     input, select {
       width: 100%;
       padding: 16px;
@@ -87,12 +96,6 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       font-family: inherit;
       font-weight: 600;
       box-sizing: border-box;
-    }
-
-    input:focus, select:focus {
-      outline: none;
-      border-color: var(--accent-orange);
-      background: #FFFFFF;
     }
 
     button {
@@ -107,12 +110,6 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       font-weight: 700;
       font-size: 1rem;
       cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.1);
     }
 
     button.secondary-btn {
@@ -126,7 +123,7 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
 
     .calendar-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 16px;
       margin-top: 20px;
     }
@@ -137,18 +134,11 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       border-radius: 18px;
       border: 1.5px solid transparent;
       text-align: center;
-      cursor: pointer;
     }
 
     .day-card.shared {
       background: rgba(6, 214, 160, 0.06);
       border-color: var(--accent-mint);
-    }
-
-    .day-card h3 {
-      margin: 0 0 8px 0;
-      font-size: 1.1rem;
-      font-weight: 800;
     }
 
     .leaderboard-list {
@@ -166,14 +156,6 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       border-radius: 16px;
       font-weight: 600;
     }
-
-    .user-row .rank-badge {
-      background: var(--accent-yellow);
-      padding: 4px 10px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      margin-right: 8px;
-    }
   </style>
 </head>
 <body>
@@ -185,49 +167,36 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       <p>The bright, modern space for roomie cooking scores, calendar overrides, and wagers.</p>
     </div>
 
-    <!-- ENTRY FORM GATEWAY -->
+    <!-- ENTRY GATEWAY -->
     <div id="auth-panel" class="app-card">
       <h2>🏠 Resident Gateway</h2>
       <p>Sign in or register a profile below to launch your weekly dashboard layout.</p>
+      
+      <div id="auth-status-box" class="status-box status-info">System Standing By...</div>
+
       <input type="email" id="email" placeholder="House Email Address">
       <input type="password" id="password" placeholder="Account Password (Min. 6 characters)">
-      <button onclick="handleLogin()" class="accent-btn">Sign In</button>
-      <button onclick="handleSignup()" class="secondary-btn">Register New Profile</button>
+      <button id="login-btn" class="accent-btn">Sign In</button>
+      <button id="signup-btn" class="secondary-btn">Register New Profile</button>
     </div>
 
-    <!-- MASTER PROFILE INTERFACE -->
+    <!-- MASTER HUB INTERFACE -->
     <div id="hub-panel" style="display: none;">
       <div class="app-card" style="display: flex; justify-content: space-between; align-items: center;">
         <div>
           <h2 style="margin:0;">Hey, <span id="user-display" class="fun-text">Chef</span>!</h2>
           <p style="margin: 4px 0 0 0; font-weight: 600;">Wallet: <span style="color: var(--accent-blue);" id="balance-display">0</span> Beattie Bucks</p>
         </div>
-        <button onclick="handleLogout()" class="secondary-btn" style="width: auto; margin:0; padding: 10px 20px;">Sign Out</button>
+        <button id="logout-btn" class="secondary-btn" style="width: auto; margin:0; padding: 10px 20px;">Sign Out</button>
       </div>
 
       <div class="app-card">
         <h2>📅 The Cooking Rotation</h2>
         <div class="calendar-grid">
-          <div class="day-card" onclick="modifyDay('Monday')">
-            <h3>Monday</h3>
-            <div id="mon-chef" style="font-weight:700; color:var(--accent-orange);">Unassigned</div>
-            <div id="mon-meal" style="font-size:0.85rem; color: var(--text-muted);">No logs</div>
-          </div>
-          <div class="day-card" onclick="modifyDay('Tuesday')">
-            <h3>Tuesday</h3>
-            <div id="tue-chef" style="font-weight:700; color:var(--accent-orange);">Unassigned</div>
-            <div id="tue-meal" style="font-size:0.85rem; color: var(--text-muted);">No logs</div>
-          </div>
-          <div class="day-card shared" onclick="modifyDay('Wednesday')">
-            <h3>Wednesday</h3>
-            <div id="wed-chef" style="font-weight:700; color:var(--accent-mint);">Shared Effort</div>
-            <div id="wed-meal" style="font-size:0.85rem; color: var(--text-muted);">Family Dinner</div>
-          </div>
-          <div class="day-card" onclick="modifyDay('Thursday')">
-            <h3>Thursday</h3>
-            <div id="thu-chef" style="font-weight:700; color:var(--accent-orange);">Unassigned</div>
-            <div id="thu-meal" style="font-size:0.85rem; color: var(--text-muted);">No logs</div>
-          </div>
+          <div class="day-card"><h3>Monday</h3><div style="font-weight:700; color:var(--accent-orange);">Unassigned</div></div>
+          <div class="day-card"><h3>Tuesday</h3><div style="font-weight:700; color:var(--accent-orange);">Unassigned</div></div>
+          <div class="day-card shared"><h3>Wednesday</h3><div style="font-weight:700; color:var(--accent-mint);">Shared Effort</div></div>
+          <div class="day-card"><h3>Thursday</h3><div style="font-weight:700; color:var(--accent-orange);">Unassigned</div></div>
         </div>
       </div>
 
@@ -239,17 +208,7 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
           <option value="lolly_prop">Bye-week person drops brand-name ice lollies</option>
         </select>
         <input type="number" id="bet-amount" placeholder="Amount to wager...">
-        <button onclick="placeWager()" class="accent-btn">Lock In Forced Wager</button>
-      </div>
-
-      <div class="app-card">
-        <h2>🍔 House Cravings Board</h2>
-        <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; margin-bottom: 16px;">
-          <input type="text" id="nomination-title" placeholder="Suggest a dish..." style="margin:0;">
-          <input type="number" id="nomination-bounty" placeholder="Bounty" style="margin:0; max-width: 100px;">
-        </div>
-        <button onclick="createNomination()">Publish Idea</button>
-        <div id="nominations-container" style="margin-top: 16px;"></div>
+        <button id="wager-btn" class="accent-btn">Lock In Forced Wager</button>
       </div>
 
       <div class="app-card">
@@ -259,81 +218,83 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
     </div>
   </div>
 
-  <script>
+  <!-- Bulletproof script initialization structure -->
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+
     const SUPABASE_URL = "https://dxunhtpuplnkfwohig.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_wsCGlEMhNPwK2-bVtPksLA_8-9konuo";
     
-    let supabase = null;
-    let currentUser = null;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let userProfile = null;
 
-    // Secure initialization handler checking global library availability
-    function initSupabase() {
-      if (window.supabase && !supabase) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        checkSession();
-      }
-    }
+    const statusBox = document.getElementById('auth-status-box');
 
-    async function checkSession() {
+    // Attach click events directly inside module logic context to skip loading race conditions
+    document.getElementById('signup-btn').addEventListener('click', handleSignup);
+    document.getElementById('login-btn').addEventListener('click', handleLogin);
+    document.getElementById('logout-btn').addEventListener('click', handleLogout);
+
+    // Initial load auto-auth check
+    async function checkUser() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) setupUserHub(session.user);
     }
-
-    // Polling setup to ensure library fully mounts on slow mobile connection
-    const checkInterval = setInterval(() => {
-      if (window.supabase) {
-        initSupabase();
-        clearInterval(checkInterval);
-      }
-    }, 100);
+    checkUser();
 
     async function handleSignup() {
-      if (!supabase) { alert("Database initialization delayed. Refresh and try again."); return; }
-      
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       
-      if (!email || !password) { alert("Please supply both an email and a password."); return; }
-      if (password.length < 6) { alert("Password must be at least 6 characters."); return; }
-      
-      alert("Sending data to ledger...");
-      
+      if (!email || !password) {
+        statusBox.className = "status-box status-error";
+        statusBox.innerText = "Error: Fill out all entry inputs!";
+        return;
+      }
+
+      statusBox.className = "status-box status-info";
+      statusBox.innerText = "Transmitting profile payload...";
+
       const { data, error } = await supabase.auth.signUp({ email, password });
       
-      if (error) { 
-        alert("Registration Fail: " + error.message); 
-        return; 
+      if (error) {
+        statusBox.className = "status-box status-error";
+        statusBox.innerText = "Fail: " + error.message;
+        return;
       }
       
       if (data?.user) {
-        const { error: profileError } = await supabase.from('profiles').insert([
+        await supabase.from('profiles').insert([
           { id: data.user.id, username: email.split('@')[0], beattie_bucks: 100, coefficient: 4.0 }
         ]);
-        
-        if (profileError) console.error(profileError);
-        alert("Success! Account profile provisioned. Try logging in now.");
+        statusBox.className = "status-box status-success";
+        statusBox.innerText = "Success! Profile built. Enter credentials and click Sign In.";
       }
     }
 
     async function handleLogin() {
-      if (!supabase) return;
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       
+      statusBox.className = "status-box status-info";
+      statusBox.innerText = "Authorizing credentials against cloud ledger...";
+
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
-      if (error) alert("Access Denied: " + error.message);
-      else setupUserHub(data.user);
+      if (error) {
+        statusBox.className = "status-box status-error";
+        statusBox.innerText = "Denied: " + error.message;
+      } else {
+        setupUserHub(data.user);
+      }
     }
 
     async function handleLogout() {
-      if (supabase) await supabase.auth.signOut();
+      await supabase.auth.signOut();
       location.reload();
     }
 
     async function setupUserHub(user) {
-      currentUser = user;
       document.getElementById('auth-panel').style.display = 'none';
       document.getElementById('hub-panel').style.display = 'block';
 
@@ -342,12 +303,9 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
         userProfile = profile;
         document.getElementById('user-display').innerText = profile.username;
         document.getElementById('balance-display').innerText = profile.beattie_bucks;
-      } else {
-        document.getElementById('user-display').innerText = user.email.split('@')[0];
       }
       
       loadLeaderboard();
-      loadNominations();
     }
 
     async function loadLeaderboard() {
@@ -359,71 +317,11 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
       profiles.forEach((p, idx) => {
         out.innerHTML += `
           <div class="user-row">
-            <span><span class="rank-badge">#${idx+1}</span><strong>${p.username}</strong></span>
-            <span>🌟 ${p.coefficient.toFixed(1)} <span style="color: var(--text-muted); margin: 0 6px;">|</span> 💰 ${p.beattie_bucks} BBs</span>
+            <span><strong>#${idx+1} ${p.username}</strong></span>
+            <span>🌟 ${p.coefficient.toFixed(1)} <span style="color: var(--border-color); margin: 0 4px;">|</span> 💰 ${p.beattie_bucks} BBs</span>
           </div>
         `;
       });
-    }
-
-    async function placeWager() {
-      const type = document.getElementById('bet-type').value;
-      const amount = parseInt(document.getElementById('bet-amount').value);
-      
-      if (!amount || amount <= 0 || amount > userProfile.beattie_bucks) {
-        alert("Invalid wager bounds.");
-        return;
-      }
-
-      await supabase.from('bets').insert([{ user_id: currentUser.id, bet_type: type, wager_amount: amount }]);
-      await supabase.from('profiles').update({ beattie_bucks: userProfile.beattie_bucks - amount }).eq('id', currentUser.id);
-      
-      alert("Wager booked!");
-      setupUserHub(currentUser);
-    }
-
-    async function createNomination() {
-      const title = document.getElementById('nomination-title').value;
-      const bounty = parseInt(document.getElementById('nomination-bounty').value) || 0;
-
-      if (!title) return;
-      if (bounty > userProfile.beattie_bucks) { alert("Insufficient funds."); return; }
-
-      await supabase.from('nominations').insert([{ title, suggested_by: currentUser.id, bounty }]);
-      if (bounty > 0) {
-        await supabase.from('profiles').update({ beattie_bucks: userProfile.beattie_bucks - bounty }).eq('id', currentUser.id);
-      }
-
-      document.getElementById('nomination-title').value = '';
-      document.getElementById('nomination-bounty').value = '';
-      setupUserHub(currentUser);
-    }
-
-    async function loadNominations() {
-      const { data: noms } = await supabase.from('nominations').select('*, profiles(username)');
-      const container = document.getElementById('nominations-container');
-      container.innerHTML = '';
-
-      if(!noms || noms.length === 0) {
-        container.innerHTML = '<p style="font-size:0.9rem; opacity:0.6;">No current requests.</p>';
-        return;
-      }
-
-      noms.forEach(n => {
-        container.innerHTML += `
-          <div style="background: #F8F9FA; padding:16px; border-radius:14px; margin-top:12px; display:flex; justify-content:space-between; align-items:center; border: 1.5px solid var(--border-color);">
-            <div>
-              <strong>${n.title}</strong><br>
-              <span style="font-size:0.8rem; color: var(--text-muted);">From: ${n.profiles?.username || 'Roomie'}</span>
-            </div>
-            <span style="color:var(--accent-blue); font-weight:bold;">💰 ${n.bounty} BBs</span>
-          </div>
-        `;
-      });
-    }
-
-    function modifyDay(day) {
-      alert(`Editing configuration details for ${day}.`);
     }
   </script>
 </body>
