@@ -249,10 +249,10 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
             return;
         }
 
-        // Initialize connection
+        // Initialize connection with the correct Legacy Anon JWT
         supabaseApp = window.supabase.createClient(
             "https://dxunhtpuplnkfwohig.supabase.co", 
-            "sb_publishable_wsCGlEMhNPwK2-bVtPksLA_8-9konuo"
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRreG5paGRwdXBmcmxrZndvaGlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4Mzc5NzEsImV4cCI6MjEwMDQxMzk3MX0.d3GE1nXbOCpJo_XLcqLX0PmB4Os4qFfw4-RrYH3r9Wg"
         );
 
         statusBox.className = "status-box status-success";
