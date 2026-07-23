@@ -211,7 +211,6 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
         <button id="wager-btn" class="accent-btn">Lock In Forced Wager</button>
       </div>
 
-      <!-- ADDED HOUSING FOR THE CRAVINGS BOARD -->
       <div class="app-card">
         <h2>🍔 House Cravings Board</h2>
         <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; margin-bottom: 16px;">
@@ -229,13 +228,14 @@ description: "The official tracker for meals, dynamic wagers, and Beattie Bucks.
     </div>
   </div>
 
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+  <!-- Traditional Global script layer to completely dodge mobile module browser blocks -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <script>
     const SUPABASE_URL = "https://dxunhtpuplnkfwohig.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_wsCGlEMhNPwK2-bVtPksLA_8-9konuo";
     
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let userProfile = null;
 
     const statusBox = document.getElementById('auth-status-box');
