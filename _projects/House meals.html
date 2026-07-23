@@ -58,6 +58,13 @@ description: "House cooking schedule and rankings."
       font-family: inherit; font-weight: 600; box-sizing: border-box;
     }
 
+    /* Active User Banner */
+    #active-user-banner {
+      background: var(--text-main); color: white;
+      text-align: center; padding: 10px; border-radius: 12px;
+      margin-bottom: 20px; font-weight: 700; display: none;
+    }
+
     button {
       width: 100%; padding: 14px; margin: 8px 0;
       border-radius: 12px; border: none;
@@ -107,6 +114,8 @@ description: "House cooking schedule and rankings."
     
     <h1>The <span class="fun-text">Meal HQ</span></h1>
 
+    <div id="active-user-banner">Currently Logged In As: <span id="banner-username" style="text-transform: capitalize; color: var(--accent-yellow);"></span></div>
+
     <!-- TOP CONTROL BAR -->
     <div class="app-card" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 32px;">
       <div id="guest-header">
@@ -124,16 +133,17 @@ description: "House cooking schedule and rankings."
       <button id="nav-logout-btn" class="secondary-btn" style="display:none; width: auto; margin:0; padding: 10px 24px;" onclick="handleLogout()">Sign Out</button>
     </div>
 
-    <!-- PROFILE SETTINGS (Hidden for guests) -->
+    <!-- PROFILE SETTINGS (Image Upload) -->
     <div id="profile-settings" class="app-card" style="display: none;">
-      <h3 style="margin-bottom: 12px;">🖼️ Set Your Funny Picture</h3>
+      <h3 style="margin-bottom: 12px;">🖼️ Upload Your Funny Picture</h3>
+      <p style="font-size: 0.9rem;">Upload a photo straight from your phone's camera roll.</p>
       <div style="display: flex; gap: 8px;">
-        <input type="text" id="avatar-url-input" placeholder="Paste a JPEG/PNG image link here..." style="margin:0;">
-        <button onclick="updateAvatar()" class="secondary-btn" style="margin:0; width: auto; white-space: nowrap;">Update Photo</button>
+        <input type="file" id="avatar-file-input" accept="image/png, image/jpeg, image/gif" style="margin:0; background: #fff; padding: 10px;">
+        <button id="upload-btn" onclick="uploadAvatar()" class="secondary-btn" style="margin:0; width: auto; white-space: nowrap;">Upload Photo</button>
       </div>
     </div>
 
-    <!-- ADMIN PANEL (Hidden unless Beattie) -->
+    <!-- ADMIN PANEL -->
     <div id="admin-panel" class="app-card" style="display: none; border-color: var(--accent-yellow); background: #FFFAEB;">
       <h2 style="color: #D49A00;">👑 Admin Controls</h2>
       <button onclick="generateWeek()" class="admin-btn">🎲 Algorithmic Generate (Next 7 Days)</button>
@@ -176,7 +186,7 @@ description: "House cooking schedule and rankings."
         <option value="lobby">Lobby</option>
         <option value="watt">Watt</option>
       </select>
-      <input type="password" id="password" placeholder="Password (food654)">
+      <input type="password" id="password" placeholder="Password...">
       <button onclick="handleLogin()" class="accent-btn">Enter HQ</button>
       <button onclick="document.getElementById('auth-overlay').style.display='none'" class="secondary-btn">Cancel</button>
     </div>
@@ -191,18 +201,16 @@ description: "House cooking schedule and rankings."
     
     let supabaseApp = null;
     let currentUserProfile = null;
-    let currentDate = new Date(); // Current viewed month
+    let currentDate = new Date(); 
     let allProfiles = [];
 
     window.addEventListener('load', async function() {
         if (!window.supabase) return alert("Browser blocked script.");
         supabaseApp = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        // Initial Fetch
         await fetchProfiles();
         renderCalendar();
         
-        // Auto Login Check
         const { data: { session } } = await supabaseApp.auth.getSession();
         if (session) setupUserInterface(session.user);
     });
@@ -211,26 +219,35 @@ description: "House cooking schedule and rankings."
     async function handleLogin() {
         const username = document.getElementById('username-select').value;
         const password = document.getElementById('password').value;
-        const fakeEmail = `${username}@mealhq.com`; // Backend trick to bypass email requirement
+        const fakeEmail = `${username}@mealhq.com`; 
 
-        if(!password) return alert("Enter the house password.");
+        // Enforce Passwords
+        if (username === 'beattie' && password !== 'admin654') {
+            return alert("Access Denied: Incorrect Admin Password.");
+        }
+        if (username !== 'beattie' && password !== 'food654') {
+            return alert("Access Denied: Incorrect House Password.");
+        }
 
-        // Try logging in
+        // Log in
         let { data, error } = await supabaseApp.auth.signInWithPassword({ email: fakeEmail, password });
         
-        // If login fails (user doesn't exist yet), silently register them on the spot
+        // Auto-Register on first try
         if (error && error.message.includes("Invalid login")) {
             const res = await supabaseApp.auth.signUp({ email: fakeEmail, password });
             if (res.error) return alert("Setup Error: " + res.error.message);
             
-            // Build their database profile
-            const isAdmin = (username === 'beattie');
             await supabaseApp.from('profiles').insert([
-                { id: res.data.user.id, username: username, is_admin: isAdmin, beattie_bucks: 100 }
+                { id: res.data.user.id, username: username, is_admin: (username === 'beattie'), beattie_bucks: 100 }
             ]);
             data = res.data;
         } else if (error) {
             return alert(error.message);
+        }
+
+        // Force Admin fix just in case the old DB is lingering
+        if (username === 'beattie') {
+            await supabaseApp.from('profiles').update({ is_admin: true }).eq('id', data.user.id);
         }
 
         document.getElementById('auth-overlay').style.display = 'none';
@@ -244,27 +261,66 @@ description: "House cooking schedule and rankings."
 
     // --- INTERFACE SETUP ---
     async function setupUserInterface(user) {
-        // Switch UI to logged-in mode
         document.getElementById('guest-header').style.display = 'none';
         document.getElementById('nav-login-btn').style.display = 'none';
         document.getElementById('user-header').style.display = 'flex';
         document.getElementById('nav-logout-btn').style.display = 'block';
         document.getElementById('profile-settings').style.display = 'block';
+        
+        // Show top banner
+        document.getElementById('active-user-banner').style.display = 'block';
 
-        // Load profile data
         const { data: profile } = await supabaseApp.from('profiles').select('*').eq('id', user.id).single();
         if (profile) {
             currentUserProfile = profile;
+            document.getElementById('banner-username').innerText = profile.username;
             document.getElementById('display-name').innerText = profile.username;
             document.getElementById('display-bucks').innerText = profile.beattie_bucks;
             document.getElementById('my-avatar').src = profile.avatar_url;
             
-            // ADMIN PERKS
-            if (profile.is_admin) {
+            if (profile.is_admin || profile.username === 'beattie') {
                 document.getElementById('admin-panel').style.display = 'block';
                 checkFridayBucks();
             }
         }
+    }
+
+    // --- FILE UPLOAD (Avatars) ---
+    async function uploadAvatar() {
+        const fileInput = document.getElementById('avatar-file-input');
+        const uploadBtn = document.getElementById('upload-btn');
+        
+        if (!fileInput.files || fileInput.files.length === 0) {
+            return alert("Please select an image from your device first!");
+        }
+
+        const file = fileInput.files[0];
+        const fileExt = file.name.split('.').pop();
+        const filePath = `${currentUserProfile.id}.${fileExt}`;
+
+        uploadBtn.innerText = "Uploading...";
+        uploadBtn.disabled = true;
+
+        // 1. Upload to Supabase Storage
+        const { error: uploadError } = await supabaseApp.storage
+            .from('avatars')
+            .upload(filePath, file, { upsert: true });
+
+        if (uploadError) {
+            uploadBtn.innerText = "Upload Photo";
+            uploadBtn.disabled = false;
+            return alert("Upload failed: " + uploadError.message);
+        }
+
+        // 2. Get Public URL
+        const { data: publicUrlData } = supabaseApp.storage.from('avatars').getPublicUrl(filePath);
+        const publicUrl = publicUrlData.publicUrl;
+
+        // 3. Save to profile
+        await supabaseApp.from('profiles').update({ avatar_url: publicUrl }).eq('id', currentUserProfile.id);
+        
+        alert("Photo updated successfully!");
+        location.reload(); 
     }
 
     async function fetchProfiles() {
@@ -286,14 +342,6 @@ description: "House cooking schedule and rankings."
         });
     }
 
-    async function updateAvatar() {
-        const url = document.getElementById('avatar-url-input').value.trim();
-        if(!url) return;
-        await supabaseApp.from('profiles').update({ avatar_url: url }).eq('id', currentUserProfile.id);
-        document.getElementById('avatar-url-input').value = '';
-        location.reload(); // Quick refresh to update everything
-    }
-
     // --- CALENDAR ENGINE ---
     async function renderCalendar() {
         const year = currentDate.getFullYear();
@@ -302,7 +350,6 @@ description: "House cooking schedule and rankings."
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         document.getElementById('month-title').innerText = `${monthNames[month]} ${year}`;
 
-        // Fetch assignments for this month
         const firstDay = new Date(year, month, 1);
         const lastDay = new Date(year, month + 1, 0);
         
@@ -319,12 +366,10 @@ description: "House cooking schedule and rankings."
         const body = document.getElementById('calendar-body');
         body.innerHTML = '';
 
-        // Blanks for start of month
         for (let i = 0; i < firstDay.getDay(); i++) {
             body.innerHTML += `<div class="day-cell" style="background: transparent; border: none;"></div>`;
         }
 
-        // Days
         for (let i = 1; i <= lastDay.getDate(); i++) {
             const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
             const cook = assignmentMap[dateStr];
@@ -338,7 +383,6 @@ description: "House cooking schedule and rankings."
                   </div>`;
             }
 
-            // Highlight today
             const today = new Date();
             let isToday = (i === today.getDate() && month === today.getMonth() && year === today.getFullYear());
             let borderStyle = isToday ? 'border-color: var(--accent-orange); background: #FFF5F2;' : '';
@@ -358,7 +402,7 @@ description: "House cooking schedule and rankings."
 
     // --- ADMIN ALGORITHMS ---
     async function generateWeek() {
-        if (!allProfiles || allProfiles.length === 0) return alert("No profiles exist yet. Everyone needs to log in at least once!");
+        if (!allProfiles || allProfiles.length === 0) return alert("No profiles exist yet.");
         if (!confirm("This will randomly assign cooks (weighted by their coefficient) for the next 7 days. Proceed?")) return;
 
         const newAssignments = [];
@@ -369,7 +413,6 @@ description: "House cooking schedule and rankings."
             targetDate.setDate(today.getDate() + i);
             const dateStr = targetDate.toISOString().split('T')[0];
 
-            // Simple Randomizer (Could be mapped by coefficient weights in the future)
             const randomCook = allProfiles[Math.floor(Math.random() * allProfiles.length)];
             
             newAssignments.push({ date: dateStr, cook_id: randomCook.id });
@@ -388,7 +431,6 @@ description: "House cooking schedule and rankings."
             if (settings) {
                 const lastDistrib = new Date(settings.last_bucks_distribution);
                 
-                // If the last distribution was BEFORE today (meaning it hasn't been clicked today)
                 if (lastDistrib.toDateString() !== today.toDateString()) {
                     document.getElementById('friday-bucks-btn').style.display = 'block';
                 }
@@ -400,12 +442,10 @@ description: "House cooking schedule and rankings."
         document.getElementById('friday-bucks-btn').disabled = true;
         document.getElementById('friday-bucks-btn').innerText = "Distributing...";
 
-        // Add 50 Bucks to everyone
         for (let user of allProfiles) {
             await supabaseApp.from('profiles').update({ beattie_bucks: user.beattie_bucks + 50 }).eq('id', user.id);
         }
         
-        // Update the timestamp so it disappears
         await supabaseApp.from('house_settings').update({ last_bucks_distribution: new Date().toISOString() }).eq('id', 1);
         
         alert("Weekly bucks have been deposited to all accounts!");
