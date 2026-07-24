@@ -21,6 +21,8 @@ description: "House cooking schedule and rankings."
       --text-muted: #6C757D;
       --accent-orange: #FF6B4A;
       --accent-yellow: #FFD166;
+      --accent-mint: #06D6A0;
+      --accent-blue: #118AB2;
       --border-color: #E9ECEF;
     }
 
@@ -51,7 +53,7 @@ description: "House cooking schedule and rankings."
     h1 { font-size: 2.5rem; letter-spacing: -1.5px; text-align: center; margin-bottom: 24px; }
     .fun-text { color: var(--accent-orange); }
 
-    input {
+    input, select {
       width: 100%; padding: 14px; margin: 8px 0 16px 0;
       border-radius: 12px; border: 1.5px solid var(--border-color);
       background: #F8F9FA; color: var(--text-main);
@@ -75,34 +77,27 @@ description: "House cooking schedule and rankings."
     button.secondary-btn { background-color: #E9ECEF; color: var(--text-main); }
     button.admin-btn { background-color: var(--accent-yellow); color: var(--text-main); }
 
+    /* Calendar Grid */
     .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 8px;
-    }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
     .day-name { text-align: center; font-weight: 800; font-size: 0.85rem; color: var(--text-muted); padding-bottom: 8px; }
-    .day-cell {
-      background: #F8F9FA; border-radius: 12px; padding: 8px;
-      min-height: 80px; display: flex; flex-direction: column;
-      border: 1.5px solid transparent; text-align: center;
-    }
+    .day-cell { background: #F8F9FA; border-radius: 12px; padding: 8px; min-height: 80px; display: flex; flex-direction: column; border: 1.5px solid transparent; text-align: center; }
     .day-number { font-size: 0.9rem; font-weight: 800; opacity: 0.5; margin-bottom: 4px; text-align: right; }
-    .day-cook { font-weight: 700; font-size: 0.9rem; color: var(--accent-orange); display: flex; flex-direction: column; align-items: center; gap: 4px;}
-    .day-cook img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+    .day-cook { font-weight: 700; font-size: 0.9rem; color: var(--accent-orange); display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; transition: transform 0.2s;}
+    .day-cook:hover { transform: scale(1.05); }
+    .day-cook img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-orange); }
 
-    .user-row {
-      display: flex; justify-content: space-between; align-items: center;
-      background: #F8F9FA; padding: 12px 20px; border-radius: 16px; margin-bottom: 8px; font-weight: 600;
-    }
+    /* Overlays */
+    .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; }
+    .overlay-box { background: white; padding: 32px; border-radius: 24px; width: 90%; max-width: 400px; text-align: center; }
+
+    /* Ratings */
+    .star-btn { font-size: 2rem; background: none; border: none; padding: 0 4px; cursor: pointer; color: var(--border-color); width: auto; margin:0;}
+    .star-btn:hover, .star-btn.active { color: var(--accent-yellow); }
+
+    .user-row { display: flex; justify-content: space-between; align-items: center; background: #F8F9FA; padding: 12px 20px; border-radius: 16px; margin-bottom: 8px; font-weight: 600; }
     .user-info { display: flex; align-items: center; gap: 12px; }
     .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: #E9ECEF; object-fit: cover; }
-
-    #auth-overlay {
-      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center;
-    }
-    .auth-box { background: white; padding: 32px; border-radius: 24px; width: 90%; max-width: 400px; }
   </style>
 </head>
 <body>
@@ -110,7 +105,6 @@ description: "House cooking schedule and rankings."
   <div class="app-container">
     
     <h1>The <span class="fun-text">Meal HQ</span></h1>
-
     <div id="active-user-banner">Currently Logged In As: <span id="banner-username" style="text-transform: capitalize; color: var(--accent-yellow);"></span></div>
 
     <!-- TOP CONTROL BAR -->
@@ -130,20 +124,10 @@ description: "House cooking schedule and rankings."
       <button id="nav-logout-btn" class="secondary-btn" style="display:none; width: auto; margin:0; padding: 10px 24px;" onclick="handleLogout()">Sign Out</button>
     </div>
 
-    <!-- PROFILE SETTINGS -->
-    <div id="profile-settings" class="app-card" style="display: none;">
-      <h3 style="margin-bottom: 12px;">🖼️ Upload Your Funny Picture</h3>
-      <p style="font-size: 0.9rem;">Upload a photo straight from your phone's camera roll.</p>
-      <div style="display: flex; gap: 8px;">
-        <input type="file" id="avatar-file-input" accept="image/png, image/jpeg, image/gif" style="margin:0; background: #fff; padding: 10px;">
-        <button id="upload-btn" onclick="uploadAvatar()" class="secondary-btn" style="margin:0; width: auto; white-space: nowrap;">Upload Photo</button>
-      </div>
-    </div>
-
     <!-- ADMIN PANEL -->
     <div id="admin-panel" class="app-card" style="display: none; border-color: var(--accent-yellow); background: #FFFAEB;">
       <h2 style="color: #D49A00;">👑 Admin Controls</h2>
-      <button onclick="generateWeek()" class="admin-btn">🎲 Algorithmic Generate (Next 7 Days)</button>
+      <button onclick="generateWeek()" class="admin-btn">🎲 Generate Mon-Thu Cooks + Fri Ice Lolly</button>
       <button id="friday-bucks-btn" onclick="releaseBucks()" class="accent-btn" style="display: none; margin-top: 12px;">💸 FRIDAY UNLOCKED: Release Weekly Bucks!</button>
     </div>
 
@@ -154,12 +138,34 @@ description: "House cooking schedule and rankings."
         <h2 id="month-title" style="margin:0;">Month</h2>
         <button onclick="changeMonth(1)" class="secondary-btn" style="width: auto; padding: 8px 16px;">Next &rarr;</button>
       </div>
-      
       <div class="calendar-grid">
         <div class="day-name">SUN</div><div class="day-name">MON</div><div class="day-name">TUE</div>
         <div class="day-name">WED</div><div class="day-name">THU</div><div class="day-name">FRI</div><div class="day-name">SAT</div>
       </div>
       <div class="calendar-grid" id="calendar-body"></div>
+    </div>
+
+    <!-- HOUSE CRAVINGS -->
+    <div class="app-card" id="cravings-section" style="display:none;">
+      <h2>🍔 House Cravings Board</h2>
+      <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; margin-bottom: 16px;">
+        <input type="text" id="nomination-title" placeholder="Suggest a dish..." style="margin:0;">
+        <input type="number" id="nomination-bounty" placeholder="BB Bounty" style="margin:0; max-width: 110px;">
+      </div>
+      <button onclick="publishCraving()" class="accent-btn">Publish Request</button>
+      <div id="cravings-container" style="margin-top: 16px;"></div>
+    </div>
+
+    <!-- SPORTSBOOK -->
+    <div class="app-card" id="wagers-section" style="display:none;">
+      <h2>🎰 Beattie Bucks Sportsbook</h2>
+      <select id="bet-type">
+        <option value="Over/Under 4.2 Stars on Next Meal">Over/Under 4.2 Stars on Next Meal</option>
+        <option value="Meal packed before 6:00 PM">Meal is packed in fridge before 6:00 PM</option>
+        <option value="Brand-name Ice Lollies brought">Bye-week person drops brand-name ice lollies</option>
+      </select>
+      <input type="number" id="bet-amount" placeholder="Amount to wager...">
+      <button onclick="placeWager()" class="accent-btn">Lock In Forced Wager</button>
     </div>
 
     <!-- LEADERBOARD -->
@@ -168,13 +174,23 @@ description: "House cooking schedule and rankings."
       <div class="leaderboard-list" id="leaderboard-output"></div>
     </div>
 
+    <!-- PROFILE SETTINGS -->
+    <div id="profile-settings" class="app-card" style="display: none;">
+      <h3 style="margin-bottom: 12px;">🖼️ Upload Your Funny Picture</h3>
+      <p style="font-size: 0.9rem;">Upload a photo straight from your phone's camera roll.</p>
+      <div style="display: flex; gap: 8px;">
+        <input type="file" id="avatar-file-input" accept="image/png, image/jpeg, image/gif" style="margin:0; background: #fff; padding: 10px;">
+        <button id="upload-btn" onclick="uploadAvatar()" class="secondary-btn" style="margin:0; width: auto; white-space: nowrap;">Upload Photo</button>
+      </div>
+    </div>
+
   </div>
 
   <!-- AUTH POPUP -->
-  <div id="auth-overlay">
-    <div class="auth-box">
-      <h2 style="text-align: center; margin-bottom: 24px;">Resident Login</h2>
-      <select id="username-select" style="width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 12px; font-weight:bold;">
+  <div id="auth-overlay" class="overlay">
+    <div class="overlay-box">
+      <h2 style="margin-bottom: 24px;">Resident Login</h2>
+      <select id="username-select">
         <option value="beattie">Beattie</option>
         <option value="kelso">Kelso</option>
         <option value="rainy">Rainy</option>
@@ -184,6 +200,25 @@ description: "House cooking schedule and rankings."
       <input type="password" id="password" placeholder="Password...">
       <button id="login-submit-btn" onclick="handleLogin()" class="accent-btn">Enter HQ</button>
       <button onclick="document.getElementById('auth-overlay').style.display='none'" class="secondary-btn">Cancel</button>
+    </div>
+  </div>
+
+  <!-- RATING POPUP -->
+  <div id="rating-overlay" class="overlay">
+    <div class="overlay-box">
+      <h2 style="margin-bottom: 8px;">Rate <span id="rate-target-name" style="text-transform: capitalize; color: var(--accent-orange);"></span></h2>
+      <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px;">This will adjust their coefficient.</p>
+      
+      <div id="star-container" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 20px;">
+        <button class="star-btn" onclick="setRating(1)">★</button>
+        <button class="star-btn" onclick="setRating(2)">★</button>
+        <button class="star-btn" onclick="setRating(3)">★</button>
+        <button class="star-btn" onclick="setRating(4)">★</button>
+        <button class="star-btn" onclick="setRating(5)">★</button>
+      </div>
+
+      <button id="submit-rating-btn" onclick="submitRating()" class="accent-btn">Submit Rating</button>
+      <button onclick="document.getElementById('rating-overlay').style.display='none'" class="secondary-btn">Cancel</button>
     </div>
   </div>
 
@@ -198,6 +233,11 @@ description: "House cooking schedule and rankings."
     let currentUserProfile = null;
     let currentDate = new Date(); 
     let allProfiles = [];
+    
+    // Rating Variables
+    let selectedRating = 0;
+    let ratingTargetId = null;
+    let ratingTargetCurrentCoeff = 0;
 
     window.addEventListener('load', async function() {
         if (!window.supabase) return alert("Browser blocked script.");
@@ -205,12 +245,13 @@ description: "House cooking schedule and rankings."
         
         await fetchProfiles();
         renderCalendar();
+        loadCravings();
         
         const { data: { session } } = await supabaseApp.auth.getSession();
         if (session) setupUserInterface(session.user);
     });
 
-    // --- AGGRESSIVE AUTH SETUP ---
+    // --- AUTHENTICATION ---
     async function handleLogin() {
         const username = document.getElementById('username-select').value;
         const password = document.getElementById('password').value;
@@ -223,59 +264,32 @@ description: "House cooking schedule and rankings."
         loginBtn.innerText = "Authenticating...";
         loginBtn.disabled = true;
 
-        // 1. Try to log in
         let { data, error } = await supabaseApp.auth.signInWithPassword({ email: fakeEmail, password });
         
-        // 2. If it says invalid login, it means the account doesn't exist yet, so we build it.
         if (error && (error.message.includes("Invalid login") || error.message.includes("credentials"))) {
             const res = await supabaseApp.auth.signUp({ email: fakeEmail, password });
-            if (res.error) {
-                loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false;
-                return alert("Setup Error: " + res.error.message);
-            }
+            if (res.error) { loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false; return alert("Setup Error: " + res.error.message); }
             
-            // AGGRESSIVE OVERRIDE: Forcefully log in again to absolutely guarantee the session takes hold
             const forceLogin = await supabaseApp.auth.signInWithPassword({ email: fakeEmail, password });
-            if (forceLogin.error) {
-                loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false;
-                return alert("Session Lock Error: " + forceLogin.error.message);
-            }
             data = forceLogin.data;
         } else if (error) {
-            loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false;
-            return alert("Login Error: " + error.message);
+            loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false; return alert("Login Error: " + error.message);
         }
 
-        // Safety check to make sure the user object loaded
-        if (!data || !data.user) {
-            loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false;
-            return alert("Critical Error: Missing user session data.");
-        }
-
-        // 3. Make sure their profile actually exists in the database
-        const { data: existingProfile, error: profileCheckError } = await supabaseApp.from('profiles').select('id').eq('id', data.user.id).maybeSingle();
+        const { data: existingProfile } = await supabaseApp.from('profiles').select('id').eq('id', data.user.id).maybeSingle();
         
         if (!existingProfile) {
-            // Build the missing profile!
-            const { error: insertError } = await supabaseApp.from('profiles').insert([
+            await supabaseApp.from('profiles').insert([
                 { id: data.user.id, username: username, is_admin: (username === 'beattie'), beattie_bucks: 100 }
             ]);
-            
-            if (insertError) {
-                loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false;
-                return alert("Profile Build Error: " + insertError.message + " (This means a ghost profile is still blocking the username)");
-            }
         } else if (username === 'beattie') {
-            // Force Admin Upgrade
             await supabaseApp.from('profiles').update({ is_admin: true }).eq('id', data.user.id);
         }
 
-        // 4. We successfully logged in and verified the profile. Close the popup and setup the UI.
         document.getElementById('auth-overlay').style.display = 'none';
-        loginBtn.innerText = "Enter HQ"; 
-        loginBtn.disabled = false;
+        loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false;
         
-        setupUserInterface(data.user);
+        setTimeout(() => setupUserInterface(data.user), 500);
     }
 
     async function handleLogout() {
@@ -283,33 +297,24 @@ description: "House cooking schedule and rankings."
         location.reload();
     }
 
-    // --- INTERFACE SETUP ---
     async function setupUserInterface(user) {
-        const { data: profile, error } = await supabaseApp.from('profiles').select('*').eq('id', user.id).single();
-        
-        if (error) {
-            console.error(error);
-            return alert("Could not fetch user profile to load UI.");
-        }
-
+        const { data: profile } = await supabaseApp.from('profiles').select('*').eq('id', user.id).single();
         if (profile) {
             document.getElementById('guest-header').style.display = 'none';
             document.getElementById('nav-login-btn').style.display = 'none';
             document.getElementById('user-header').style.display = 'flex';
             document.getElementById('nav-logout-btn').style.display = 'block';
             document.getElementById('profile-settings').style.display = 'block';
-            
+            document.getElementById('cravings-section').style.display = 'block';
+            document.getElementById('wagers-section').style.display = 'block';
             document.getElementById('active-user-banner').style.display = 'block';
             
             currentUserProfile = profile;
             document.getElementById('banner-username').innerText = profile.username;
             document.getElementById('display-name').innerText = profile.username;
             document.getElementById('display-bucks').innerText = profile.beattie_bucks;
-            
-            // Set Avatar (Fallback if missing)
             document.getElementById('my-avatar').src = profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`;
             
-            // ADMIN CHECK
             if (profile.is_admin) {
                 document.getElementById('admin-panel').style.display = 'block';
                 checkFridayBucks();
@@ -317,36 +322,7 @@ description: "House cooking schedule and rankings."
         }
     }
 
-    // --- FILE UPLOAD (Avatars) ---
-    async function uploadAvatar() {
-        const fileInput = document.getElementById('avatar-file-input');
-        const uploadBtn = document.getElementById('upload-btn');
-        
-        if (!fileInput.files || fileInput.files.length === 0) return alert("Please select an image from your device first!");
-
-        const file = fileInput.files[0];
-        const fileExt = file.name.split('.').pop();
-        const filePath = `${currentUserProfile.id}.${fileExt}`;
-
-        uploadBtn.innerText = "Uploading...";
-        uploadBtn.disabled = true;
-
-        const { error: uploadError } = await supabaseApp.storage.from('avatars').upload(filePath, file, { upsert: true });
-
-        if (uploadError) {
-            uploadBtn.innerText = "Upload Photo";
-            uploadBtn.disabled = false;
-            return alert("Upload failed: " + uploadError.message);
-        }
-
-        const { data: publicUrlData } = supabaseApp.storage.from('avatars').getPublicUrl(filePath);
-        
-        await supabaseApp.from('profiles').update({ avatar_url: publicUrlData.publicUrl }).eq('id', currentUserProfile.id);
-        
-        alert("Photo updated successfully!");
-        location.reload(); 
-    }
-
+    // --- LEADERBOARD & DATA FETCHING ---
     async function fetchProfiles() {
         const { data } = await supabaseApp.from('profiles').select('*').order('coefficient', { ascending: false });
         allProfiles = data || [];
@@ -362,12 +338,51 @@ description: "House cooking schedule and rankings."
                   <img src="${avatarUrl}" class="user-avatar">
                   <span style="text-transform: capitalize;">${p.username}</span>
                 </div>
-                <span>🌟 ${p.coefficient.toFixed(1)} <span style="color: var(--border-color); margin: 0 4px;">|</span> 💰 ${p.beattie_bucks}</span>
+                <span>🌟 ${p.coefficient.toFixed(2)} <span style="color: var(--border-color); margin: 0 4px;">|</span> 💰 ${p.beattie_bucks}</span>
             </div>`;
         });
     }
 
-    // --- CALENDAR ENGINE ---
+    // --- RATING SYSTEM ---
+    function openRatingModal(userId, username, currentCoeff) {
+        if (!currentUserProfile) return alert("You must be logged in to rate a meal!");
+        ratingTargetId = userId;
+        ratingTargetCurrentCoeff = currentCoeff;
+        document.getElementById('rate-target-name').innerText = username;
+        setRating(0); // Reset stars
+        document.getElementById('rating-overlay').style.display = 'flex';
+    }
+
+    function setRating(val) {
+        selectedRating = val;
+        const stars = document.getElementById('star-container').children;
+        for (let i = 0; i < 5; i++) {
+            stars[i].className = i < val ? "star-btn active" : "star-btn";
+        }
+    }
+
+    async function submitRating() {
+        if (selectedRating === 0) return alert("Please select a star rating.");
+        const btn = document.getElementById('submit-rating-btn');
+        btn.innerText = "Submitting..."; btn.disabled = true;
+
+        // Dynamic formula: averages their current coefficient with the new rating
+        const newCoeff = (ratingTargetCurrentCoeff + selectedRating) / 2.0;
+
+        const { error } = await supabaseApp.from('profiles').update({ coefficient: newCoeff }).eq('id', ratingTargetId);
+        
+        if (error) {
+            alert("Error saving rating: " + error.message);
+        } else {
+            alert("Rating logged successfully! Coefficient updated.");
+            location.reload();
+        }
+        
+        btn.innerText = "Submit Rating"; btn.disabled = false;
+        document.getElementById('rating-overlay').style.display = 'none';
+    }
+
+    // --- CALENDAR ALGORITHMS ---
     async function renderCalendar() {
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
@@ -378,15 +393,15 @@ description: "House cooking schedule and rankings."
         const firstDay = new Date(year, month, 1);
         const lastDay = new Date(year, month + 1, 0);
         
-        const { data: assignments } = await supabaseApp.from('calendar_days')
-            .select('date, profiles(username, avatar_url)')
+        const { data: assignments, error } = await supabaseApp.from('calendar_days')
+            .select('date, meal_notes, profiles(id, username, avatar_url, coefficient)')
             .gte('date', firstDay.toISOString().split('T')[0])
             .lte('date', lastDay.toISOString().split('T')[0]);
 
+        if (error) console.error("Calendar Fetch Error:", error);
+
         const assignmentMap = {};
-        if (assignments) {
-            assignments.forEach(a => assignmentMap[a.date] = a.profiles);
-        }
+        if (assignments) assignments.forEach(a => assignmentMap[a.date] = a);
 
         const body = document.getElementById('calendar-body');
         body.innerHTML = '';
@@ -397,15 +412,21 @@ description: "House cooking schedule and rankings."
 
         for (let i = 1; i <= lastDay.getDate(); i++) {
             const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-            const cook = assignmentMap[dateStr];
+            const dayData = assignmentMap[dateStr];
             
             let contentHtml = '';
-            if (cook) {
+            if (dayData && dayData.profiles) {
+                const cook = dayData.profiles;
                 const avatarUrl = cook.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${cook.username}`;
+                
+                // Ice Lolly / Notes flair
+                let notesHtml = dayData.meal_notes ? `<div style="font-size:0.75rem; font-weight: 800; color:var(--accent-mint); margin-top:4px;">${dayData.meal_notes}</div>` : '';
+                
                 contentHtml = `
-                  <div class="day-cook">
+                  <div class="day-cook" onclick="openRatingModal('${cook.id}', '${cook.username}', ${cook.coefficient})">
                     <img src="${avatarUrl}">
                     <span style="text-transform: capitalize;">${cook.username}</span>
+                    ${notesHtml}
                   </div>`;
             }
 
@@ -426,36 +447,100 @@ description: "House cooking schedule and rankings."
         renderCalendar();
     }
 
-    // --- ADMIN ALGORITHMS ---
     async function generateWeek() {
-        if (!allProfiles || allProfiles.length === 0) return alert("No profiles exist yet.");
-        if (!confirm("This will randomly assign cooks (weighted by their coefficient) for the next 7 days. Proceed?")) return;
+        if (!allProfiles || allProfiles.length < 5) return alert("Need all 5 housemates to have logged in at least once to generate!");
+        if (!confirm("This will assign 4 random people to Mon-Thu, and 1 person to Ice Lollies on Friday. Proceed?")) return;
 
-        const newAssignments = [];
-        const today = new Date();
+        // 1. Find the upcoming Monday
+        let d = new Date();
+        d.setDate(d.getDate() + ((1 + 7 - d.getDay()) % 7 || 7)); 
+        
+        // 2. Shuffle the 5 users
+        let shuffled = [...allProfiles].sort(() => 0.5 - Math.random());
+        let newAssignments = [];
 
-        for(let i=0; i<7; i++) {
-            let targetDate = new Date(today);
-            targetDate.setDate(today.getDate() + i);
+        // 3. Assign Mon (0), Tue (1), Wed (2), Thu (3), Fri (4)
+        for(let i=0; i<5; i++) {
+            let targetDate = new Date(d);
+            targetDate.setDate(d.getDate() + i);
             const dateStr = targetDate.toISOString().split('T')[0];
+            
+            const notes = (i === 4) ? "🍦 Ice Lollies" : null;
 
-            const randomCook = allProfiles[Math.floor(Math.random() * allProfiles.length)];
-            newAssignments.push({ date: dateStr, cook_id: randomCook.id });
+            newAssignments.push({ date: dateStr, cook_id: shuffled[i].id, meal_notes: notes });
         }
 
-        await supabaseApp.from('calendar_days').upsert(newAssignments);
+        const { error } = await supabaseApp.from('calendar_days').upsert(newAssignments);
+        if(error) return alert("Generation Error: " + error.message);
+        
         renderCalendar();
-        alert("Next 7 days successfully generated!");
+        alert("Next week successfully generated!");
     }
 
+    // --- CRAVINGS & WAGERS ---
+    async function loadCravings() {
+        const { data: noms } = await supabaseApp.from('cravings').select('*, profiles(username)');
+        const container = document.getElementById('cravings-container');
+        container.innerHTML = '';
+
+        if(!noms || noms.length === 0) {
+            container.innerHTML = '<p style="font-size:0.9rem; opacity:0.6;">No current marketplace suggestions.</p>';
+            return;
+        }
+
+        noms.forEach(n => {
+            container.innerHTML += `
+            <div style="background: #F8F9FA; padding:16px; border-radius:14px; margin-top:12px; display:flex; justify-content:space-between; align-items:center; border: 1.5px solid var(--border-color);">
+                <div>
+                <strong>${n.title}</strong><br>
+                <span style="font-size:0.8rem; color: var(--text-muted);">From: <span style="text-transform: capitalize;">${n.profiles?.username || 'Roomie'}</span></span>
+                </div>
+                <span style="color:var(--accent-blue); font-weight:bold;">💰 ${n.bounty} BBs</span>
+            </div>`;
+        });
+    }
+
+    async function publishCraving() {
+        const title = document.getElementById('nomination-title').value;
+        const bounty = parseInt(document.getElementById('nomination-bounty').value);
+        
+        if(!title || !bounty || bounty <= 0) return alert("Enter a valid dish and a bounty greater than 0.");
+        if(currentUserProfile.beattie_bucks < bounty) return alert("You don't have enough Beattie Bucks for that bounty!");
+
+        // Deduct Bucks
+        await supabaseApp.from('profiles').update({ beattie_bucks: currentUserProfile.beattie_bucks - bounty }).eq('id', currentUserProfile.id);
+        
+        // Save Request
+        await supabaseApp.from('cravings').insert([{ title: title, bounty: bounty, suggested_by: currentUserProfile.id }]);
+        
+        alert("Craving published! Bucks deducted.");
+        location.reload();
+    }
+
+    async function placeWager() {
+        const amount = parseInt(document.getElementById('bet-amount').value);
+        const betType = document.getElementById('bet-type').value;
+
+        if(!amount || amount <= 0) return alert("Enter a valid bet amount.");
+        if(currentUserProfile.beattie_bucks < amount) return alert("Insufficient Beattie Bucks!");
+
+        // Deduct Bucks
+        await supabaseApp.from('profiles').update({ beattie_bucks: currentUserProfile.beattie_bucks - amount }).eq('id', currentUserProfile.id);
+        
+        // Save Wager
+        await supabaseApp.from('wagers').insert([{ user_id: currentUserProfile.id, bet_type: betType, amount: amount }]);
+
+        alert(`Locked in! ${amount} BBs wagered on: ${betType}`);
+        location.reload();
+    }
+
+    // --- ADMIN BUCKS ---
     async function checkFridayBucks() {
         const today = new Date();
-        // 5 = Friday
         if (today.getDay() === 5) {
             const { data: settings } = await supabaseApp.from('house_settings').select('*').single();
             if (settings) {
                 const lastDistrib = new Date(settings.last_bucks_distribution);
-                
                 if (lastDistrib.toDateString() !== today.toDateString()) {
                     document.getElementById('friday-bucks-btn').style.display = 'block';
                 }
@@ -470,11 +555,31 @@ description: "House cooking schedule and rankings."
         for (let user of allProfiles) {
             await supabaseApp.from('profiles').update({ beattie_bucks: user.beattie_bucks + 50 }).eq('id', user.id);
         }
-        
         await supabaseApp.from('house_settings').update({ last_bucks_distribution: new Date().toISOString() }).eq('id', 1);
         
         alert("Weekly bucks have been deposited to all accounts!");
         location.reload();
+    }
+
+    // --- AVATAR UPLOADS ---
+    async function uploadAvatar() {
+        const fileInput = document.getElementById('avatar-file-input');
+        const uploadBtn = document.getElementById('upload-btn');
+        if (!fileInput.files || fileInput.files.length === 0) return alert("Please select an image from your device first!");
+
+        const file = fileInput.files[0];
+        const fileExt = file.name.split('.').pop();
+        const filePath = `${currentUserProfile.id}.${fileExt}`;
+
+        uploadBtn.innerText = "Uploading..."; uploadBtn.disabled = true;
+
+        const { error: uploadError } = await supabaseApp.storage.from('avatars').upload(filePath, file, { upsert: true });
+        if (uploadError) { uploadBtn.innerText = "Upload Photo"; uploadBtn.disabled = false; return alert("Upload failed: " + uploadError.message); }
+
+        const { data: publicUrlData } = supabaseApp.storage.from('avatars').getPublicUrl(filePath);
+        await supabaseApp.from('profiles').update({ avatar_url: publicUrlData.publicUrl }).eq('id', currentUserProfile.id);
+        
+        alert("Photo updated successfully!"); location.reload(); 
     }
   </script>
 </body>
