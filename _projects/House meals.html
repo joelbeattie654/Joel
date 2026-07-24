@@ -23,29 +23,20 @@ description: "House cooking schedule and rankings."
       --accent-yellow: #FFD166;
       --accent-mint: #06D6A0;
       --accent-blue: #118AB2;
+      --accent-red: #EF476F;
       --border-color: #E9ECEF;
     }
 
     body {
-      margin: 0;
-      background-color: var(--bg-main);
-      color: var(--text-main);
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      padding: 0 16px 60px 16px;
+      margin: 0; background-color: var(--bg-main); color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif; padding: 0 16px 60px 16px;
     }
 
-    .app-container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding-top: 130px; 
-    }
+    .app-container { max-width: 900px; margin: 0 auto; padding-top: 130px; }
 
     .app-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 24px;
-      padding: 32px;
-      margin-bottom: 24px;
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 24px; padding: 32px; margin-bottom: 24px;
       box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.04);
     }
 
@@ -61,35 +52,38 @@ description: "House cooking schedule and rankings."
     }
 
     #active-user-banner {
-      background: var(--text-main); color: white;
-      text-align: center; padding: 10px; border-radius: 12px;
-      margin-bottom: 20px; font-weight: 700; display: none;
+      background: var(--text-main); color: white; text-align: center;
+      padding: 10px; border-radius: 12px; margin-bottom: 20px; font-weight: 700; display: none;
     }
 
     button {
       width: 100%; padding: 14px; margin: 8px 0;
-      border-radius: 12px; border: none;
-      background-color: var(--text-main); color: #FFFFFF;
-      font-family: inherit; font-weight: 700; font-size: 1rem;
-      cursor: pointer;
+      border-radius: 12px; border: none; background-color: var(--text-main);
+      color: #FFFFFF; font-family: inherit; font-weight: 700; font-size: 1rem; cursor: pointer;
     }
     button.accent-btn { background-color: var(--accent-orange); }
     button.secondary-btn { background-color: #E9ECEF; color: var(--text-main); }
     button.admin-btn { background-color: var(--accent-yellow); color: var(--text-main); }
+    button.danger-btn { background-color: var(--accent-red); color: white; }
 
     /* Calendar Grid */
     .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
     .day-name { text-align: center; font-weight: 800; font-size: 0.85rem; color: var(--text-muted); padding-bottom: 8px; }
-    .day-cell { background: #F8F9FA; border-radius: 12px; padding: 8px; min-height: 80px; display: flex; flex-direction: column; border: 1.5px solid transparent; text-align: center; }
+    .day-cell {
+      background: #F8F9FA; border-radius: 12px; padding: 8px; min-height: 90px;
+      display: flex; flex-direction: column; border: 1.5px solid transparent; text-align: center;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .day-cell:hover { background: #E9ECEF; }
     .day-number { font-size: 0.9rem; font-weight: 800; opacity: 0.5; margin-bottom: 4px; text-align: right; }
-    .day-cook { font-weight: 700; font-size: 0.9rem; color: var(--accent-orange); display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; transition: transform 0.2s;}
-    .day-cook:hover { transform: scale(1.05); }
-    .day-cook img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-orange); }
+    .day-cook { font-weight: 700; font-size: 0.85rem; color: var(--accent-orange); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .day-cook img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-orange); }
+    .badge-lolly { background: rgba(17, 138, 178, 0.1); color: var(--accent-blue); padding: 2px 6px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; margin-top: 2px; }
 
     /* Overlays */
     .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; }
-    .overlay-box { background: white; padding: 32px; border-radius: 24px; width: 90%; max-width: 400px; text-align: center; }
+    .overlay-box { background: white; padding: 32px; border-radius: 24px; width: 90%; max-width: 420px; text-align: center; max-height: 90vh; overflow-y: auto; }
 
     /* Ratings */
     .star-btn { font-size: 2rem; background: none; border: none; padding: 0 4px; cursor: pointer; color: var(--border-color); width: auto; margin:0;}
@@ -127,8 +121,11 @@ description: "House cooking schedule and rankings."
     <!-- ADMIN PANEL -->
     <div id="admin-panel" class="app-card" style="display: none; border-color: var(--accent-yellow); background: #FFFAEB;">
       <h2 style="color: #D49A00;">👑 Admin Controls</h2>
-      <button onclick="generateWeek()" class="admin-btn">🎲 Generate Mon-Thu Cooks + Fri Ice Lolly</button>
-      <button id="friday-bucks-btn" onclick="releaseBucks()" class="accent-btn" style="display: none; margin-top: 12px;">💸 FRIDAY UNLOCKED: Release Weekly Bucks!</button>
+      <button onclick="generateMissingWeek()" class="admin-btn">🎲 Fill Empty Days (Next 7 Days)</button>
+      <button onclick="releaseManualBucks()" class="secondary-btn" style="margin-top: 8px;">🎁 Drop 50 BBs to Everyone Now</button>
+      <button id="friday-bucks-btn" onclick="releaseBucks()" class="accent-btn" style="display: none; margin-top: 8px;">💸 FRIDAY UNLOCKED: Release Weekly Bucks!</button>
+      <button onclick="openWagerAdminModal()" class="secondary-btn" style="margin-top: 8px; background: #E2E8F0;">⚖️ Settle Active Wagers</button>
+      <button onclick="nukeSystem()" class="danger-btn" style="margin-top: 16px;">⚠️ NUKE SYSTEM (Reset Everything)</button>
     </div>
 
     <!-- CALENDAR -->
@@ -143,6 +140,7 @@ description: "House cooking schedule and rankings."
         <div class="day-name">WED</div><div class="day-name">THU</div><div class="day-name">FRI</div><div class="day-name">SAT</div>
       </div>
       <div class="calendar-grid" id="calendar-body"></div>
+      <p style="font-size: 0.8rem; text-align: center; margin-top: 12px; opacity: 0.7;">💡 Tip: Click any day on the calendar to rate a meal or manually override assignments.</p>
     </div>
 
     <!-- HOUSE CRAVINGS -->
@@ -159,13 +157,10 @@ description: "House cooking schedule and rankings."
     <!-- SPORTSBOOK -->
     <div class="app-card" id="wagers-section" style="display:none;">
       <h2>🎰 Beattie Bucks Sportsbook</h2>
-      <select id="bet-type">
-        <option value="Over/Under 4.2 Stars on Next Meal">Over/Under 4.2 Stars on Next Meal</option>
-        <option value="Meal packed before 6:00 PM">Meal is packed in fridge before 6:00 PM</option>
-        <option value="Brand-name Ice Lollies brought">Bye-week person drops brand-name ice lollies</option>
-      </select>
+      <p style="font-size: 0.9rem;">Your unique custom bet for this week:</p>
+      <div id="user-unique-bet" style="font-weight: 800; color: var(--accent-blue); margin-bottom: 12px; font-size: 1.1rem;"></div>
       <input type="number" id="bet-amount" placeholder="Amount to wager...">
-      <button onclick="placeWager()" class="accent-btn">Lock In Forced Wager</button>
+      <button onclick="placeWager()" class="accent-btn">Lock In Weekly Wager</button>
     </div>
 
     <!-- LEADERBOARD -->
@@ -177,7 +172,6 @@ description: "House cooking schedule and rankings."
     <!-- PROFILE SETTINGS -->
     <div id="profile-settings" class="app-card" style="display: none;">
       <h3 style="margin-bottom: 12px;">🖼️ Upload Your Funny Picture</h3>
-      <p style="font-size: 0.9rem;">Upload a photo straight from your phone's camera roll.</p>
       <div style="display: flex; gap: 8px;">
         <input type="file" id="avatar-file-input" accept="image/png, image/jpeg, image/gif" style="margin:0; background: #fff; padding: 10px;">
         <button id="upload-btn" onclick="uploadAvatar()" class="secondary-btn" style="margin:0; width: auto; white-space: nowrap;">Upload Photo</button>
@@ -203,22 +197,43 @@ description: "House cooking schedule and rankings."
     </div>
   </div>
 
-  <!-- RATING POPUP -->
-  <div id="rating-overlay" class="overlay">
+  <!-- ADMIN OVERRIDE & RATING MODAL -->
+  <div id="day-modal" class="overlay">
     <div class="overlay-box">
-      <h2 style="margin-bottom: 8px;">Rate <span id="rate-target-name" style="text-transform: capitalize; color: var(--accent-orange);"></span></h2>
-      <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px;">This will adjust their coefficient.</p>
+      <h2 style="margin-bottom: 4px;">Day Control Panel</h2>
+      <p id="modal-date-label" style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px;"></p>
       
-      <div id="star-container" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 20px;">
-        <button class="star-btn" onclick="setRating(1)">★</button>
-        <button class="star-btn" onclick="setRating(2)">★</button>
-        <button class="star-btn" onclick="setRating(3)">★</button>
-        <button class="star-btn" onclick="setRating(4)">★</button>
-        <button class="star-btn" onclick="setRating(5)">★</button>
+      <div id="admin-override-box" style="background: #F8F9FA; padding: 16px; border-radius: 12px; margin-bottom: 16px; display: none;">
+        <h3 style="font-size: 1rem; margin-bottom: 8px;">👑 Admin Override</h3>
+        <label style="font-size: 0.8rem; font-weight:bold;">Assign Cook:</label>
+        <select id="override-cook-select" style="margin-bottom: 8px;"></select>
+        <label style="font-size: 0.8rem; font-weight:bold;">Special Badge / Note:</label>
+        <input type="text" id="override-note-input" placeholder="e.g. 🍦 Ice Lolly Duty" style="margin-bottom: 12px;">
+        <button onclick="saveAdminOverride()" class="admin-btn">Save Assignment</button>
       </div>
 
-      <button id="submit-rating-btn" onclick="submitRating()" class="accent-btn">Submit Rating</button>
-      <button onclick="document.getElementById('rating-overlay').style.display='none'" class="secondary-btn">Cancel</button>
+      <div id="user-rating-section">
+        <h3 style="font-size: 1rem; margin-bottom: 8px;">Rate Meal Performance</h3>
+        <div id="star-container" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 16px;">
+          <button class="star-btn" onclick="setRating(1)">★</button>
+          <button class="star-btn" onclick="setRating(2)">★</button>
+          <button class="star-btn" onclick="setRating(3)">★</button>
+          <button class="star-btn" onclick="setRating(4)">★</button>
+          <button class="star-btn" onclick="setRating(5)">★</button>
+        </div>
+        <button onclick="submitRating()" class="accent-btn">Submit Rating</button>
+      </div>
+
+      <button onclick="document.getElementById('day-modal').style.display='none'" class="secondary-btn" style="margin-top:12px;">Close</button>
+    </div>
+  </div>
+
+  <!-- ADMIN WAGER SETTLEMENT MODAL -->
+  <div id="wager-admin-modal" class="overlay">
+    <div class="overlay-box" style="max-width: 600px;">
+      <h2>Settle Active Wagers</h2>
+      <div id="admin-wagers-list" style="max-height: 300px; overflow-y: auto; text-align: left; margin-bottom: 16px;"></div>
+      <button onclick="document.getElementById('wager-admin-modal').style.display='none'" class="secondary-btn">Close</button>
     </div>
   </div>
 
@@ -234,10 +249,10 @@ description: "House cooking schedule and rankings."
     let currentDate = new Date(); 
     let allProfiles = [];
     
-    // Rating Variables
+    // Modal states
+    let activeModalDate = null;
+    let activeModalCook = null;
     let selectedRating = 0;
-    let ratingTargetId = null;
-    let ratingTargetCurrentCoeff = 0;
 
     window.addEventListener('load', async function() {
         if (!window.supabase) return alert("Browser blocked script.");
@@ -251,7 +266,6 @@ description: "House cooking schedule and rankings."
         if (session) setupUserInterface(session.user);
     });
 
-    // --- AUTHENTICATION ---
     async function handleLogin() {
         const username = document.getElementById('username-select').value;
         const password = document.getElementById('password').value;
@@ -261,15 +275,13 @@ description: "House cooking schedule and rankings."
         if (username === 'beattie' && password !== 'admin654') return alert("Access Denied: Incorrect Admin Password.");
         if (username !== 'beattie' && password !== 'food654') return alert("Access Denied: Incorrect House Password.");
 
-        loginBtn.innerText = "Authenticating...";
-        loginBtn.disabled = true;
+        loginBtn.innerText = "Authenticating..."; loginBtn.disabled = true;
 
         let { data, error } = await supabaseApp.auth.signInWithPassword({ email: fakeEmail, password });
         
         if (error && (error.message.includes("Invalid login") || error.message.includes("credentials"))) {
             const res = await supabaseApp.auth.signUp({ email: fakeEmail, password });
             if (res.error) { loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false; return alert("Setup Error: " + res.error.message); }
-            
             const forceLogin = await supabaseApp.auth.signInWithPassword({ email: fakeEmail, password });
             data = forceLogin.data;
         } else if (error) {
@@ -277,18 +289,14 @@ description: "House cooking schedule and rankings."
         }
 
         const { data: existingProfile } = await supabaseApp.from('profiles').select('id').eq('id', data.user.id).maybeSingle();
-        
         if (!existingProfile) {
-            await supabaseApp.from('profiles').insert([
-                { id: data.user.id, username: username, is_admin: (username === 'beattie'), beattie_bucks: 100 }
-            ]);
+            await supabaseApp.from('profiles').insert([{ id: data.user.id, username: username, is_admin: (username === 'beattie'), beattie_bucks: 100 }]);
         } else if (username === 'beattie') {
             await supabaseApp.from('profiles').update({ is_admin: true }).eq('id', data.user.id);
         }
 
         document.getElementById('auth-overlay').style.display = 'none';
         loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false;
-        
         setTimeout(() => setupUserInterface(data.user), 500);
     }
 
@@ -315,14 +323,24 @@ description: "House cooking schedule and rankings."
             document.getElementById('display-bucks').innerText = profile.beattie_bucks;
             document.getElementById('my-avatar').src = profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`;
             
+            // Assign unique weekly bet based on username
+            const uniqueBets = {
+                'beattie': 'Over/Under 4.5 Stars on House Dinners',
+                'kelso': 'All dinner containers packed before 6:00 PM',
+                'rainy': 'Zero microwave explosions all week',
+                'lobby': 'Brings premium brand-name ice lollies',
+                'watt': 'No smoke detector activations during cooking'
+            };
+            document.getElementById('user-unique-bet').innerText = uniqueBets[profile.username] || 'Over/Under 4.2 Stars on Next Meal';
+
             if (profile.is_admin) {
                 document.getElementById('admin-panel').style.display = 'block';
                 checkFridayBucks();
+                populateOverrideDropdown();
             }
         }
     }
 
-    // --- LEADERBOARD & DATA FETCHING ---
     async function fetchProfiles() {
         const { data } = await supabaseApp.from('profiles').select('*').order('coefficient', { ascending: false });
         allProfiles = data || [];
@@ -343,14 +361,83 @@ description: "House cooking schedule and rankings."
         });
     }
 
-    // --- RATING SYSTEM ---
-    function openRatingModal(userId, username, currentCoeff) {
-        if (!currentUserProfile) return alert("You must be logged in to rate a meal!");
-        ratingTargetId = userId;
-        ratingTargetCurrentCoeff = currentCoeff;
-        document.getElementById('rate-target-name').innerText = username;
-        setRating(0); // Reset stars
-        document.getElementById('rating-overlay').style.display = 'flex';
+    // --- CALENDAR & MODAL INTERACTION ---
+    async function renderCalendar() {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        document.getElementById('month-title').innerText = `${monthNames[month]} ${year}`;
+
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        
+        const { data: assignments } = await supabaseApp.from('calendar_days')
+            .select('date, meal_notes, profiles(id, username, avatar_url, coefficient)')
+            .gte('date', firstDay.toISOString().split('T')[0])
+            .lte('date', lastDay.toISOString().split('T')[0]);
+
+        const assignmentMap = {};
+        if (assignments) assignments.forEach(a => assignmentMap[a.date] = a);
+
+        const body = document.getElementById('calendar-body');
+        body.innerHTML = '';
+
+        for (let i = 0; i < firstDay.getDay(); i++) {
+            body.innerHTML += `<div class="day-cell" style="background: transparent; border: none; cursor: default;"></div>`;
+        }
+
+        for (let i = 1; i <= lastDay.getDate(); i++) {
+            const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+            const dayData = assignmentMap[dateStr];
+            
+            let contentHtml = '';
+            let assignedCook = null;
+            if (dayData && dayData.profiles) {
+                assignedCook = dayData.profiles;
+                const avatarUrl = assignedCook.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${assignedCook.username}`;
+                let notesBadge = dayData.meal_notes ? `<div class="badge-lolly">${dayData.meal_notes}</div>` : '';
+                
+                contentHtml = `
+                  <div class="day-cook">
+                    <img src="${avatarUrl}">
+                    <span style="text-transform: capitalize;">${assignedCook.username}</span>
+                    ${notesBadge}
+                  </div>`;
+            }
+
+            const today = new Date();
+            let isToday = (i === today.getDate() && month === today.getMonth() && year === today.getFullYear());
+            let borderStyle = isToday ? 'border-color: var(--accent-orange); background: #FFF5F2;' : '';
+
+            let cell = document.createElement('div');
+            cell.className = "day-cell";
+            cell.style.cssText = borderStyle;
+            cell.innerHTML = `<div class="day-number">${i}</div>${contentHtml}`;
+            cell.onclick = () => openDayModal(dateStr, assignedCook);
+            body.appendChild(cell);
+        }
+    }
+
+    function changeMonth(offset) {
+        currentDate.setMonth(currentDate.getMonth() + offset);
+        renderCalendar();
+    }
+
+    function openDayModal(dateStr, cook) {
+        activeModalDate = dateStr;
+        activeModalCook = cook;
+        document.getElementById('modal-date-label').innerText = `Date: ${dateStr} ${cook ? '('+cook.username+' cooking)' : '(Unassigned)'}`;
+        
+        if (currentUserProfile && currentUserProfile.is_admin) {
+            document.getElementById('admin-override-box').style.display = 'block';
+            document.getElementById('override-note-input').value = "";
+        } else {
+            document.getElementById('admin-override-box').style.display = 'none';
+        }
+
+        selectedRating = 0;
+        setRating(0);
+        document.getElementById('day-modal').style.display = 'flex';
     }
 
     function setRating(val) {
@@ -362,122 +449,72 @@ description: "House cooking schedule and rankings."
     }
 
     async function submitRating() {
+        if (!activeModalCook) return alert("No cook assigned to rate on this day!");
         if (selectedRating === 0) return alert("Please select a star rating.");
-        const btn = document.getElementById('submit-rating-btn');
-        btn.innerText = "Submitting..."; btn.disabled = true;
-
-        // Dynamic formula: averages their current coefficient with the new rating
-        const newCoeff = (ratingTargetCurrentCoeff + selectedRating) / 2.0;
-
-        const { error } = await supabaseApp.from('profiles').update({ coefficient: newCoeff }).eq('id', ratingTargetId);
         
-        if (error) {
-            alert("Error saving rating: " + error.message);
-        } else {
-            alert("Rating logged successfully! Coefficient updated.");
-            location.reload();
-        }
+        const newCoeff = (activeModalCook.coefficient + selectedRating) / 2.0;
+        await supabaseApp.from('profiles').update({ coefficient: newCoeff }).eq('id', activeModalCook.id);
         
-        btn.innerText = "Submit Rating"; btn.disabled = false;
-        document.getElementById('rating-overlay').style.display = 'none';
-    }
-
-    // --- CALENDAR ALGORITHMS ---
-    async function renderCalendar() {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
-        
-        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        document.getElementById('month-title').innerText = `${monthNames[month]} ${year}`;
-
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        
-        const { data: assignments, error } = await supabaseApp.from('calendar_days')
-            .select('date, meal_notes, profiles(id, username, avatar_url, coefficient)')
-            .gte('date', firstDay.toISOString().split('T')[0])
-            .lte('date', lastDay.toISOString().split('T')[0]);
-
-        if (error) console.error("Calendar Fetch Error:", error);
-
-        const assignmentMap = {};
-        if (assignments) assignments.forEach(a => assignmentMap[a.date] = a);
-
-        const body = document.getElementById('calendar-body');
-        body.innerHTML = '';
-
-        for (let i = 0; i < firstDay.getDay(); i++) {
-            body.innerHTML += `<div class="day-cell" style="background: transparent; border: none;"></div>`;
-        }
-
-        for (let i = 1; i <= lastDay.getDate(); i++) {
-            const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-            const dayData = assignmentMap[dateStr];
-            
-            let contentHtml = '';
-            if (dayData && dayData.profiles) {
-                const cook = dayData.profiles;
-                const avatarUrl = cook.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${cook.username}`;
-                
-                // Ice Lolly / Notes flair
-                let notesHtml = dayData.meal_notes ? `<div style="font-size:0.75rem; font-weight: 800; color:var(--accent-mint); margin-top:4px;">${dayData.meal_notes}</div>` : '';
-                
-                contentHtml = `
-                  <div class="day-cook" onclick="openRatingModal('${cook.id}', '${cook.username}', ${cook.coefficient})">
-                    <img src="${avatarUrl}">
-                    <span style="text-transform: capitalize;">${cook.username}</span>
-                    ${notesHtml}
-                  </div>`;
-            }
-
-            const today = new Date();
-            let isToday = (i === today.getDate() && month === today.getMonth() && year === today.getFullYear());
-            let borderStyle = isToday ? 'border-color: var(--accent-orange); background: #FFF5F2;' : '';
-
-            body.innerHTML += `
-              <div class="day-cell" style="${borderStyle}">
-                <div class="day-number">${i}</div>
-                ${contentHtml}
-              </div>`;
-        }
-    }
-
-    function changeMonth(offset) {
-        currentDate.setMonth(currentDate.getMonth() + offset);
+        alert("Rating logged! Coefficient updated.");
+        document.getElementById('day-modal').style.display = 'none';
+        fetchProfiles();
         renderCalendar();
     }
 
-    async function generateWeek() {
-        if (!allProfiles || allProfiles.length < 5) return alert("Need all 5 housemates to have logged in at least once to generate!");
-        if (!confirm("This will assign 4 random people to Mon-Thu, and 1 person to Ice Lollies on Friday. Proceed?")) return;
+    async function populateOverrideDropdown() {
+        const select = document.getElementById('override-cook-select');
+        select.innerHTML = '';
+        allProfiles.forEach(p => {
+            select.innerHTML += `<option value="${p.id}">${p.username.toUpperCase()}</option>`;
+        });
+    }
 
-        // 1. Find the upcoming Monday
-        let d = new Date();
-        d.setDate(d.getDate() + ((1 + 7 - d.getDay()) % 7 || 7)); 
-        
-        // 2. Shuffle the 5 users
-        let shuffled = [...allProfiles].sort(() => 0.5 - Math.random());
+    async function saveAdminOverride() {
+        const cookId = document.getElementById('override-cook-select').value;
+        const note = document.getElementById('override-note-input').value.trim();
+
+        await supabaseApp.from('calendar_days').upsert([
+            { date: activeModalDate, cook_id: cookId, meal_notes: note ? note : null }
+        ]);
+
+        alert("Calendar successfully overridden!");
+        document.getElementById('day-modal').style.display = 'none';
+        renderCalendar();
+    }
+
+    // --- SMART GENERATOR (Only Fills Empty Days) ---
+    async function generateMissingWeek() {
+        if (!allProfiles || allProfiles.length < 5) return alert("Need all 5 housemates logged in at least once!");
+        if (!confirm("This will fill in any unassigned days for the next 7 days without overwriting existing cooks.")) return;
+
+        let today = new Date();
         let newAssignments = [];
+        let shuffled = [...allProfiles].sort(() => 0.5 - Math.random());
 
-        // 3. Assign Mon (0), Tue (1), Wed (2), Thu (3), Fri (4)
-        for(let i=0; i<5; i++) {
-            let targetDate = new Date(d);
-            targetDate.setDate(d.getDate() + i);
+        for (let i = 0; i < 7; i++) {
+            let targetDate = new Date(today);
+            targetDate.setDate(today.getDate() + i);
             const dateStr = targetDate.toISOString().split('T')[0];
-            
-            const notes = (i === 4) ? "🍦 Ice Lollies" : null;
 
-            newAssignments.push({ date: dateStr, cook_id: shuffled[i].id, meal_notes: notes });
+            // Check if already assigned
+            const { data: existing } = await supabaseApp.from('calendar_days').select('*').eq('date', dateStr).maybeSingle();
+            if (!existing || !existing.cook_id) {
+                let assignedUser = shuffled[i % shuffled.length];
+                let note = (targetDate.getDay() === 5) ? "🍦 Ice Lolly Duty" : null;
+                newAssignments.push({ date: dateStr, cook_id: assignedUser.id, meal_notes: note });
+            }
         }
 
-        const { error } = await supabaseApp.from('calendar_days').upsert(newAssignments);
-        if(error) return alert("Generation Error: " + error.message);
-        
-        renderCalendar();
-        alert("Next week successfully generated!");
+        if (newAssignments.length > 0) {
+            await supabaseApp.from('calendar_days').upsert(newAssignments);
+            alert("Missing days successfully generated!");
+            renderCalendar();
+        } else {
+            alert("The next 7 days are already fully assigned!");
+        }
     }
 
-    // --- CRAVINGS & WAGERS ---
+    // --- CRAVINGS & BOUNTY COMPLETIONS ---
     async function loadCravings() {
         const { data: noms } = await supabaseApp.from('cravings').select('*, profiles(username)');
         const container = document.getElementById('cravings-container');
@@ -489,13 +526,19 @@ description: "House cooking schedule and rankings."
         }
 
         noms.forEach(n => {
+            let adminCompleteBtn = (currentUserProfile && currentUserProfile.is_admin) ? 
+                `<button onclick="completeCraving(${n.id}, '${n.title}', ${n.bounty})" class="admin-btn" style="padding: 6px 12px; font-size: 0.8rem; width: auto; margin-top:8px;">✅ Mark Completed & Pay Bounty</button>` : '';
+
             container.innerHTML += `
-            <div style="background: #F8F9FA; padding:16px; border-radius:14px; margin-top:12px; display:flex; justify-content:space-between; align-items:center; border: 1.5px solid var(--border-color);">
-                <div>
-                <strong>${n.title}</strong><br>
-                <span style="font-size:0.8rem; color: var(--text-muted);">From: <span style="text-transform: capitalize;">${n.profiles?.username || 'Roomie'}</span></span>
+            <div style="background: #F8F9FA; padding:16px; border-radius:14px; margin-top:12px; border: 1.5px solid var(--border-color);">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <div>
+                    <strong>${n.title}</strong><br>
+                    <span style="font-size:0.8rem; color: var(--text-muted);">From: <span style="text-transform: capitalize;">${n.profiles?.username || 'Roomie'}</span></span>
+                  </div>
+                  <span style="color:var(--accent-blue); font-weight:bold;">💰 ${n.bounty} BBs</span>
                 </div>
-                <span style="color:var(--accent-blue); font-weight:bold;">💰 ${n.bounty} BBs</span>
+                ${adminCompleteBtn}
             </div>`;
         });
     }
@@ -503,38 +546,85 @@ description: "House cooking schedule and rankings."
     async function publishCraving() {
         const title = document.getElementById('nomination-title').value;
         const bounty = parseInt(document.getElementById('nomination-bounty').value);
-        
-        if(!title || !bounty || bounty <= 0) return alert("Enter a valid dish and a bounty greater than 0.");
-        if(currentUserProfile.beattie_bucks < bounty) return alert("You don't have enough Beattie Bucks for that bounty!");
+        if(!title || !bounty || bounty <= 0) return alert("Enter a valid dish and bounty.");
+        if(currentUserProfile.beattie_bucks < bounty) return alert("Not enough Beattie Bucks!");
 
-        // Deduct Bucks
         await supabaseApp.from('profiles').update({ beattie_bucks: currentUserProfile.beattie_bucks - bounty }).eq('id', currentUserProfile.id);
-        
-        // Save Request
         await supabaseApp.from('cravings').insert([{ title: title, bounty: bounty, suggested_by: currentUserProfile.id }]);
         
-        alert("Craving published! Bucks deducted.");
+        alert("Craving published!"); location.reload();
+    }
+
+    async function completeCraving(id, title, bounty) {
+        let winnerName = prompt("Who made this meal? (Type username: beattie, kelso, rainy, lobby, or watt):");
+        if (!winnerName) return;
+        winnerName = winnerName.toLowerCase().trim();
+
+        const cook = allProfiles.find(p => p.username === winnerName);
+        if (!cook) return alert("Housemate not found!");
+
+        // Pay the cook their bounty
+        await supabaseApp.from('profiles').update({ beattie_bucks: cook.beattie_bucks + bounty }).eq('id', cook.id);
+        // Delete craving
+        await supabaseApp.from('cravings').delete().eq('id', id);
+
+        alert(`Bounty of ${bounty} BBs paid to ${cook.username}!`);
         location.reload();
     }
 
+    // --- WAGERS & SPORTSBOOK ---
     async function placeWager() {
         const amount = parseInt(document.getElementById('bet-amount').value);
-        const betType = document.getElementById('bet-type').value;
+        const betText = document.getElementById('user-unique-bet').innerText;
 
         if(!amount || amount <= 0) return alert("Enter a valid bet amount.");
         if(currentUserProfile.beattie_bucks < amount) return alert("Insufficient Beattie Bucks!");
 
-        // Deduct Bucks
         await supabaseApp.from('profiles').update({ beattie_bucks: currentUserProfile.beattie_bucks - amount }).eq('id', currentUserProfile.id);
-        
-        // Save Wager
-        await supabaseApp.from('wagers').insert([{ user_id: currentUserProfile.id, bet_type: betType, amount: amount }]);
+        await supabaseApp.from('wagers').insert([{ user_id: currentUserProfile.id, bet_type: betText, amount: amount, status: 'active' }]);
 
-        alert(`Locked in! ${amount} BBs wagered on: ${betType}`);
-        location.reload();
+        alert(`Locked in! Wagered ${amount} BBs.`); location.reload();
     }
 
-    // --- ADMIN BUCKS ---
+    async function openWagerAdminModal() {
+        const { data: wagers } = await supabaseApp.from('wagers').select('*, profiles(username)').eq('status', 'active');
+        const list = document.getElementById('admin-wagers-list');
+        list.innerHTML = '';
+
+        if (!wagers || wagers.length === 0) {
+            list.innerHTML = '<p>No active wagers to settle right now.</p>';
+        } else {
+            wagers.forEach(w => {
+                list.innerHTML += `
+                <div style="background:#F8F9FA; padding:12px; border-radius:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                  <div>
+                    <strong>${w.profiles?.username?.toUpperCase()}</strong> wagered ${w.amount} BBs<br>
+                    <span style="font-size:0.8rem; color:var(--text-muted);">${w.bet_type}</span>
+                  </div>
+                  <div style="display:flex; gap:6px;">
+                    <button onclick="settleWager(${w.id}, '${w.user_id}', ${w.amount}, true)" style="padding:6px 12px; background:var(--accent-mint); color:white; width:auto; margin:0;">Win (2x)</button>
+                    <button onclick="settleWager(${w.id}, '${w.user_id}', ${w.amount}, false)" style="padding:6px 12px; background:var(--accent-red); color:white; width:auto; margin:0;">Loss</button>
+                  </div>
+                </div>`;
+            });
+        }
+        document.getElementById('wager-admin-modal').style.display = 'flex';
+    }
+
+    async function settleWager(wagerId, userId, amount, won) {
+        if (won) {
+            const cook = allProfiles.find(p => p.id === userId);
+            if (cook) {
+                await supabaseApp.from('profiles').update({ beattie_bucks: cook.beattie_bucks + (amount * 2) }).eq('id', userId);
+            }
+        }
+        await supabaseApp.from('wagers').update({ status: won ? 'won' : 'lost' }).eq('id', wagerId);
+        alert("Wager settled successfully!");
+        openWagerAdminModal();
+        fetchProfiles();
+    }
+
+    // --- ADMIN CONTROLS (Bucks & Nuke) ---
     async function checkFridayBucks() {
         const today = new Date();
         if (today.getDay() === 5) {
@@ -549,37 +639,41 @@ description: "House cooking schedule and rankings."
     }
 
     async function releaseBucks() {
-        document.getElementById('friday-bucks-btn').disabled = true;
-        document.getElementById('friday-bucks-btn').innerText = "Distributing...";
-
         for (let user of allProfiles) {
             await supabaseApp.from('profiles').update({ beattie_bucks: user.beattie_bucks + 50 }).eq('id', user.id);
         }
         await supabaseApp.from('house_settings').update({ last_bucks_distribution: new Date().toISOString() }).eq('id', 1);
-        
-        alert("Weekly bucks have been deposited to all accounts!");
-        location.reload();
+        alert("Friday bucks released to everyone!"); location.reload();
     }
 
-    // --- AVATAR UPLOADS ---
+    async function releaseManualBucks() {
+        if(!confirm("Drop 50 Beattie Bucks to everyone right now?")) return;
+        for (let user of allProfiles) {
+            await supabaseApp.from('profiles').update({ beattie_bucks: user.beattie_bucks + 50 }).eq('id', user.id);
+        }
+        alert("Bonus 50 BBs distributed!"); location.reload();
+    }
+
+    async function nukeSystem() {
+        if(!confirm("WARNING: This will completely wipe all calendar assignments, cravings, and wagers. Are you 100% sure?")) return;
+        await supabaseApp.from('calendar_days').delete().neq('date', '1900-01-01');
+        await supabaseApp.from('cravings').delete().neq('id', 0);
+        await supabaseApp.from('wagers').delete().neq('id', 0);
+        alert("System completely nuked and reset!"); location.reload();
+    }
+
     async function uploadAvatar() {
         const fileInput = document.getElementById('avatar-file-input');
-        const uploadBtn = document.getElementById('upload-btn');
-        if (!fileInput.files || fileInput.files.length === 0) return alert("Please select an image from your device first!");
+        if (!fileInput.files || fileInput.files.length === 0) return alert("Select an image first!");
 
         const file = fileInput.files[0];
-        const fileExt = file.name.split('.').pop();
-        const filePath = `${currentUserProfile.id}.${fileExt}`;
+        const filePath = `${currentUserProfile.id}.${file.name.split('.').pop()}`;
 
-        uploadBtn.innerText = "Uploading..."; uploadBtn.disabled = true;
-
-        const { error: uploadError } = await supabaseApp.storage.from('avatars').upload(filePath, file, { upsert: true });
-        if (uploadError) { uploadBtn.innerText = "Upload Photo"; uploadBtn.disabled = false; return alert("Upload failed: " + uploadError.message); }
-
+        await supabaseApp.storage.from('avatars').upload(filePath, file, { upsert: true });
         const { data: publicUrlData } = supabaseApp.storage.from('avatars').getPublicUrl(filePath);
         await supabaseApp.from('profiles').update({ avatar_url: publicUrlData.publicUrl }).eq('id', currentUserProfile.id);
         
-        alert("Photo updated successfully!"); location.reload(); 
+        alert("Photo updated!"); location.reload(); 
     }
   </script>
 </body>
