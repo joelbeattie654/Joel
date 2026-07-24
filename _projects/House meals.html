@@ -182,7 +182,7 @@ description: "House cooking schedule and rankings."
         <option value="watt">Watt</option>
       </select>
       <input type="password" id="password" placeholder="Password...">
-      <button onclick="handleLogin()" class="accent-btn">Enter HQ</button>
+      <button id="login-submit-btn" onclick="handleLogin()" class="accent-btn">Enter HQ</button>
       <button onclick="document.getElementById('auth-overlay').style.display='none'" class="secondary-btn">Cancel</button>
     </div>
   </div>
@@ -210,43 +210,72 @@ description: "House cooking schedule and rankings."
         if (session) setupUserInterface(session.user);
     });
 
-    // --- AUTH & SELF-HEALING SETUP ---
+    // --- AGGRESSIVE AUTH SETUP ---
     async function handleLogin() {
         const username = document.getElementById('username-select').value;
         const password = document.getElementById('password').value;
         const fakeEmail = `${username}@mealhq.com`; 
+        const loginBtn = document.getElementById('login-submit-btn');
 
         if (username === 'beattie' && password !== 'admin654') return alert("Access Denied: Incorrect Admin Password.");
         if (username !== 'beattie' && password !== 'food654') return alert("Access Denied: Incorrect House Password.");
 
+        loginBtn.innerText = "Authenticating...";
+        loginBtn.disabled = true;
+
+        // 1. Try to log in
         let { data, error } = await supabaseApp.auth.signInWithPassword({ email: fakeEmail, password });
         
-        // Register if they don't exist in auth vault yet
-        if (error && error.message.includes("Invalid login")) {
+        // 2. If it says invalid login, it means the account doesn't exist yet, so we build it.
+        if (error && (error.message.includes("Invalid login") || error.message.includes("credentials"))) {
             const res = await supabaseApp.auth.signUp({ email: fakeEmail, password });
-            if (res.error) return alert("Setup Error: " + res.error.message);
-            data = res.data;
+            if (res.error) {
+                loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false;
+                return alert("Setup Error: " + res.error.message);
+            }
+            
+            // AGGRESSIVE OVERRIDE: Forcefully log in again to absolutely guarantee the session takes hold
+            const forceLogin = await supabaseApp.auth.signInWithPassword({ email: fakeEmail, password });
+            if (forceLogin.error) {
+                loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false;
+                return alert("Session Lock Error: " + forceLogin.error.message);
+            }
+            data = forceLogin.data;
         } else if (error) {
-            return alert(error.message);
+            loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false;
+            return alert("Login Error: " + error.message);
         }
 
-        // SELF-HEALING CHECK: Guarantee the profile actually exists in the database
-        const { data: existingProfile } = await supabaseApp.from('profiles').select('id').eq('id', data.user.id).maybeSingle();
+        // Safety check to make sure the user object loaded
+        if (!data || !data.user) {
+            loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false;
+            return alert("Critical Error: Missing user session data.");
+        }
+
+        // 3. Make sure their profile actually exists in the database
+        const { data: existingProfile, error: profileCheckError } = await supabaseApp.from('profiles').select('id').eq('id', data.user.id).maybeSingle();
         
         if (!existingProfile) {
-            // Profile missing! Rebuild it instantly.
-            await supabaseApp.from('profiles').insert([
+            // Build the missing profile!
+            const { error: insertError } = await supabaseApp.from('profiles').insert([
                 { id: data.user.id, username: username, is_admin: (username === 'beattie'), beattie_bucks: 100 }
             ]);
+            
+            if (insertError) {
+                loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false;
+                return alert("Profile Build Error: " + insertError.message + " (This means a ghost profile is still blocking the username)");
+            }
         } else if (username === 'beattie') {
-            // Force fix admin rights just in case
+            // Force Admin Upgrade
             await supabaseApp.from('profiles').update({ is_admin: true }).eq('id', data.user.id);
         }
 
+        // 4. We successfully logged in and verified the profile. Close the popup and setup the UI.
         document.getElementById('auth-overlay').style.display = 'none';
+        loginBtn.innerText = "Enter HQ"; 
+        loginBtn.disabled = false;
         
-        // Wait half a second for database to sync, then load UI
-        setTimeout(() => setupUserInterface(data.user), 500);
+        setupUserInterface(data.user);
     }
 
     async function handleLogout() {
@@ -256,8 +285,13 @@ description: "House cooking schedule and rankings."
 
     // --- INTERFACE SETUP ---
     async function setupUserInterface(user) {
-        const { data: profile } = await supabaseApp.from('profiles').select('*').eq('id', user.id).single();
+        const { data: profile, error } = await supabaseApp.from('profiles').select('*').eq('id', user.id).single();
         
+        if (error) {
+            console.error(error);
+            return alert("Could not fetch user profile to load UI.");
+        }
+
         if (profile) {
             document.getElementById('guest-header').style.display = 'none';
             document.getElementById('nav-login-btn').style.display = 'none';
@@ -275,6 +309,7 @@ description: "House cooking schedule and rankings."
             // Set Avatar (Fallback if missing)
             document.getElementById('my-avatar').src = profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`;
             
+            // ADMIN CHECK
             if (profile.is_admin) {
                 document.getElementById('admin-panel').style.display = 'block';
                 checkFridayBucks();
