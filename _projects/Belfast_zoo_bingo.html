@@ -500,6 +500,394 @@ header {
 
             let loadedPromises = boothSnaps.map(src => {
                 return new Promise((resolve) => {
+                    const img = new Image
+        .booth-upload-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+        }
+        .booth-slot {
+            height: 80px;
+            background: var(--mint);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px dashed rgba(30, 63, 32, 0.2);
+        }
+        .booth-slot img { width: 100%; height: 100%; object-fit: cover; }
+
+        .strip-preview {
+            max-width: 160px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none;
+            margin: 12px auto;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .bingo-box {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 150px;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: border 0.2s ease;
+            border: 2px solid transparent;
+        }
+        .bingo-box.completed { border-color: var(--accent); }
+
+        .img-slot {
+            width: 100%;
+            height: 95px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: var(--mint);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+        .img-slot img { width: 100%; height: 100%; object-fit: cover; }
+        .img-slot span { font-size: 1.8rem; opacity: 0.4; }
+
+        .box-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-main);
+            line-height: 1.2;
+            text-align: center;
+        }
+
+        .file-input { display: none; }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-top: 10px;
+        }
+        .gallery img { width: 100%; height: 65px; object-fit: cover; border-radius: 8px; }
+
+        .results {
+            display: none;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+        .results h2 { margin-top: 0; color: var(--jungle); }
+
+        .output-canvas { display: none; max-width: 100%; height: auto; border-radius: 12px; margin: 12px 0; box-shadow: var(--shadow); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Belfast Zoo-per Bingo</h1>
+        <p class="tagline">Stop monkeying around and beat your mate!</p>
+    </header>
+
+    <div class="panel">
+        <div class="timer-display" id="timer">00:00:00</div>
+        <div class="btn-row">
+            <button id="startBtn" onclick="startAdventure()">🐾 Start Safari</button>
+            <button id="finishBtn" onclick="finishAdventure()" class="action" disabled>🏁 Finish & Flex</button>
+        </div>
+        
+        <div class="team-box" onclick="document.getElementById('teamPhotoInput').click()">
+            <strong>📸 Team / Squad Photo</strong>
+            <span style="font-size:0.75rem; color: var(--text-muted);">Anchors the center of final layouts</span>
+            <input type="file" id="teamPhotoInput" class="file-input" accept="image/*" onchange="uploadTeamPhoto(this)">
+            <img id="teamPhotoPreview" class="team-preview" src="" alt="Team preview">
+        </div>
+
+        <div class="btn-row" style="margin-top: 10px;">
+            <button onclick="generateNewSheet()" class="secondary">🔄 Swap Tiles</button>
+            <button onclick="wipeEverything()" class="danger">🚨 Wipe All Data</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3 style="margin: 0 0 4px 0; font-size: 1.05rem;">🐒 Cave Hill Photo Booth</h3>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 10px 0;">Tap each box to add 3 fun snapshots for your retro strip!</p>
+        
+        <div class="booth-upload-grid">
+            <div class="booth-slot" id="booth-slot-0" onclick="document.getElementById('booth-file-0').click()">📸</div>
+            <div class="booth-slot" id="booth-slot-1" onclick="document.getElementById('booth-file-1').click()">📸</div>
+            <div class="booth-slot" id="booth-slot-2" onclick="document.getElementById('booth-file-2').click()">📸</div>
+        </div>
+
+        <input type="file" id="booth-file-0" class="file-input" accept="image/*" onchange="uploadBoothSlot(this, 0)">
+        <input type="file" id="booth-file-1" class="file-input" accept="image/*" onchange="uploadBoothSlot(this, 1)">
+        <input type="file" id="booth-file-2" class="file-input" accept="image/*" onchange="uploadBoothSlot(this, 2)">
+
+        <canvas id="boothStripCanvas" class="strip-preview"></canvas>
+        <button id="downloadStripBtn" onclick="downloadCanvas('boothStripCanvas', 'Belfast_Zoo_Booth_Strip.png')" style="display:none; width:100%; margin-top:10px;">💾 Download Strip</button>
+    </div>
+
+    <div class="grid" id="bingoGrid"></div>
+
+    <div class="panel">
+        <h3 style="margin: 0 0 4px 0; font-size: 1.05rem;">📸 Snapshots Gallery</h3>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 10px 0;">Drop extra casual/funny pics from your day here</p>
+        <button onclick="document.getElementById('randomInput').click()" class="secondary" style="width: 100%;">➕ Add Extra Picture</button>
+        <input type="file" id="randomInput" class="file-input" accept="image/*" onchange="uploadRandom(this)">
+        <div class="gallery" id="randomGallery"></div>
+    </div>
+
+    <div class="results" id="collageSection">
+        <h2>🏆 Safari Completed!</h2>
+        <p id="finalTimeScore" style="font-weight:600; color:var(--text-muted);"></p>
+        
+        <button onclick="downloadCanvas('postCanvas', 'Insta_Post_Bingo.png')" style="width: 100%; margin-bottom: 8px;">📱 Download Square Post (1:1)</button>
+        <canvas id="postCanvas" class="output-canvas"></canvas>
+        
+        <button onclick="downloadCanvas('storyCanvas', 'Insta_Story_Bingo.png')" style="width: 100%;">🤳 Download Story (9:16)</button>
+        <canvas id="storyCanvas" class="output-canvas"></canvas>
+    </div>
+    <script>
+        const criteriaPool = [
+            "Animal giving pure side-eye", "Sleeping in a ridiculous position", "Meerkat scout on tip-toes",
+            "A bird ruining a nice shot", "Monkey swinging or showing off", "Animal caught mid-snack",
+            "Animal acting like your mate", "Panoramic view of Belfast Lough", "Sea lion zooming underwater",
+            "Human toddler throwing a fit", "Adult wearing heels/slides on the hill", "Animal ignoring warning sign",
+            "Animal opening jaw in giant yawn", "Enclosure where animal is invisible", "Animal staring right into lens",
+            "Two animals doing the same thing", "Elephant doing absolutely nothing", "Giraffe looking elegantly stupid",
+            "Highly overpriced zoo snack", "A sign featuring an egregious pun"
+        ];
+
+        let currentCriteria = [];
+        let uploadedImages = {};
+        let randomImages = [];
+        let teamPhoto = null;
+        let startTime = null;
+        let timerInterval = null;
+        let boothSnaps = {};
+
+        window.onload = function() {
+            if (localStorage.getItem('zoo_bingo_criteria')) {
+                currentCriteria = JSON.parse(localStorage.getItem('zoo_bingo_criteria'));
+                uploadedImages = JSON.parse(localStorage.getItem('zoo_bingo_images') || '{}');
+                randomImages = JSON.parse(localStorage.getItem('zoo_bingo_random') || '[]');
+                teamPhoto = localStorage.getItem('zoo_bingo_team') || null;
+                startTime = localStorage.getItem('zoo_bingo_start');
+                boothSnaps = JSON.parse(localStorage.getItem('zoo_bingo_booth') || '{}');
+                
+                if (startTime) {
+                    startTime = parseInt(startTime);
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('finishBtn').disabled = false;
+                    startTimerInterval();
+                }
+                if (teamPhoto) {
+                    const img = document.getElementById('teamPhotoPreview');
+                    img.src = teamPhoto;
+                    img.style.display = 'block';
+                }
+                renderGrid();
+                renderRandomGallery();
+                renderBoothSlots();
+            } else {
+                initialSheetGeneration();
+            }
+        };
+
+        function initialSheetGeneration() {
+            let shuffled = [...criteriaPool].sort(() => 0.5 - Math.random());
+            currentCriteria = shuffled.slice(0, 8);
+            uploadedImages = {};
+            localStorage.setItem('zoo_bingo_criteria', JSON.stringify(currentCriteria));
+            renderGrid();
+        }
+
+        function generateNewSheet() {
+            if (confirm("Swap out your current board tiles? Your uploaded photos will be removed!")) {
+                let shuffled = [...criteriaPool].sort(() => 0.5 - Math.random());
+                currentCriteria = shuffled.slice(0, 8);
+                uploadedImages = {};
+                localStorage.setItem('zoo_bingo_criteria', JSON.stringify(currentCriteria));
+                localStorage.removeItem('zoo_bingo_images');
+                renderGrid();
+            }
+        }
+
+        function wipeEverything() {
+            if (confirm("Are you sure? This will delete all photos, wipe galleries, and reset the timer back to zero!")) {
+                clearInterval(timerInterval);
+                localStorage.clear();
+                uploadedImages = {};
+                randomImages = [];
+                teamPhoto = null;
+                startTime = null;
+                boothSnaps = {};
+                
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('finishBtn').disabled = true;
+                document.getElementById('timer').innerText = "00:00:00";
+                document.getElementById('collageSection').style.display = 'none';
+                document.getElementById('teamPhotoPreview').style.display = 'none';
+                document.getElementById('randomGallery').innerHTML = '';
+                
+                for(let i=0; i<3; i++) {
+                    document.getElementById(`booth-slot-${i}`).innerHTML = '📸';
+                }
+                document.getElementById('boothStripCanvas').style.display = 'none';
+                document.getElementById('downloadStripBtn').style.display = 'none';
+                
+                initialSheetGeneration();
+            }
+        }
+
+        function uploadTeamPhoto(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    teamPhoto = e.target.result;
+                    localStorage.setItem('zoo_bingo_team', teamPhoto);
+                    const img = document.getElementById('teamPhotoPreview');
+                    img.src = teamPhoto;
+                    img.style.display = 'block';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function uploadBoothSlot(input, index) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    boothSnaps[index] = e.target.result;
+                    localStorage.setItem('zoo_bingo_booth', JSON.stringify(boothSnaps));
+                    renderBoothSlots();
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function renderBoothSlots() {
+            let count = 0;
+            for (let i = 0; i < 3; i++) {
+                if (boothSnaps[i]) {
+                    document.getElementById(`booth-slot-${i}`).innerHTML = `<img src="${boothSnaps[i]}">`;
+                    count++;
+                }
+            }
+            if (count === 3) {
+                buildPhotoStrip();
+            }
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('bingoGrid');
+            grid.innerHTML = '';
+            currentCriteria.forEach((text, index) => {
+                const isDone = uploadedImages[index];
+                const box = document.createElement('div');
+                box.className = `bingo-box ${isDone ? 'completed' : ''}`;
+                box.onclick = () => document.getElementById(`file-${index}`).click();
+                
+                let mediaHtml = `<div class="img-slot"><span>📷</span></div>`;
+                if (isDone) {
+                    mediaHtml = `<div class="img-slot"><img src="${uploadedImages[index]}" alt="Zoo snap"></div>`;
+                }
+
+                box.innerHTML = `
+                    ${mediaHtml}
+                    <div class="box-label">${text}</div>
+                    <input type="file" id="file-${index}" class="file-input" accept="image/*" onchange="uploadBoxImage(this, ${index})">
+                `;
+                grid.appendChild(box);
+            });
+        }
+
+        function uploadBoxImage(input, index) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedImages[index] = e.target.result;
+                    localStorage.setItem('zoo_bingo_images', JSON.stringify(uploadedImages));
+                    renderGrid(); // Safely triggers re-render with the freshly captured preview image
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        function uploadRandom(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    randomImages.push(e.target.result);
+                    localStorage.setItem('zoo_bingo_random', JSON.stringify(randomImages));
+                    renderRandomGallery();
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function renderRandomGallery() {
+            const gallery = document.getElementById('randomGallery');
+            gallery.innerHTML = '';
+            randomImages.forEach(src => {
+                const img = document.createElement('img');
+                img.src = src;
+                gallery.appendChild(img);
+            });
+        }
+
+        function startAdventure() {
+            startTime = Date.now();
+            localStorage.setItem('zoo_bingo_start', startTime);
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('finishBtn').disabled = false;
+            startTimerInterval();
+        }
+
+        function startTimerInterval() {
+            timerInterval = setInterval(() => {
+                const diff = Date.now() - startTime;
+                const hrs = Math.floor(diff / 3600000).toString().padStart(2, '0');
+                const mins = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
+                const secs = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+                document.getElementById('timer').innerText = `${hrs}:${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function buildPhotoStrip() {
+            const canvas = document.getElementById('boothStripCanvas');
+            canvas.style.display = "block";
+            document.getElementById('downloadStripBtn').style.display = "block";
+            const ctx = canvas.getContext('2d');
+
+            const w = 400;
+            const itemH = 300;
+            const borderPadding = 20;
+            const middleGaps = 15;
+            const footerH = 90;
+
+            canvas.width = w;
+            canvas.height = (borderPadding * 2) + (itemH * 3) + (middleGaps * 2) + footerH;
+
+            ctx.fillStyle = "#faf6ee"; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            let snapsArray = [boothSnaps[0], boothSnaps[1], boothSnaps[2]];
+            let loadedPromises = snapsArray.map(src => {
+                return new Promise((resolve) => {
                     const img = new Image();
                     img.src = src;
                     img.onload = () => resolve(img);
@@ -510,9 +898,29 @@ header {
                 images.forEach((img, idx) => {
                     let x = borderPadding;
                     let y = borderPadding + idx * (itemH + middleGaps);
+                    
                     ctx.fillStyle = "#ffffff";
                     ctx.fillRect(x - 4, y - 4, w - (borderPadding * 2) + 8, itemH + 8);
-                    ctx.drawImage(img, x, y, w - (borderPadding * 2), itemH);
+                    
+                    let imgW = img.width;
+                    let imgH = img.height;
+                    let aspect = imgW / imgH;
+                    let targetAspect = (w - (borderPadding * 2)) / itemH;
+                    let sx, sy, sw, sh;
+
+                    if (aspect > targetAspect) {
+                        sh = imgH;
+                        sw = imgH * targetAspect;
+                        sx = (imgW - sw) / 2;
+                        sy = 0;
+                    } else {
+                        sw = imgW;
+                        sh = imgW / targetAspect;
+                        sx = 0;
+                        sy = (imgH - sh) / 2;
+                    }
+
+                    ctx.drawImage(img, sx, sy, sw, sh, x, y, w - (borderPadding * 2), itemH);
                 });
 
                 ctx.fillStyle = "#2d5a27";
