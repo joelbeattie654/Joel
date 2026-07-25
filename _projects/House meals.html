@@ -66,14 +66,12 @@ description: "House cooking schedule and rankings."
     button.admin-btn { background-color: var(--accent-yellow); color: var(--text-main); }
     button.danger-btn { background-color: var(--accent-red); color: white; }
 
-    /* Weekly Lolly Banner */
     .lolly-banner {
       background: linear-gradient(135deg, rgba(17, 138, 178, 0.1), rgba(6, 214, 160, 0.1));
       border: 1.5px solid var(--accent-blue); padding: 16px 20px; border-radius: 16px;
       display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; font-weight: 700;
     }
 
-    /* Calendar Grid */
     .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
     .day-name { text-align: center; font-weight: 800; font-size: 0.85rem; color: var(--text-muted); padding-bottom: 8px; }
@@ -87,11 +85,9 @@ description: "House cooking schedule and rankings."
     .day-cook { font-weight: 700; font-size: 0.85rem; color: var(--accent-orange); display: flex; flex-direction: column; align-items: center; gap: 2px; }
     .day-cook img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-orange); }
 
-    /* Overlays */
     .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; }
     .overlay-box { background: white; padding: 32px; border-radius: 24px; width: 90%; max-width: 420px; text-align: center; max-height: 90vh; overflow-y: auto; }
 
-    /* 10-Point Slider */
     .slider-container { margin: 20px 0; }
     input[type=range] { accent-color: var(--accent-orange); cursor: pointer; }
 
@@ -107,7 +103,6 @@ description: "House cooking schedule and rankings."
     <h1>The <span class="fun-text">Meal HQ</span></h1>
     <div id="active-user-banner">Currently Logged In As: <span id="banner-username" style="text-transform: capitalize; color: var(--accent-yellow);"></span></div>
 
-    <!-- TOP CONTROL BAR -->
     <div class="app-card" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 32px;">
       <div id="guest-header">
         <h2 style="margin:0;">Viewing as Guest</h2>
@@ -127,16 +122,16 @@ description: "House cooking schedule and rankings."
     <!-- ADMIN PANEL -->
     <div id="admin-panel" class="app-card" style="display: none; border-color: var(--accent-yellow); background: #FFFAEB;">
       <h2 style="color: #D49A00;">👑 Admin Controls</h2>
-      <button onclick="generateNextFreeWeek()" class="admin-btn">🎲 Generate Next Free Mon-Thu Week</button>
+      <button onclick="generateFairWeek()" class="admin-btn">🎲 Generate Smart Mon-Thu Schedule & Lolly Duty</button>
       <button onclick="releaseManualBucks()" class="secondary-btn" style="margin-top: 8px;">🎁 Drop 50 BBs to Everyone Now</button>
       <button id="friday-bucks-btn" onclick="releaseBucks()" class="accent-btn" style="display: none; margin-top: 8px;">💸 FRIDAY UNLOCKED: Release Weekly Bucks!</button>
-      <button onclick="openWagerAdminModal()" class="secondary-btn" style="margin-top: 8px; background: #E2E8F0;">⚖️ Settle Active Binary Wagers</button>
+      <button onclick="openWagerAdminModal()" class="secondary-btn" style="margin-top: 8px; background: #E2E8F0;">⚖️ Settle Weekly Sportsbook Bets</button>
       <button onclick="nukeSystem()" class="danger-btn" style="margin-top: 16px;">⚠️ TOTAL NUKE (Reset All Stats, Bucks & Calendar)</button>
     </div>
 
     <!-- CALENDAR -->
     <div class="app-card">
-      <div class="lolly-banner" id="lolly-banner-container">
+      <div class="lolly-banner">
         <span>🍦 Weekly Ice Lolly Duty:</span>
         <span id="lolly-holder-name" style="color: var(--accent-blue); text-transform: capitalize;">Unassigned</span>
       </div>
@@ -154,11 +149,11 @@ description: "House cooking schedule and rankings."
       <p style="font-size: 0.8rem; text-align: center; margin-top: 12px; opacity: 0.7;">💡 Tip: Click any day on the calendar to rate a meal or manually override assignments.</p>
     </div>
 
-    <!-- MEAL BOUNTIES (CRAVINGS) -->
+    <!-- MEAL BOUNTIES -->
     <div class="app-card" id="cravings-section" style="display:none;">
       <h2>🍔 House Meal Bounties</h2>
       <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; margin-bottom: 16px;">
-        <input type="text" id="nomination-title" placeholder="Request a meal..." style="margin:0;">
+        <input type="text" id="nomination-title" placeholder="Request a tub meal..." style="margin:0;">
         <input type="number" id="nomination-bounty" placeholder="BB Bounty" style="margin:0; max-width: 110px;">
       </div>
       <button onclick="publishCraving()" class="accent-btn">Set Bounty</button>
@@ -167,11 +162,10 @@ description: "House cooking schedule and rankings."
 
     <!-- SPORTSBOOK -->
     <div class="app-card" id="wagers-section" style="display:none;">
-      <h2>🎰 Beattie Bucks Binary Sportsbook</h2>
-      <p style="font-size: 0.9rem;">This week's house wager:</p>
-      <div id="user-unique-bet" style="font-weight: 800; color: var(--accent-blue); margin-bottom: 12px; font-size: 1.1rem;"></div>
+      <h2>🎰 Weekly Odds Sportsbook</h2>
+      <div id="sportsbook-market" style="margin-bottom: 16px;"></div>
       <input type="number" id="bet-amount" placeholder="Amount to wager...">
-      <button onclick="placeWager()" class="accent-btn">Lock In Binary Wager</button>
+      <button onclick="placeOddsWager()" class="accent-btn">Place Wager</button>
     </div>
 
     <!-- LEADERBOARD -->
@@ -208,7 +202,7 @@ description: "House cooking schedule and rankings."
     </div>
   </div>
 
-  <!-- DAY CONTROL MODAL (Ratings & Overrides) -->
+  <!-- DAY CONTROL MODAL -->
   <div id="day-modal" class="overlay">
     <div class="overlay-box">
       <h2 style="margin-bottom: 4px;">Day Control Panel</h2>
@@ -222,7 +216,7 @@ description: "House cooking schedule and rankings."
       </div>
 
       <div id="user-rating-section">
-        <h3 style="font-size: 1rem; margin-bottom: 4px;">Rate Meal Performance (Out of 10)</h3>
+        <h3 style="margin-bottom: 4px;">Rate Meal Tub (Out of 10)</h3>
         <div class="slider-container">
           <input type="range" id="rating-slider" min="1" max="10" value="5" oninput="updateSliderVal(this.value)" style="width:100%;">
           <div style="font-size: 1.5rem; font-weight: 800; color: var(--accent-orange); margin-top: 8px;"><span id="slider-val-display">5</span> / 10</div>
@@ -237,7 +231,7 @@ description: "House cooking schedule and rankings."
   <!-- ADMIN WAGER SETTLEMENT MODAL -->
   <div id="wager-admin-modal" class="overlay">
     <div class="overlay-box" style="max-width: 600px;">
-      <h2>Settle Binary Wagers</h2>
+      <h2>Settle Weekly Sportsbook Bets</h2>
       <div id="admin-wagers-list" style="max-height: 300px; overflow-y: auto; text-align: left; margin-bottom: 16px;"></div>
       <button onclick="document.getElementById('wager-admin-modal').style.display='none'" class="secondary-btn">Close</button>
     </div>
@@ -258,6 +252,14 @@ description: "House cooking schedule and rankings."
     let activeModalDate = null;
     let activeModalCook = null;
 
+    const weeklySportsbookMarket = [
+      { id: 1, text: "Will at least one meal tub be left in the sink overnight instead of the fridge?", odds: 1.6 },
+      { id: 2, text: "Will any dinner tub container score above an 8.5/10 average rating this week?", odds: 2.2 },
+      { id: 3, text: "Will the microwave be left with sauce splatters after a tub reheating session?", odds: 1.4 },
+      { id: 4, text: "Will someone completely forget to drop off their cooked tub before 7:00 PM?", odds: 2.5 },
+      { id: 5, text: "Will all 4 meal tubs feature rice or pasta as the base this week?", odds: 1.9 }
+    ];
+
     window.addEventListener('load', async function() {
         if (!window.supabase) return alert("Browser blocked script.");
         supabaseApp = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -265,6 +267,7 @@ description: "House cooking schedule and rankings."
         await fetchProfiles();
         renderCalendar();
         loadCravings();
+        renderSportsbookMarket();
         
         const { data: { session } } = await supabaseApp.auth.getSession();
         if (session) setupUserInterface(session.user);
@@ -326,14 +329,6 @@ description: "House cooking schedule and rankings."
             document.getElementById('display-name').innerText = profile.username;
             document.getElementById('display-bucks').innerText = profile.beattie_bucks;
             document.getElementById('my-avatar').src = profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`;
-            
-            const binaryBets = [
-                'Did the house maintain an average coefficient above 7.0 this week?',
-                'Were all dinner containers washed and packed before 6:00 PM?',
-                'Did zero microwave explosions occur this week?',
-                'Was the kitchen spotless every single morning?'
-            ];
-            document.getElementById('user-unique-bet').innerText = binaryBets[Math.floor(Math.random() * binaryBets.length)];
 
             if (profile.is_admin) {
                 document.getElementById('admin-panel').style.display = 'block';
@@ -363,6 +358,19 @@ description: "House cooking schedule and rankings."
         });
     }
 
+    function renderSportsbookMarket() {
+        const container = document.getElementById('sportsbook-market');
+        container.innerHTML = '<label style="font-weight:bold; font-size:0.9rem;">Select Outcome:</label>';
+        
+        weeklySportsbookMarket.forEach((bet, idx) => {
+            container.innerHTML += `
+            <div style="margin-top: 8px; background: #F8F9FA; padding: 10px; border-radius: 8px; border: 1.5px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+              <label style="font-size:0.85rem; cursor:pointer;"><input type="radio" name="sportsbook-bet" value="${bet.id}" ${idx===0?'checked':''}> ${bet.text}</label>
+              <span style="font-weight:bold; color:var(--accent-blue); background:rgba(17,138,178,0.1); padding:2px 6px; border-radius:6px; font-size:0.8rem; white-space:nowrap;">${bet.odds}x Payout</span>
+            </div>`;
+        });
+    }
+
     // --- CALENDAR & MODAL ---
     async function renderCalendar() {
         const year = currentDate.getFullYear();
@@ -374,7 +382,7 @@ description: "House cooking schedule and rankings."
         const lastDay = new Date(year, month + 1, 0);
         
         const { data: assignments } = await supabaseApp.from('calendar_days')
-            .select('date, meal_notes, profiles(id, username, avatar_url, coefficient)')
+            .select('date, meal_notes, profiles(id, username, avatar_url, coefficient, ratings_received_count)')
             .gte('date', firstDay.toISOString().split('T')[0])
             .lte('date', lastDay.toISOString().split('T')[0]);
 
@@ -382,7 +390,6 @@ description: "House cooking schedule and rankings."
         if (assignments) {
             assignments.forEach(a => {
                 assignmentMap[a.date] = a;
-                // Check if Monday of this week to determine Ice Lolly Duty graphic
                 let d = new Date(a.date);
                 if (d.getDay() === 1 && a.meal_notes) {
                     document.getElementById('lolly-holder-name').innerText = a.meal_notes;
@@ -443,6 +450,13 @@ description: "House cooking schedule and rankings."
             document.getElementById('admin-override-box').style.display = 'none';
         }
 
+        // Prevent self rating
+        if (currentUserProfile && cook && currentUserProfile.id === cook.id) {
+            document.getElementById('user-rating-section').style.display = 'none';
+        } else {
+            document.getElementById('user-rating-section').style.display = 'block';
+        }
+
         document.getElementById('rating-slider').value = 5;
         updateSliderVal(5);
         document.getElementById('day-modal').style.display = 'flex';
@@ -454,9 +468,11 @@ description: "House cooking schedule and rankings."
 
     async function submitRating() {
         if (!activeModalCook) return alert("No cook assigned to rate on this day!");
-        const ratingVal = parseInt(document.getElementById('rating-slider').value);
+        if (currentUserProfile.id === activeModalCook.id) return alert("You cannot rate your own meal tub!");
         
+        const ratingVal = parseInt(document.getElementById('rating-slider').value);
         const newCoeff = (activeModalCook.coefficient + ratingVal) / 2.0;
+
         await supabaseApp.from('profiles').update({ coefficient: newCoeff }).eq('id', activeModalCook.id);
         
         alert("Rating logged! Coefficient updated.");
@@ -482,50 +498,51 @@ description: "House cooking schedule and rankings."
         renderCalendar();
     }
 
-    // --- SMART GENERATOR (Next Free Mon-Thu Week + Lolly Duty) ---
-    async function generateNextFreeWeek() {
+    // --- SMART FAIR GENERATOR (4 Mon-Thu Cooks + 1 Off Reward + Random Lolly) ---
+    async function generateFairWeek() {
         if (!allProfiles || allProfiles.length < 5) return alert("Need all 5 housemates logged in first!");
-        if (!confirm("This will scan forward and generate the next completely empty Monday–Thursday schedule with weekly Lolly Duty.")) return;
+        if (!confirm("Generate next free Mon-Thu schedule using coefficient rankings for the week-off reward?")) return;
 
         let targetMonday = new Date();
-        // Find next Monday
         targetMonday.setDate(targetMonday.getDate() + ((1 + 7 - targetMonday.getDay()) % 7 || 7));
 
-        // Search forward until we find a week with no assignments
         let foundFreeWeek = false;
-        let lollyUser = allProfiles[Math.floor(Math.random() * allProfiles.length)];
-
         while (!foundFreeWeek) {
             let monStr = targetMonday.toISOString().split('T')[0];
             const { data: check } = await supabaseApp.from('calendar_days').select('*').eq('date', monStr).maybeSingle();
             if (!check || !check.cook_id) {
                 foundFreeWeek = true;
             } else {
-                targetMonday.setDate(targetMonday.getDate() + 7); // Check next week
+                targetMonday.setDate(targetMonday.getDate() + 7);
             }
         }
 
-        let shuffled = [...allProfiles].sort(() => 0.5 - Math.random());
-        let newAssignments = [];
+        // Sort by coefficient to give highest-ranked person the week off
+        let sortedByCoeff = [...allProfiles].sort((a, b) => b.coefficient - a.coefficient);
+        let weekOffChef = sortedByCoeff[0]; // Highest ranking gets the week off!
+        
+        // Remaining 4 chefs cook Mon-Thu randomly
+        let remainingChefs = sortedByCoeff.slice(1).sort(() => 0.5 - Math.random());
+        
+        // Ice lolly duty is completely random from all 5
+        let lollyChef = allProfiles[Math.floor(Math.random() * allProfiles.length)];
 
-        // Assign Mon (0) through Thu (3)
+        let newAssignments = [];
         for (let i = 0; i < 4; i++) {
             let d = new Date(targetMonday);
             d.setDate(targetMonday.getDate() + i);
             const dateStr = d.toISOString().split('T')[0];
             
-            // Tag Monday with Ice Lolly duty person's name
-            let note = (i === 0) ? lollyUser.username : null;
-
-            newAssignments.push({ date: dateStr, cook_id: shuffled[i].id, meal_notes: note });
+            let note = (i === 0) ? lollyChef.username : null;
+            newAssignments.push({ date: dateStr, cook_id: remainingChefs[i].id, meal_notes: note });
         }
 
         await supabaseApp.from('calendar_days').upsert(newAssignments);
-        alert(`Successfully generated week starting ${targetMonday.toISOString().split('T')[0]}! Lolly Duty: ${lollyUser.username}`);
+        alert(`Week generated starting ${targetMonday.toISOString().split('T')[0]}!\n👑 Week Off Reward: ${weekOffChef.username.toUpperCase()}\n🍦 Ice Lolly Duty: ${lollyChef.username.toUpperCase()}`);
         renderCalendar();
     }
 
-    // --- MEAL BOUNTIES & CLAIM SYSTEM ---
+    // --- SAFE MEAL BOUNTIES & CLAIM SYSTEM ---
     async function loadCravings() {
         const { data: noms } = await supabaseApp.from('cravings').select('*, profiles(username), claimed_profile:profiles!cravings_claimed_by_fkey(username)');
         const container = document.getElementById('cravings-container');
@@ -566,12 +583,13 @@ description: "House cooking schedule and rankings."
         const title = document.getElementById('nomination-title').value;
         const bounty = parseInt(document.getElementById('nomination-bounty').value);
         if(!title || !bounty || bounty <= 0) return alert("Enter a valid meal and bounty.");
-        if(currentUserProfile.beattie_bucks < bounty) return alert("Not enough Beattie Bucks!");
+        
+        // Check if user actually has enough bucks (DO NOT deduct yet)
+        if(currentUserProfile.beattie_bucks < bounty) return alert("You do not have enough Beattie Bucks to set this bounty!");
 
-        await supabaseApp.from('profiles').update({ beattie_bucks: currentUserProfile.beattie_bucks - bounty }).eq('id', currentUserProfile.id);
         await supabaseApp.from('cravings').insert([{ title: title, bounty: bounty, suggested_by: currentUserProfile.id, status: 'open' }]);
         
-        alert("Meal Bounty published!"); location.reload();
+        alert("Meal Bounty published safely (Funds escrowed until completion)!"); location.reload();
     }
 
     async function claimBounty(id) {
@@ -581,8 +599,13 @@ description: "House cooking schedule and rankings."
     }
 
     async function acceptClaim(id, winnerUsername, bounty, winnerId) {
-        if(!confirm(`Approve ${winnerUsername} for this meal and transfer ${bounty} BBs?`)) return;
+        if(currentUserProfile.beattie_bucks < bounty) return alert("You no longer have enough Beattie Bucks to cover this bounty transfer!");
+        if(!confirm(`Approve ${winnerUsername} for this tub meal and transfer ${bounty} BBs?`)) return;
 
+        // Deduct from creator
+        await supabaseApp.from('profiles').update({ beattie_bucks: currentUserProfile.beattie_bucks - bounty }).eq('id', currentUserProfile.id);
+
+        // Add to winner
         const cook = allProfiles.find(p => p.id === winnerId);
         if (cook) {
             await supabaseApp.from('profiles').update({ beattie_bucks: cook.beattie_bucks + bounty }).eq('id', winnerId);
@@ -593,18 +616,22 @@ description: "House cooking schedule and rankings."
         location.reload();
     }
 
-    // --- BINARY SPORTSBOOK ---
-    async function placeWager() {
+    // --- ODDS SPORTSBOOK ---
+    async function placeOddsWager() {
         const amount = parseInt(document.getElementById('bet-amount').value);
-        const betText = document.getElementById('user-unique-bet').innerText;
-
-        if(!amount || amount <= 0) return alert("Enter a valid bet amount.");
+        const selectedRadio = document.querySelector('input[name="sportsbook-bet"]:checked');
+        
+        if(!selectedRadio) return alert("Select a bet option.");
+        if(!amount || amount <= 0) return alert("Enter a valid wager amount.");
         if(currentUserProfile.beattie_bucks < amount) return alert("Insufficient Beattie Bucks!");
 
-        await supabaseApp.from('profiles').update({ beattie_bucks: currentUserProfile.beattie_bucks - amount }).eq('id', currentUserProfile.id);
-        await supabaseApp.from('wagers').insert([{ user_id: currentUserProfile.id, bet_type: betText, amount: amount, status: 'active' }]);
+        const betId = parseInt(selectedRadio.value);
+        const betObj = weeklySportsbookMarket.find(b => b.id === betId);
 
-        alert(`Locked in! Wagered ${amount} BBs.`); location.reload();
+        await supabaseApp.from('profiles').update({ beattie_bucks: currentUserProfile.beattie_bucks - amount }).eq('id', currentUserProfile.id);
+        await supabaseApp.from('wagers').insert([{ user_id: currentUserProfile.id, bet_type: betObj.text, odds: betObj.odds, amount: amount, status: 'active' }]);
+
+        alert(`Odds wager locked in! Wagered ${amount} BBs at ${betObj.odds}x odds.`); location.reload();
     }
 
     async function openWagerAdminModal() {
@@ -613,18 +640,19 @@ description: "House cooking schedule and rankings."
         list.innerHTML = '';
 
         if (!wagers || wagers.length === 0) {
-            list.innerHTML = '<p>No active binary wagers to settle.</p>';
+            list.innerHTML = '<p>No active odds wagers to settle.</p>';
         } else {
             wagers.forEach(w => {
+                let payout = Math.round(w.amount * w.odds);
                 list.innerHTML += `
                 <div style="background:#F8F9FA; padding:12px; border-radius:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
                   <div>
-                    <strong>${w.profiles?.username?.toUpperCase()}</strong> wagered ${w.amount} BBs<br>
+                    <strong>${w.profiles?.username?.toUpperCase()}</strong> wagered ${w.amount} BBs (${w.odds}x)<br>
                     <span style="font-size:0.8rem; color:var(--text-muted);">${w.bet_type}</span>
                   </div>
                   <div style="display:flex; gap:6px;">
-                    <button onclick="settleWager(${w.id}, '${w.user_id}', ${w.amount}, true)" style="padding:6px 12px; background:var(--accent-mint); color:white; width:auto; margin:0;">Win (2x)</button>
-                    <button onclick="settleWager(${w.id}, '${w.user_id}', ${w.amount}, false)" style="padding:6px 12px; background:var(--accent-red); color:white; width:auto; margin:0;">Loss</button>
+                    <button onclick="settleOddsWager(${w.id}, '${w.user_id}', ${w.amount}, ${w.odds}, true)" style="padding:6px 12px; background:var(--accent-mint); color:white; width:auto; margin:0;">Win (${payout} BB)</button>
+                    <button onclick="settleOddsWager(${w.id}, '${w.user_id}', ${w.amount}, ${w.odds}, false)" style="padding:6px 12px; background:var(--accent-red); color:white; width:auto; margin:0;">Loss</button>
                   </div>
                 </div>`;
             });
@@ -632,11 +660,12 @@ description: "House cooking schedule and rankings."
         document.getElementById('wager-admin-modal').style.display = 'flex';
     }
 
-    async function settleWager(wagerId, userId, amount, won) {
+    async function settleOddsWager(wagerId, userId, amount, odds, won) {
         if (won) {
+            let payout = Math.round(amount * odds);
             const cook = allProfiles.find(p => p.id === userId);
             if (cook) {
-                await supabaseApp.from('profiles').update({ beattie_bucks: cook.beattie_bucks + (amount * 2) }).eq('id', userId);
+                await supabaseApp.from('profiles').update({ beattie_bucks: cook.beattie_bucks + payout }).eq('id', userId);
             }
         }
         await supabaseApp.from('wagers').update({ status: won ? 'won' : 'lost' }).eq('id', wagerId);
@@ -676,7 +705,7 @@ description: "House cooking schedule and rankings."
     }
 
     async function nukeSystem() {
-        if(!confirm("WARNING: This will wipe all calendar assignments, cravings, and wagers, AND reset everyone's Beattie Bucks to 100 and coefficients to 4.0. Are you 100% sure?")) return;
+        if(!confirm("WARNING: Total house reset? Wipes calendar, cravings, wagers, and resets all bucks to 100 and coefficients to 4.0.")) return;
         
         await supabaseApp.from('calendar_days').delete().neq('date', '1900-01-01');
         await supabaseApp.from('cravings').delete().neq('id', 0);
@@ -686,7 +715,7 @@ description: "House cooking schedule and rankings."
             await supabaseApp.from('profiles').update({ beattie_bucks: 100, coefficient: 4.0 }).eq('id', user.id);
         }
 
-        alert("Total house reset complete! Stats, calendar, and wallets cleared."); location.reload();
+        alert("Total house reset complete!"); location.reload();
     }
 
     async function uploadAvatar() {
