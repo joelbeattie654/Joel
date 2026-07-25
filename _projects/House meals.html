@@ -282,29 +282,65 @@ description: "House cooking schedule and rankings."
         if (username === 'beattie' && password !== 'admin654') return alert("Access Denied: Incorrect Admin Password.");
         if (username !== 'beattie' && password !== 'food654') return alert("Access Denied: Incorrect House Password.");
 
-        loginBtn.innerText = "Authenticating..."; loginBtn.disabled = true;
+        loginBtn.innerText = "Authenticating..."; 
+        loginBtn.disabled = true;
 
+        let authData = null;
+
+        // Try direct sign in first
         let { data, error } = await supabaseApp.auth.signInWithPassword({ email: fakeEmail, password });
         
-        if (error && (error.message.includes("Invalid login") || error.message.includes("credentials"))) {
-            const res = await supabaseApp.auth.signUp({ email: fakeEmail, password });
-            if (res.error) { loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false; return alert("Setup Error: " + res.error.message); }
-            const forceLogin = await supabaseApp.auth.signInWithPassword({ email: fakeEmail, password });
-            data = forceLogin.data;
-        } else if (error) {
-            loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false; return alert("Login Error: " + error.message);
+        if (error) {
+            // If sign in fails, try signing them up in case they don't exist in auth yet
+            let signUpRes = await supabaseApp.auth.signUp({ email: fakeEmail, password });
+            
+            if (signUpRes.error && !signUpRes.error.message.includes("already registered")) {
+                loginBtn.innerText = "Enter HQ"; 
+                loginBtn.disabled = false; 
+                return alert("Setup Error: " + signUpRes.error.message);
+            }
+
+            // Retry sign in after signup attempt
+            let retryLogin = await supabaseApp.auth.signInWithPassword({ email: fakeEmail, password });
+            if (retryLogin.error) {
+                loginBtn.innerText = "Enter HQ"; 
+                loginBtn.disabled = false; 
+                return alert("Login Error: " + retryLogin.error.message);
+            }
+            authData = retryLogin.data;
+        } else {
+            authData = data;
         }
 
-        const { data: existingProfile } = await supabaseApp.from('profiles').select('id').eq('id', data.user.id).maybeSingle();
+        if (!authData || !authData.user) {
+            loginBtn.innerText = "Enter HQ"; 
+            loginBtn.disabled = false;
+            return alert("Authentication failed to acquire user session.");
+        }
+
+        // Verify profile exists in database, create if missing
+        const { data: existingProfile } = await supabaseApp.from('profiles').select('*').eq('id', authData.user.id).maybeSingle();
+        
         if (!existingProfile) {
-            await supabaseApp.from('profiles').insert([{ id: data.user.id, username: username, is_admin: (username === 'beattie'), beattie_bucks: 100, coefficient: 4.0 }]);
-        } else if (username === 'beattie') {
-            await supabaseApp.from('profiles').update({ is_admin: true }).eq('id', data.user.id);
+            let { error: insertErr } = await supabaseApp.from('profiles').insert([{ 
+                id: authData.user.id, 
+                username: username, 
+                is_admin: (username === 'beattie'), 
+                beattie_bucks: 100, 
+                coefficient: 4.0 
+            }]);
+            if (insertErr) {
+                console.error("Profile creation warning:", insertErr.message);
+            }
+        } else if (username === 'beattie' && !existingProfile.is_admin) {
+            await supabaseApp.from('profiles').update({ is_admin: true }).eq('id', authData.user.id);
         }
 
         document.getElementById('auth-overlay').style.display = 'none';
-        loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false;
-        setTimeout(() => setupUserInterface(data.user), 500);
+        loginBtn.innerText = "Enter HQ"; 
+        loginBtn.disabled = false;
+        
+        await setupUserInterface(authData.user);
     }
 
     async function handleLogout() {
@@ -489,7 +525,7 @@ description: "House cooking schedule and rankings."
     }
 
     async function saveAdminOverride() {
-        const cookId = document.getElementById('override-cook-select'].value;
+        const cookId = document.getElementById('override-cook-select').value;
         await supabaseApp.from('calendar_days').upsert([{ date: activeModalDate, cook_id: cookId }]);
 
         alert("Calendar successfully overridden!");
@@ -518,20 +554,13 @@ description: "House cooking schedule and rankings."
 
         let monDateStr = targetMonday.toISOString().split('T')[0];
 
-        // Sort by coefficient descending
         let sortedByCoeff = [...allProfiles].sort((a, b) => b.coefficient - a.coefficient);
-        
-        // Find best chef who did NOT have the week off last week
         let weekOffChef = sortedByCoeff.find(p => p.last_week_off !== monDateStr);
-        if (!weekOffChef) weekOffChef = sortedByCoeff[0]; // Fallback
+        if (!weekOffChef) weekOffChef = sortedByCoeff[0];
 
-        // Update their last week off record
         await supabaseApp.from('profiles').update({ last_week_off: monDateStr }).eq('id', weekOffChef.id);
 
-        // Remaining 4 chefs cook Mon-Thu randomly
         let remainingChefs = allProfiles.filter(p => p.id !== weekOffChef.id).sort(() => 0.5 - Math.random());
-        
-        // Ice lolly duty random from all 5
         let lollyChef = allProfiles[Math.floor(Math.random() * allProfiles.length)];
 
         let newAssignments = [];
@@ -617,10 +646,8 @@ description: "House cooking schedule and rankings."
         if(currentUserProfile.beattie_bucks < bounty) return alert("You no longer have enough Beattie Bucks to cover this bounty transfer!");
         if(!confirm(`Approve ${winnerUsername} for this tub meal and transfer ${bounty} BBs?`)) return;
 
-        // Deduct from creator
         await supabaseApp.from('profiles').update({ beattie_bucks: currentUserProfile.beattie_bucks - bounty }).eq('id', currentUserProfile.id);
 
-        // Add to winner
         const cook = allProfiles.find(p => p.id === winnerId);
         if (cook) {
             await supabaseApp.from('profiles').update({ beattie_bucks: cook.beattie_bucks + bounty }).eq('id', winnerId);
