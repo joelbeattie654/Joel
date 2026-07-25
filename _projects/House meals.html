@@ -450,7 +450,6 @@ description: "House cooking schedule and rankings."
             document.getElementById('admin-override-box').style.display = 'none';
         }
 
-        // Prevent self rating
         if (currentUserProfile && cook && currentUserProfile.id === cook.id) {
             document.getElementById('user-rating-section').style.display = 'none';
         } else {
@@ -490,7 +489,7 @@ description: "House cooking schedule and rankings."
     }
 
     async function saveAdminOverride() {
-        const cookId = document.getElementById('override-cook-select').value;
+        const cookId = document.getElementById('override-cook-select'].value;
         await supabaseApp.from('calendar_days').upsert([{ date: activeModalDate, cook_id: cookId }]);
 
         alert("Calendar successfully overridden!");
@@ -498,10 +497,10 @@ description: "House cooking schedule and rankings."
         renderCalendar();
     }
 
-    // --- SMART FAIR GENERATOR (4 Mon-Thu Cooks + 1 Off Reward + Random Lolly) ---
+    // --- SMART FAIR GENERATOR (No 2 Weeks Off In A Row) ---
     async function generateFairWeek() {
         if (!allProfiles || allProfiles.length < 5) return alert("Need all 5 housemates logged in first!");
-        if (!confirm("Generate next free Mon-Thu schedule using coefficient rankings for the week-off reward?")) return;
+        if (!confirm("Generate next free Mon-Thu schedule? Top ranked chef gets the week off (unless they had it last week).")) return;
 
         let targetMonday = new Date();
         targetMonday.setDate(targetMonday.getDate() + ((1 + 7 - targetMonday.getDay()) % 7 || 7));
@@ -517,14 +516,22 @@ description: "House cooking schedule and rankings."
             }
         }
 
-        // Sort by coefficient to give highest-ranked person the week off
+        let monDateStr = targetMonday.toISOString().split('T')[0];
+
+        // Sort by coefficient descending
         let sortedByCoeff = [...allProfiles].sort((a, b) => b.coefficient - a.coefficient);
-        let weekOffChef = sortedByCoeff[0]; // Highest ranking gets the week off!
         
+        // Find best chef who did NOT have the week off last week
+        let weekOffChef = sortedByCoeff.find(p => p.last_week_off !== monDateStr);
+        if (!weekOffChef) weekOffChef = sortedByCoeff[0]; // Fallback
+
+        // Update their last week off record
+        await supabaseApp.from('profiles').update({ last_week_off: monDateStr }).eq('id', weekOffChef.id);
+
         // Remaining 4 chefs cook Mon-Thu randomly
-        let remainingChefs = sortedByCoeff.slice(1).sort(() => 0.5 - Math.random());
+        let remainingChefs = allProfiles.filter(p => p.id !== weekOffChef.id).sort(() => 0.5 - Math.random());
         
-        // Ice lolly duty is completely random from all 5
+        // Ice lolly duty random from all 5
         let lollyChef = allProfiles[Math.floor(Math.random() * allProfiles.length)];
 
         let newAssignments = [];
@@ -538,11 +545,12 @@ description: "House cooking schedule and rankings."
         }
 
         await supabaseApp.from('calendar_days').upsert(newAssignments);
-        alert(`Week generated starting ${targetMonday.toISOString().split('T')[0]}!\n👑 Week Off Reward: ${weekOffChef.username.toUpperCase()}\n🍦 Ice Lolly Duty: ${lollyChef.username.toUpperCase()}`);
+        alert(`Week generated starting ${monDateStr}!\n👑 Week Off Reward: ${weekOffChef.username.toUpperCase()}\n🍦 Ice Lolly Duty: ${lollyChef.username.toUpperCase()}`);
         renderCalendar();
+        fetchProfiles();
     }
 
-    // --- SAFE MEAL BOUNTIES & CLAIM SYSTEM ---
+    // --- FIXED MEAL BOUNTIES & ESCROW SYSTEM ---
     async function loadCravings() {
         const { data: noms } = await supabaseApp.from('cravings').select('*, profiles(username), claimed_profile:profiles!cravings_claimed_by_fkey(username)');
         const container = document.getElementById('cravings-container');
@@ -583,19 +591,26 @@ description: "House cooking schedule and rankings."
         const title = document.getElementById('nomination-title').value;
         const bounty = parseInt(document.getElementById('nomination-bounty').value);
         if(!title || !bounty || bounty <= 0) return alert("Enter a valid meal and bounty.");
-        
-        // Check if user actually has enough bucks (DO NOT deduct yet)
         if(currentUserProfile.beattie_bucks < bounty) return alert("You do not have enough Beattie Bucks to set this bounty!");
 
-        await supabaseApp.from('cravings').insert([{ title: title, bounty: bounty, suggested_by: currentUserProfile.id, status: 'open' }]);
+        const { error } = await supabaseApp.from('cravings').insert([
+            { title: title, bounty: bounty, suggested_by: currentUserProfile.id, status: 'open' }
+        ]);
+
+        if (error) {
+            return alert("Error posting bounty: " + error.message);
+        }
         
-        alert("Meal Bounty published safely (Funds escrowed until completion)!"); location.reload();
+        alert("Meal Bounty successfully posted!"); 
+        document.getElementById('nomination-title').value = '';
+        document.getElementById('nomination-bounty').value = '';
+        loadCravings();
     }
 
     async function claimBounty(id) {
         await supabaseApp.from('cravings').update({ claimed_by: currentUserProfile.id, status: 'claimed' }).eq('id', id);
         alert("Bounty claimed! The creator has been notified to approve and transfer.");
-        location.reload();
+        loadCravings();
     }
 
     async function acceptClaim(id, winnerUsername, bounty, winnerId) {
@@ -712,7 +727,7 @@ description: "House cooking schedule and rankings."
         await supabaseApp.from('wagers').delete().neq('id', 0);
         
         for (let user of allProfiles) {
-            await supabaseApp.from('profiles').update({ beattie_bucks: 100, coefficient: 4.0 }).eq('id', user.id);
+            await supabaseApp.from('profiles').update({ beattie_bucks: 100, coefficient: 4.0, last_week_off: null }).eq('id', user.id);
         }
 
         alert("Total house reset complete!"); location.reload();
