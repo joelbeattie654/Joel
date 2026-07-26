@@ -1,7 +1,7 @@
 ---
 layout: app
-title: "The Meal HQ"
-description: "House cooking schedule and rankings."
+title: "319 Kitchen Wars"
+description: "House cooking schedule, rankings, and Fridge Fortress minigame."
 ---
 
 <!DOCTYPE html>
@@ -9,7 +9,7 @@ description: "House cooking schedule and rankings."
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Meal HQ</title>
+  <title>319 Kitchen Wars</title>
   
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
@@ -86,7 +86,7 @@ description: "House cooking schedule and rankings."
     .day-cook img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-orange); }
 
     .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; }
-    .overlay-box { background: white; padding: 32px; border-radius: 24px; width: 90%; max-width: 420px; text-align: center; max-height: 90vh; overflow-y: auto; }
+    .overlay-box { background: white; padding: 32px; border-radius: 24px; width: 90%; max-width: 450px; text-align: center; max-height: 90vh; overflow-y: auto; }
 
     .slider-container { margin: 20px 0; }
     input[type=range] { accent-color: var(--accent-orange); cursor: pointer; }
@@ -100,7 +100,7 @@ description: "House cooking schedule and rankings."
 
   <div class="app-container">
     
-    <h1>The <span class="fun-text">Meal HQ</span></h1>
+    <h1>319 <span class="fun-text">Kitchen Wars</span></h1>
     <div id="active-user-banner">Currently Logged In As: <span id="banner-username" style="text-transform: capitalize; color: var(--accent-yellow);"></span></div>
 
     <div class="app-card" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 32px;">
@@ -111,8 +111,8 @@ description: "House cooking schedule and rankings."
       <div id="user-header" style="display: none; align-items: center; gap: 16px;">
         <img id="my-avatar" src="" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">
         <div>
-          <h2 style="margin:0;">Chef <span id="display-name" style="text-transform: capitalize;" class="fun-text"></span></h2>
-          <p style="margin: 4px 0 0 0; font-weight: 600;">💰 <span id="display-bucks">0</span> BBs</p>
+          <h2 style="margin:0;"><span id="display-name" style="text-transform: capitalize;" class="fun-text"></span></h2>
+          <p style="margin: 4px 0 0 0; font-weight: 600;">💰 <span id="display-bucks">0</span> BBs <span style="margin-left: 8px; color: var(--accent-blue);">🧊 Lvl <span id="display-fridge-lvl">1</span> Fridge</span></p>
         </div>
       </div>
       <button id="nav-login-btn" class="accent-btn" style="width: auto; margin:0; padding: 10px 24px;" onclick="document.getElementById('auth-overlay').style.display='flex'">Sign In</button>
@@ -120,13 +120,29 @@ description: "House cooking schedule and rankings."
     </div>
 
     <!-- ADMIN PANEL -->
-    <div id="admin-panel" class="app-card" style="display: none; border-color: var(--accent-yellow); background: #FFFAEB;">
+    <div id="admin-panel" class="app-card" style="display: none; border-color: var(--accent-yellow; background: #FFFAEB;">
       <h2 style="color: #D49A00;">👑 Admin Controls</h2>
       <button onclick="generateFairWeek()" class="admin-btn">🎲 Generate Smart Mon-Thu Schedule & Lolly Duty</button>
+      <button onclick="distributeSaturdayDividends()" class="secondary-btn" style="margin-top: 8px;">🏆 Pay Out Saturday Coefficient Dividends</button>
       <button onclick="releaseManualBucks()" class="secondary-btn" style="margin-top: 8px;">🎁 Drop 50 BBs to Everyone Now</button>
       <button id="friday-bucks-btn" onclick="releaseBucks()" class="accent-btn" style="display: none; margin-top: 8px;">💸 FRIDAY UNLOCKED: Release Weekly Bucks!</button>
       <button onclick="openWagerAdminModal()" class="secondary-btn" style="margin-top: 8px; background: #E2E8F0;">⚖️ Settle Weekly Sportsbook Bets</button>
       <button onclick="nukeSystem()" class="danger-btn" style="margin-top: 16px;">⚠️ TOTAL NUKE (Reset All Stats, Bucks & Calendar)</button>
+    </div>
+
+    <!-- FRIDGE FORTRESS BASE UPGRADE CENTER -->
+    <div class="app-card" id="fridge-base-section" style="display:none; border-color: var(--accent-blue); background: #F0F9FF;">
+      <h2>🧊 Fridge Fortress (Base HQ)</h2>
+      <div id="fridge-status-display" style="font-weight: 700; margin-bottom: 12px; font-size: 1.1rem; color: var(--accent-blue);"></div>
+      <p id="fridge-perk-desc" style="font-size: 0.9rem; margin-bottom: 16px;"></p>
+      <button id="upgrade-fridge-btn" onclick="upgradeFridgeLevel()" class="accent-btn" style="background: var(--accent-blue);">Upgrade Fridge Tier</button>
+    </div>
+
+    <!-- NEIGHBORHOOD BASE INSPECTOR -->
+    <div class="app-card" id="neighborhood-section" style="display:none;">
+      <h2>🔍 Neighborhood Base Inspector</h2>
+      <p style="font-size: 0.9rem; color: var(--text-muted);">Inspect housemates' fridges and launch midnight raids to tax their BBs!</p>
+      <div id="neighborhood-grid" style="margin-top: 16px;"></div>
     </div>
 
     <!-- CALENDAR -->
@@ -146,7 +162,6 @@ description: "House cooking schedule and rankings."
         <div class="day-name">WED</div><div class="day-name">THU</div><div class="day-name">FRI</div><div class="day-name">SAT</div>
       </div>
       <div class="calendar-grid" id="calendar-body"></div>
-      <p style="font-size: 0.8rem; text-align: center; margin-top: 12px; opacity: 0.7;">💡 Tip: Click any day on the calendar to rate a meal or manually override assignments.</p>
     </div>
 
     <!-- MEAL BOUNTIES -->
@@ -228,7 +243,7 @@ description: "House cooking schedule and rankings."
     </div>
   </div>
 
-  <!-- ADMIN WAGER SETTLEMENT MODAL -->
+  <!-- ADMIN WAGER MODAL -->
   <div id="wager-admin-modal" class="overlay">
     <div class="overlay-box" style="max-width: 600px;">
       <h2>Settle Weekly Sportsbook Bets</h2>
@@ -251,6 +266,40 @@ description: "House cooking schedule and rankings."
     
     let activeModalDate = null;
     let activeModalCook = null;
+
+    // 30-Level Fridge Tier Data (September to May Progression)
+    const fridgeTiers = {
+      1: { name: "The Duct-Tape Mini-Fridge", cost: 0, perk: "Basic storage for questionable leftovers." },
+      2: { name: "Plastic Door-Shelf Repair Kit", cost: 50, perk: "Unlocks basic duct-seal defense." },
+      3: { name: "'Do Not Eat' Post-it Note Pack", cost: 100, perk: "Slight psychological defense against thieves." },
+      4: { name: "Freezer-Burn Ice Scraper", cost: 175, perk: "Improves item preservation." },
+      5: { name: "Second-Hand Mini Fridge Upgrade", cost: 250, perk: "Extra shelf capacity." },
+      6: { name: "Single-Door Standard Fridge", cost: 350, perk: "Real kitchen appliance energy." },
+      7: { name: "Magnetic Bottle Opener Attachment", cost: 475, perk: "+1 house swag." },
+      8: { name: "Leftover Tupperware Set", cost: 600, perk: "Unlocks Decoy Tupperware defense." },
+      9: { name: "Deodorizing Baking Soda Box", cost: 750, perk: "Keeps the air fresh and clean." },
+      10: { name: "Double-Door Fridge Workhorse", cost: 950, perk: "Generates +10 BB passive weekly dividend." },
+      11: { name: "Crisper Drawer Organizer", cost: 1200, perk: "Vegetable protection grid." },
+      12: { name: "Frost-Free Technology Integration", cost: 1500, perk: "Zero ice buildup efficiency." },
+      13: { name: "Digital Keypad Door Lock", cost: 1850, perk: "Active defense against midnight raids." },
+      14: { name: "Smart Temperature Sensor Grid", cost: 2250, perk: "Real-time cooling alerts." },
+      15: { name: "Heavy-Duty Stainless Steel Shell", cost: 2750, perk: "Enhanced base armor." },
+      16: { name: "Built-in Ice & Water Dispenser", cost: 3300, perk: "Instant luxury hydration." },
+      17: { name: "Motion-Activated Guard Cat Sensor", cost: 4000, perk: "Scratches raiders and fines them BBs." },
+      18: { name: "Dual-Zone Wine/Bev Chiller", cost: 4800, perk: "Specialized beverage storage." },
+      19: { name: "Microwave Turret Defense System", cost: 5700, perk: "Deters housemate sabotage." },
+      20: { name: "Industrial Walk-In Freezer Conversion", cost: 6800, perk: "Massive passive income boost." },
+      21: { name: "Commercial Restaurant-Grade Compressor", cost: 8000, perk: "Elite industrial power." },
+      22: { name: "Built-In Espresso Bar Attachment", cost: 9500, perk: "Morning caffeine automation." },
+      23: { name: "Smart Touch-Screen Door Display", cost: 11200, perk: "Full base command center." },
+      24: { name: "UV-C Bacterial Sterilization Chamber", cost: 13100, perk: "Pristine hygiene score." },
+      25: { name: "Biometric Fingerprint Vault Lock", cost: 15300, perk: "100% impenetrable raid defense." },
+      26: { name: "Emergency Backup Generator", cost: 17800, perk: "Power failure immunity." },
+      27: { name: "Custom Neon-Lit Glass Door Display", cost: 20600, perk: "Ultimate house flex." },
+      28: { name: "Liquid Nitrogen Flash-Freezing Bay", cost: 24000, perk: "Instant molecular preservation." },
+      29: { name: "Sub-Zero Orbital Vault", cost: 28000, perk: "Near god-tier base structure." },
+      30: { name: "The Supreme Golden Sub-Zero Vault", cost: 35000, perk: "Crowns you Fridge Overlord with gold avatar aura!" }
+    };
 
     const weeklySportsbookMarket = [
       { id: 1, text: "Will at least one meal tub be left in the sink overnight instead of the fridge?", odds: 1.6 },
@@ -282,64 +331,36 @@ description: "House cooking schedule and rankings."
         if (username === 'beattie' && password !== 'admin654') return alert("Access Denied: Incorrect Admin Password.");
         if (username !== 'beattie' && password !== 'food654') return alert("Access Denied: Incorrect House Password.");
 
-        loginBtn.innerText = "Authenticating..."; 
-        loginBtn.disabled = true;
+        loginBtn.innerText = "Authenticating..."; loginBtn.disabled = true;
 
         let authData = null;
-
-        // Try direct sign in first
         let { data, error } = await supabaseApp.auth.signInWithPassword({ email: fakeEmail, password });
         
         if (error) {
-            // If sign in fails, try signing them up in case they don't exist in auth yet
             let signUpRes = await supabaseApp.auth.signUp({ email: fakeEmail, password });
-            
             if (signUpRes.error && !signUpRes.error.message.includes("already registered")) {
-                loginBtn.innerText = "Enter HQ"; 
-                loginBtn.disabled = false; 
-                return alert("Setup Error: " + signUpRes.error.message);
+                loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false; return alert("Setup Error: " + signUpRes.error.message);
             }
-
-            // Retry sign in after signup attempt
             let retryLogin = await supabaseApp.auth.signInWithPassword({ email: fakeEmail, password });
             if (retryLogin.error) {
-                loginBtn.innerText = "Enter HQ"; 
-                loginBtn.disabled = false; 
-                return alert("Login Error: " + retryLogin.error.message);
+                loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false; return alert("Login Error: " + retryLogin.error.message);
             }
             authData = retryLogin.data;
         } else {
             authData = data;
         }
 
-        if (!authData || !authData.user) {
-            loginBtn.innerText = "Enter HQ"; 
-            loginBtn.disabled = false;
-            return alert("Authentication failed to acquire user session.");
-        }
-
-        // Verify profile exists in database, create if missing
         const { data: existingProfile } = await supabaseApp.from('profiles').select('*').eq('id', authData.user.id).maybeSingle();
-        
         if (!existingProfile) {
-            let { error: insertErr } = await supabaseApp.from('profiles').insert([{ 
-                id: authData.user.id, 
-                username: username, 
-                is_admin: (username === 'beattie'), 
-                beattie_bucks: 100, 
-                coefficient: 4.0 
+            await supabaseApp.from('profiles').insert([{ 
+                id: authData.user.id, username: username, is_admin: (username === 'beattie'), beattie_bucks: 100, coefficient: 4.0, fridge_level: 1 
             }]);
-            if (insertErr) {
-                console.error("Profile creation warning:", insertErr.message);
-            }
         } else if (username === 'beattie' && !existingProfile.is_admin) {
             await supabaseApp.from('profiles').update({ is_admin: true }).eq('id', authData.user.id);
         }
 
         document.getElementById('auth-overlay').style.display = 'none';
-        loginBtn.innerText = "Enter HQ"; 
-        loginBtn.disabled = false;
-        
+        loginBtn.innerText = "Enter HQ"; loginBtn.disabled = false;
         await setupUserInterface(authData.user);
     }
 
@@ -358,13 +379,18 @@ description: "House cooking schedule and rankings."
             document.getElementById('profile-settings').style.display = 'block';
             document.getElementById('cravings-section').style.display = 'block';
             document.getElementById('wagers-section').style.display = 'block';
+            document.getElementById('fridge-base-section').style.display = 'block';
+            document.getElementById('neighborhood-section').style.display = 'block';
             document.getElementById('active-user-banner').style.display = 'block';
             
             currentUserProfile = profile;
             document.getElementById('banner-username').innerText = profile.username;
             document.getElementById('display-name').innerText = profile.username;
             document.getElementById('display-bucks').innerText = profile.beattie_bucks;
+            document.getElementById('display-fridge-lvl').innerText = profile.fridge_level || 1;
             document.getElementById('my-avatar').src = profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`;
+
+            renderFridgeFortressUI(profile);
 
             if (profile.is_admin) {
                 document.getElementById('admin-panel').style.display = 'block';
@@ -382,29 +408,128 @@ description: "House cooking schedule and rankings."
         out.innerHTML = '';
         allProfiles.forEach((p, idx) => {
             const avatarUrl = p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`;
+            let goldBorder = (p.fridge_level === 30) ? 'border: 2px solid var(--accent-yellow);' : '';
             out.innerHTML += `
-            <div class="user-row">
+            <div class="user-row" style="${goldBorder}">
                 <div class="user-info">
                   <span style="color:var(--accent-orange);">#${idx+1}</span>
                   <img src="${avatarUrl}" class="user-avatar">
-                  <span style="text-transform: capitalize;">${p.username}</span>
+                  <span style="text-transform: capitalize;">${p.username} ${p.fridge_level === 30 ? '👑' : ''}</span>
                 </div>
-                <span>🌟 ${p.coefficient.toFixed(2)} / 10 <span style="color: var(--border-color); margin: 0 4px;">|</span> 💰 ${p.beattie_bucks}</span>
+                <span>🧊 Lvl ${p.fridge_level || 1} <span style="color: var(--border-color); margin: 0 4px;">|</span> 🌟 ${p.coefficient.toFixed(2)} <span style="color: var(--border-color); margin: 0 4px;">|</span> 💰 ${p.beattie_bucks}</span>
+            </div>`;
+        });
+
+        renderNeighborhoodGrid();
+    }
+
+    // --- FRIDGE FORTRESS MINIGAME LOGIC ---
+    function renderFridgeFortressUI(profile) {
+        const lvl = profile.fridge_level || 1;
+        const tier = fridgeTiers[lvl];
+        const nextTier = fridgeTiers[lvl + 1];
+
+        const container = document.getElementById('fridge-status-display');
+        const desc = document.getElementById('fridge-perk-desc');
+        const btn = document.getElementById('upgrade-fridge-btn');
+
+        container.innerHTML = `Level ${lvl}: ${tier.name}`;
+        desc.innerHTML = `<strong>Current Perk:</strong> ${tier.perk}`;
+
+        if (nextTier) {
+            btn.style.display = 'block';
+            btn.innerText = `Upgrade to Lvl ${lvl + 1} (${nextTier.name}) - Cost: ${nextTier.cost} BBs`;
+        } else {
+            btn.style.display = 'none';
+            desc.innerHTML += `<br><span style="color: var(--accent-yellow); font-weight: bold;">🌟 Max Level Reached! You are the ultimate Fridge Overlord of 319.</span>`;
+        }
+    }
+
+    async function upgradeFridgeLevel() {
+        const currentLvl = currentUserProfile.fridge_level || 1;
+        const nextTier = fridgeTiers[currentLvl + 1];
+        if (!nextTier) return alert("You are already at the max fridge tier!");
+
+        if (currentUserProfile.beattie_bucks < nextTier.cost) {
+            return alert(`You need ${nextTier.cost} Beattie Bucks to upgrade, but you only have ${currentUserProfile.beattie_bucks} BBs!`);
+        }
+
+        const newBucks = currentUserProfile.beattie_bucks - nextTier.cost;
+        const newLvl = currentLvl + 1;
+
+        await supabaseApp.from('profiles').update({ beattie_bucks: newBucks, fridge_level: newLvl }).eq('id', currentUserProfile.id);
+
+        alert(`Success! Upgraded to Level ${newLvl}: ${nextTier.name}!`);
+        location.reload();
+    }
+
+    function renderNeighborhoodGrid() {
+        const grid = document.getElementById('neighborhood-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        allProfiles.forEach(p => {
+            if (currentUserProfile && p.id === currentUserProfile.id) return; // Skip self
+            let pLvl = p.fridge_level || 1;
+            let tierName = fridgeTiers[pLvl]?.name || "Mini-Fridge";
+
+            grid.innerHTML += `
+            <div style="background: #F8F9FA; padding: 14px; border-radius: 12px; margin-top: 8px; border: 1.5px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong style="text-transform: capitalize;">${p.username}'s Fridge</strong><br>
+                <span style="font-size: 0.85rem; color: var(--text-muted);">Tier ${pLvl}: ${tierName} | 💰 ${p.beattie_bucks} BBs</span>
+              </div>
+              <button onclick="launchMidnightRaid('${p.id}', '${p.username}')" class="secondary-btn" style="width: auto; padding: 8px 14px; font-size: 0.85rem; background: var(--accent-red); color: white; margin:0;">🌙 Midnight Raid</button>
             </div>`;
         });
     }
 
-    function renderSportsbookMarket() {
-        const container = document.getElementById('sportsbook-market');
-        container.innerHTML = '<label style="font-weight:bold; font-size:0.9rem;">Select Outcome:</label>';
+    async function launchMidnightRaid(targetId, targetName) {
+        const raidCost = 30;
+        if (currentUserProfile.beattie_bucks < raidCost) {
+            return alert(`You need at least ${raidCost} BBs in your wallet to fund a midnight raid expedition!`);
+        }
+
+        const { data: targetProfile } = await supabaseApp.from('profiles').select('*').eq('id', targetId).single();
+        if (!targetProfile) return alert("Target base not found.");
+
+        let targetLvl = targetProfile.fridge_level || 1;
         
-        weeklySportsbookMarket.forEach((bet, idx) => {
-            container.innerHTML += `
-            <div style="margin-top: 8px; background: #F8F9FA; padding: 10px; border-radius: 8px; border: 1.5px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-              <label style="font-size:0.85rem; cursor:pointer;"><input type="radio" name="sportsbook-bet" value="${bet.id}" ${idx===0?'checked':''}> ${bet.text}</label>
-              <span style="font-weight:bold; color:var(--accent-blue); background:rgba(17,138,178,0.1); padding:2px 6px; border-radius:6px; font-size:0.8rem; white-space:nowrap;">${bet.odds}x Payout</span>
-            </div>`;
-        });
+        // Deduct raid cost
+        await supabaseApp.from('profiles').update({ beattie_bucks: currentUserProfile.beattie_bucks - raidCost }).eq('id', currentUserProfile.id);
+
+        // Defense success calculation based on their fridge level defenses
+        let defenseChance = Math.min(targetLvl * 2.5, 75); // Higher level fridges have tougher defenses
+        let roll = Math.random() * 100;
+
+        if (roll < defenseChance) {
+            alert(`🛡️ Raid Failed! ${targetName}'s Fridge defenses (Tier ${targetLvl}) successfully repelled your raid. You lost your ${raidCost} BB expedition fee!`);
+        } else {
+            let loot = Math.min(Math.floor(targetProfile.beattie_bucks * 0.15), 100); // Tax 15% of their stash
+            if (loot < 10) loot = 15;
+
+            await supabaseApp.from('profiles').update({ beattie_bucks: targetProfile.beattie_bucks - loot }).eq('id', targetId);
+            await supabaseApp.from('profiles').update({ beattie_bucks: currentUserProfile.beattie_bucks - raidCost + loot }).eq('id', currentUserProfile.id);
+
+            alert(`🌙 Successful Midnight Raid! You successfully bypassed ${targetName}'s defenses and looted ${loot} Beattie Bucks!`);
+        }
+        location.reload();
+    }
+
+    // --- SATURDAY COEFFICIENT DIVIDENDS ---
+    async function distributeSaturdayDividends() {
+        if (!allProfiles || allProfiles.length === 0) return alert("No profiles loaded.");
+        if (!confirm("Distribute Saturday Coefficient Dividends? (#1 gets 200 BBs, #2 gets 125 BBs, #3 gets 75 BBs, #4 gets 40 BBs)")) return;
+
+        let rewards = [200, 125, 75, 40, 10];
+        for (let i = 0; i < allProfiles.length; i++) {
+            let reward = rewards[i] || 10;
+            let updatedBucks = allProfiles[i].beattie_bucks + reward;
+            await supabaseApp.from('profiles').update({ beattie_bucks: updatedBucks }).eq('id', allProfiles[i].id);
+        }
+
+        alert("Saturday Coefficient Dividends successfully paid out to the house leaderboard!");
+        location.reload();
     }
 
     // --- CALENDAR & MODAL ---
@@ -533,7 +658,7 @@ description: "House cooking schedule and rankings."
         renderCalendar();
     }
 
-    // --- SMART FAIR GENERATOR (No 2 Weeks Off In A Row) ---
+    // --- SMART FAIR GENERATOR ---
     async function generateFairWeek() {
         if (!allProfiles || allProfiles.length < 5) return alert("Need all 5 housemates logged in first!");
         if (!confirm("Generate next free Mon-Thu schedule? Top ranked chef gets the week off (unless they had it last week).")) return;
@@ -579,7 +704,7 @@ description: "House cooking schedule and rankings."
         fetchProfiles();
     }
 
-    // --- FIXED MEAL BOUNTIES & ESCROW SYSTEM ---
+    // --- MEAL BOUNTIES & ESCROW SYSTEM ---
     async function loadCravings() {
         const { data: noms } = await supabaseApp.from('cravings').select('*, profiles(username), claimed_profile:profiles!cravings_claimed_by_fkey(username)');
         const container = document.getElementById('cravings-container');
@@ -626,9 +751,7 @@ description: "House cooking schedule and rankings."
             { title: title, bounty: bounty, suggested_by: currentUserProfile.id, status: 'open' }
         ]);
 
-        if (error) {
-            return alert("Error posting bounty: " + error.message);
-        }
+        if (error) return alert("Error posting bounty: " + error.message);
         
         alert("Meal Bounty successfully posted!"); 
         document.getElementById('nomination-title').value = '';
@@ -659,6 +782,19 @@ description: "House cooking schedule and rankings."
     }
 
     // --- ODDS SPORTSBOOK ---
+    function renderSportsbookMarket() {
+        const container = document.getElementById('sportsbook-market');
+        container.innerHTML = '<label style="font-weight:bold; font-size:0.9rem;">Select Outcome:</label>';
+        
+        weeklySportsbookMarket.forEach((bet, idx) => {
+            container.innerHTML += `
+            <div style="margin-top: 8px; background: #F8F9FA; padding: 10px; border-radius: 8px; border: 1.5px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+              <label style="font-size:0.85rem; cursor:pointer;"><input type="radio" name="sportsbook-bet" value="${bet.id}" ${idx===0?'checked':''}> ${bet.text}</label>
+              <span style="font-weight:bold; color:var(--accent-blue); background:rgba(17,138,178,0.1); padding:2px 6px; border-radius:6px; font-size:0.8rem; white-space:nowrap;">${bet.odds}x Payout</span>
+            </div>`;
+        });
+    }
+
     async function placeOddsWager() {
         const amount = parseInt(document.getElementById('bet-amount').value);
         const selectedRadio = document.querySelector('input[name="sportsbook-bet"]:checked');
@@ -747,14 +883,14 @@ description: "House cooking schedule and rankings."
     }
 
     async function nukeSystem() {
-        if(!confirm("WARNING: Total house reset? Wipes calendar, cravings, wagers, and resets all bucks to 100 and coefficients to 4.0.")) return;
+        if(!confirm("WARNING: Total house reset? Wipes calendar, cravings, wagers, and resets all fridges to Lvl 1, bucks to 100, and coefficients to 4.0.")) return;
         
         await supabaseApp.from('calendar_days').delete().neq('date', '1900-01-01');
         await supabaseApp.from('cravings').delete().neq('id', 0);
         await supabaseApp.from('wagers').delete().neq('id', 0);
         
         for (let user of allProfiles) {
-            await supabaseApp.from('profiles').update({ beattie_bucks: 100, coefficient: 4.0, last_week_off: null }).eq('id', user.id);
+            await supabaseApp.from('profiles').update({ beattie_bucks: 100, coefficient: 4.0, fridge_level: 1, last_week_off: null }).eq('id', user.id);
         }
 
         alert("Total house reset complete!"); location.reload();
