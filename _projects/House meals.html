@@ -1,7 +1,7 @@
 ---
 layout: app
 title: "319 Kitchen Wars"
-description: "House cooking schedule, rankings, and Fridge Fortress minigame."
+description: "House cooking schedule, rankings, and graphical Fridge Fortress minigame."
 ---
 
 <!DOCTYPE html>
@@ -66,6 +66,16 @@ description: "House cooking schedule, rankings, and Fridge Fortress minigame."
     button.admin-btn { background-color: var(--accent-yellow); color: var(--text-main); }
     button.danger-btn { background-color: var(--accent-red); color: white; }
 
+    /* Graphical Fridge Base Card */
+    .fridge-graphic-box {
+      background: linear-gradient(135deg, #118AB2, #06D6A0);
+      color: white; padding: 24px; border-radius: 20px; text-align: center; margin-bottom: 20px;
+      box-shadow: 0px 10px 25px rgba(17, 138, 178, 0.2);
+    }
+    .fridge-icon { font-size: 3.5rem; margin-bottom: 8px; }
+    .progress-bar-container { background: rgba(255,255,255,0.3); border-radius: 10px; height: 12px; width: 100%; margin: 12px 0; overflow: hidden; }
+    .progress-bar-fill { background: var(--accent-yellow); height: 100%; width: 0%; transition: width 0.5s ease; }
+
     .lolly-banner {
       background: linear-gradient(135deg, rgba(17, 138, 178, 0.1), rgba(6, 214, 160, 0.1));
       border: 1.5px solid var(--accent-blue); padding: 16px 20px; border-radius: 16px;
@@ -120,7 +130,7 @@ description: "House cooking schedule, rankings, and Fridge Fortress minigame."
     </div>
 
     <!-- ADMIN PANEL -->
-    <div id="admin-panel" class="app-card" style="display: none; border-color: var(--accent-yellow; background: #FFFAEB;">
+    <div id="admin-panel" class="app-card" style="display: none; border-color: var(--accent-yellow); background: #FFFAEB;">
       <h2 style="color: #D49A00;">👑 Admin Controls</h2>
       <button onclick="generateFairWeek()" class="admin-btn">🎲 Generate Smart Mon-Thu Schedule & Lolly Duty</button>
       <button onclick="distributeSaturdayDividends()" class="secondary-btn" style="margin-top: 8px;">🏆 Pay Out Saturday Coefficient Dividends</button>
@@ -130,18 +140,44 @@ description: "House cooking schedule, rankings, and Fridge Fortress minigame."
       <button onclick="nukeSystem()" class="danger-btn" style="margin-top: 16px;">⚠️ TOTAL NUKE (Reset All Stats, Bucks & Calendar)</button>
     </div>
 
-    <!-- FRIDGE FORTRESS BASE UPGRADE CENTER -->
-    <div class="app-card" id="fridge-base-section" style="display:none; border-color: var(--accent-blue); background: #F0F9FF;">
-      <h2>🧊 Fridge Fortress (Base HQ)</h2>
-      <div id="fridge-status-display" style="font-weight: 700; margin-bottom: 12px; font-size: 1.1rem; color: var(--accent-blue);"></div>
-      <p id="fridge-perk-desc" style="font-size: 0.9rem; margin-bottom: 16px;"></p>
-      <button id="upgrade-fridge-btn" onclick="upgradeFridgeLevel()" class="accent-btn" style="background: var(--accent-blue);">Upgrade Fridge Tier</button>
+    <!-- GRAPHICAL FRIDGE FORTRESS BASE HQ -->
+    <div class="app-card" id="fridge-base-section" style="display:none; border-color: var(--accent-blue);">
+      <div class="fridge-graphic-box">
+        <div class="fridge-icon" id="fridge-sprite">🧊</div>
+        <h2 id="fridge-title-display" style="margin:0; font-size: 1.8rem;">The Duct-Tape Mini-Fridge</h2>
+        <p id="fridge-perk-display" style="font-size: 0.95rem; opacity: 0.9; margin: 6px 0 0 0;"></p>
+        
+        <div style="margin-top: 16px; text-align: left;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: bold;">
+            <span id="fridge-level-label">Level 1 / 30</span>
+            <span id="fridge-next-cost">Next Upgrade: 50 BBs</span>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="fridge-progress-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+        <button onclick="upgradeFridgeLevel()" class="accent-btn" style="background: var(--accent-blue); margin:0;">🚀 Upgrade Fridge Tier</button>
+        <button onclick="claimDailyMaintenance()" class="secondary-btn" style="margin:0; background: var(--accent-mint); color: white;">🧹 Daily Shelf Wipe (+15 BB)</button>
+      </div>
+
+      <div style="background: #F8F9FA; padding: 14px; border-radius: 14px; border: 1.5px solid var(--border-color);">
+        <h3 style="font-size: 0.95rem; margin-bottom: 6px;">🪤 Set Base Trap Defense:</h3>
+        <select id="trap-select" onchange="updateTrap(this.value)" style="margin:0; font-size: 0.9rem;">
+          <option value="None">None (Unprotected)</option>
+          <option value="Sticky Floor Mat">Sticky Floor Mat (Fines raiders 20 BBs)</option>
+          <option value="Squeaky Door Hinge">Squeaky Door Hinge (Alerts you to stealth raids)</option>
+          <option value="Guard Cat Snare">Guard Cat Snare (Scratches raiders for heavy fine)</option>
+        </select>
+      </div>
     </div>
 
     <!-- NEIGHBORHOOD BASE INSPECTOR -->
     <div class="app-card" id="neighborhood-section" style="display:none;">
-      <h2>🔍 Neighborhood Base Inspector</h2>
-      <p style="font-size: 0.9rem; color: var(--text-muted);">Inspect housemates' fridges and launch midnight raids to tax their BBs!</p>
+      <h2>🔍 Neighborhood Base Inspector & Raids</h2>
+      <p style="font-size: 0.9rem; color: var(--text-muted);">Inspect housemates' graphical fridges and launch tactical midnight raids!</p>
       <div id="neighborhood-grid" style="margin-top: 16px;"></div>
     </div>
 
@@ -217,6 +253,21 @@ description: "House cooking schedule, rankings, and Fridge Fortress minigame."
     </div>
   </div>
 
+  <!-- TACTICAL RAID MODAL -->
+  <div id="raid-modal" class="overlay">
+    <div class="overlay-box">
+      <h2>🌙 Midnight Raid Mission</h2>
+      <p id="raid-target-label" style="font-weight: bold; color: var(--accent-orange); margin-bottom: 16px;"></p>
+      <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px;">Choose your tactical infiltration method (Costs 30 BBs expedition fee):</p>
+      
+      <button onclick="executeRaid('Stealth')" class="accent-btn" style="background: var(--accent-blue);">🥷 Stealth Infiltration (Balanced)</button>
+      <button onclick="executeRaid('Distraction')" class="secondary-btn" style="background: var(--accent-yellow); color: var(--text-main);">🍿 Microwave Distraction (High Risk / High Reward)</button>
+      <button onclick="executeRaid('Bribe')" class="secondary-btn" style="background: var(--accent-mint); color: white;">🐱 Guard Cat Bribe (Safer Loot)</button>
+      
+      <button onclick="document.getElementById('raid-modal').style.display='none'" class="secondary-btn" style="margin-top: 12px;">Cancel</button>
+    </div>
+  </div>
+
   <!-- DAY CONTROL MODAL -->
   <div id="day-modal" class="overlay">
     <div class="overlay-box">
@@ -266,39 +317,40 @@ description: "House cooking schedule, rankings, and Fridge Fortress minigame."
     
     let activeModalDate = null;
     let activeModalCook = null;
+    let raidTargetId = null;
+    let raidTargetName = null;
 
-    // 30-Level Fridge Tier Data (September to May Progression)
     const fridgeTiers = {
-      1: { name: "The Duct-Tape Mini-Fridge", cost: 0, perk: "Basic storage for questionable leftovers." },
-      2: { name: "Plastic Door-Shelf Repair Kit", cost: 50, perk: "Unlocks basic duct-seal defense." },
-      3: { name: "'Do Not Eat' Post-it Note Pack", cost: 100, perk: "Slight psychological defense against thieves." },
-      4: { name: "Freezer-Burn Ice Scraper", cost: 175, perk: "Improves item preservation." },
-      5: { name: "Second-Hand Mini Fridge Upgrade", cost: 250, perk: "Extra shelf capacity." },
-      6: { name: "Single-Door Standard Fridge", cost: 350, perk: "Real kitchen appliance energy." },
-      7: { name: "Magnetic Bottle Opener Attachment", cost: 475, perk: "+1 house swag." },
-      8: { name: "Leftover Tupperware Set", cost: 600, perk: "Unlocks Decoy Tupperware defense." },
-      9: { name: "Deodorizing Baking Soda Box", cost: 750, perk: "Keeps the air fresh and clean." },
-      10: { name: "Double-Door Fridge Workhorse", cost: 950, perk: "Generates +10 BB passive weekly dividend." },
-      11: { name: "Crisper Drawer Organizer", cost: 1200, perk: "Vegetable protection grid." },
-      12: { name: "Frost-Free Technology Integration", cost: 1500, perk: "Zero ice buildup efficiency." },
-      13: { name: "Digital Keypad Door Lock", cost: 1850, perk: "Active defense against midnight raids." },
-      14: { name: "Smart Temperature Sensor Grid", cost: 2250, perk: "Real-time cooling alerts." },
-      15: { name: "Heavy-Duty Stainless Steel Shell", cost: 2750, perk: "Enhanced base armor." },
-      16: { name: "Built-in Ice & Water Dispenser", cost: 3300, perk: "Instant luxury hydration." },
-      17: { name: "Motion-Activated Guard Cat Sensor", cost: 4000, perk: "Scratches raiders and fines them BBs." },
-      18: { name: "Dual-Zone Wine/Bev Chiller", cost: 4800, perk: "Specialized beverage storage." },
-      19: { name: "Microwave Turret Defense System", cost: 5700, perk: "Deters housemate sabotage." },
-      20: { name: "Industrial Walk-In Freezer Conversion", cost: 6800, perk: "Massive passive income boost." },
-      21: { name: "Commercial Restaurant-Grade Compressor", cost: 8000, perk: "Elite industrial power." },
-      22: { name: "Built-In Espresso Bar Attachment", cost: 9500, perk: "Morning caffeine automation." },
-      23: { name: "Smart Touch-Screen Door Display", cost: 11200, perk: "Full base command center." },
-      24: { name: "UV-C Bacterial Sterilization Chamber", cost: 13100, perk: "Pristine hygiene score." },
-      25: { name: "Biometric Fingerprint Vault Lock", cost: 15300, perk: "100% impenetrable raid defense." },
-      26: { name: "Emergency Backup Generator", cost: 17800, perk: "Power failure immunity." },
-      27: { name: "Custom Neon-Lit Glass Door Display", cost: 20600, perk: "Ultimate house flex." },
-      28: { name: "Liquid Nitrogen Flash-Freezing Bay", cost: 24000, perk: "Instant molecular preservation." },
-      29: { name: "Sub-Zero Orbital Vault", cost: 28000, perk: "Near god-tier base structure." },
-      30: { name: "The Supreme Golden Sub-Zero Vault", cost: 35000, perk: "Crowns you Fridge Overlord with gold avatar aura!" }
+      1: { name: "The Duct-Tape Mini-Fridge", cost: 50, perk: "Basic storage for questionable leftovers.", sprite: "🧊" },
+      2: { name: "Plastic Door-Shelf Repair Kit", cost: 100, perk: "Unlocks basic duct-seal defense.", sprite: "🧰" },
+      3: { name: "'Do Not Eat' Post-it Note Pack", cost: 175, perk: "Slight psychological defense against thieves.", sprite: "📝" },
+      4: { name: "Freezer-Burn Ice Scraper", cost: 250, perk: "Improves item preservation.", sprite: "❄️" },
+      5: { name: "Second-Hand Mini Fridge Upgrade", cost: 350, perk: "Extra shelf capacity.", sprite: "📦" },
+      6: { name: "Single-Door Standard Fridge", cost: 475, perk: "Real kitchen appliance energy.", sprite: "🚪" },
+      7: { name: "Magnetic Bottle Opener Attachment", cost: 600, perk: "+1 house swag.", sprite: "🍺" },
+      8: { name: "Leftover Tupperware Set", cost: 750, perk: "Unlocks Decoy Tupperware defense.", sprite: "🥡" },
+      9: { name: "Deodorizing Baking Soda Box", cost: 950, perk: "Keeps the air fresh and clean.", sprite: "🫧" },
+      10: { name: "Double-Door Fridge Workhorse", cost: 1200, perk: "Generates +10 BB passive weekly dividend.", sprite: "⚡" },
+      11: { name: "Crisper Drawer Organizer", cost: 1500, perk: "Vegetable protection grid.", sprite: "🥗" },
+      12: { name: "Frost-Free Technology Integration", cost: 1850, perk: "Zero ice buildup efficiency.", sprite: "🧊" },
+      13: { name: "Digital Keypad Door Lock", cost: 2250, perk: "Active defense against midnight raids.", sprite: "🔐" },
+      14: { name: "Smart Temperature Sensor Grid", cost: 2750, perk: "Real-time cooling alerts.", samsung: "🌡️" },
+      15: { name: "Heavy-Duty Stainless Steel Shell", cost: 3300, perk: "Enhanced base armor.", sprite: "🛡️" },
+      16: { name: "Built-in Ice & Water Dispenser", cost: 4000, perk: "Instant luxury hydration.", sprite: "💧" },
+      17: { name: "Motion-Activated Guard Cat Sensor", cost: 4800, perk: "Scratches raiders and fines them BBs.", sprite: "🐈" },
+      18: { name: "Dual-Zone Wine/Bev Chiller", cost: 5700, perk: "Specialized beverage storage.", sprite: "🍷" },
+      19: { name: "Microwave Turret Defense System", cost: 6800, perk: "Deters housemate sabotage.", sprite: "🚀" },
+      20: { name: "Industrial Walk-In Freezer Conversion", cost: 8000, perk: "Massive passive income boost.", sprite: "🏭" },
+      21: { name: "Commercial Restaurant-Grade Compressor", cost: 9500, perk: "Elite industrial power.", sprite: "⚙️" },
+      22: { name: "Built-In Espresso Bar Attachment", cost: 11200, perk: "Morning caffeine automation.", sprite: "☕" },
+      23: { name: "Smart Touch-Screen Door Display", cost: 13100, perk: "Full base command center.", sprite: "📺" },
+      24: { name: "UV-C Bacterial Sterilization Chamber", cost: 15300, perk: "Pristine hygiene score.", sprite: "🌟" },
+      25: { name: "Biometric Fingerprint Vault Lock", cost: 17800, perk: "100% impenetrable raid defense.", sprite: "🧬" },
+      26: { name: "Emergency Backup Generator", cost: 20600, perk: "Power failure immunity.", sprite: "⚡" },
+      27: { name: "Custom Neon-Lit Glass Door Display", cost: 24000, perk: "Ultimate house flex.", sprite: "💜" },
+      28: { name: "Liquid Nitrogen Flash-Freezing Bay", cost: 28000, perk: "Instant molecular preservation.", sprite: "🧪" },
+      29: { name: "Sub-Zero Orbital Vault", cost: 35000, perk: "Near god-tier base structure.", sprite: "🛸" },
+      30: { name: "The Supreme Golden Sub-Zero Vault", cost: 50000, perk: "Crowns you Fridge Overlord with gold avatar aura!", sprite: "👑" }
     };
 
     const weeklySportsbookMarket = [
@@ -353,7 +405,7 @@ description: "House cooking schedule, rankings, and Fridge Fortress minigame."
         const { data: existingProfile } = await supabaseApp.from('profiles').select('*').eq('id', authData.user.id).maybeSingle();
         if (!existingProfile) {
             await supabaseApp.from('profiles').insert([{ 
-                id: authData.user.id, username: username, is_admin: (username === 'beattie'), beattie_bucks: 100, coefficient: 4.0, fridge_level: 1 
+                id: authData.user.id, username: username, is_admin: (username === 'beattie'), beattie_bucks: 100, coefficient: 4.0, fridge_level: 1, active_trap: 'None' 
             }]);
         } else if (username === 'beattie' && !existingProfile.is_admin) {
             await supabaseApp.from('profiles').update({ is_admin: true }).eq('id', authData.user.id);
@@ -389,8 +441,9 @@ description: "House cooking schedule, rankings, and Fridge Fortress minigame."
             document.getElementById('display-bucks').innerText = profile.beattie_bucks;
             document.getElementById('display-fridge-lvl').innerText = profile.fridge_level || 1;
             document.getElementById('my-avatar').src = profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`;
+            document.getElementById('trap-select').value = profile.active_trap || 'None';
 
-            renderFridgeFortressUI(profile);
+            renderGraphicalFridgeUI(profile);
 
             if (profile.is_admin) {
                 document.getElementById('admin-panel').style.display = 'block';
@@ -408,7 +461,7 @@ description: "House cooking schedule, rankings, and Fridge Fortress minigame."
         out.innerHTML = '';
         allProfiles.forEach((p, idx) => {
             const avatarUrl = p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`;
-            let goldBorder = (p.fridge_level === 30) ? 'border: 2px solid var(--accent-yellow);' : '';
+            let goldBorder = (p.fridge_level === 30) ? 'border: 2px solid var(--accent-yellow); background: #FFFBEB;' : '';
             out.innerHTML += `
             <div class="user-row" style="${goldBorder}">
                 <div class="user-info">
@@ -423,32 +476,31 @@ description: "House cooking schedule, rankings, and Fridge Fortress minigame."
         renderNeighborhoodGrid();
     }
 
-    // --- FRIDGE FORTRESS MINIGAME LOGIC ---
-    function renderFridgeFortressUI(profile) {
+    // --- GRAPHICAL FRIDGE FORTRESS UI ---
+    function renderGraphicalFridgeUI(profile) {
         const lvl = profile.fridge_level || 1;
-        const tier = fridgeTiers[lvl];
+        const tier = fridgeTiers[lvl] || fridgeTiers[30];
         const nextTier = fridgeTiers[lvl + 1];
 
-        const container = document.getElementById('fridge-status-display');
-        const desc = document.getElementById('fridge-perk-desc');
-        const btn = document.getElementById('upgrade-fridge-btn');
-
-        container.innerHTML = `Level ${lvl}: ${tier.name}`;
-        desc.innerHTML = `<strong>Current Perk:</strong> ${tier.perk}`;
+        document.getElementById('fridge-sprite').innerText = tier.sprite;
+        document.getElementById('fridge-title-display').innerText = `Lvl ${lvl}: ${tier.name}`;
+        document.getElementById('fridge-perk-display').innerText = tier.perk;
+        document.getElementById('fridge-level-label').innerText = `Level ${lvl} / 30`;
 
         if (nextTier) {
-            btn.style.display = 'block';
-            btn.innerText = `Upgrade to Lvl ${lvl + 1} (${nextTier.name}) - Cost: ${nextTier.cost} BBs`;
+            document.getElementById('fridge-next-cost').innerText = `Next Upgrade: ${nextTier.cost} BBs`;
+            let pct = (lvl / 30) * 100;
+            document.getElementById('fridge-progress-fill').style.width = `${pct}%`;
         } else {
-            btn.style.display = 'none';
-            desc.innerHTML += `<br><span style="color: var(--accent-yellow); font-weight: bold;">🌟 Max Level Reached! You are the ultimate Fridge Overlord of 319.</span>`;
+            document.getElementById('fridge-next-cost').innerText = `MAX LEVEL REACHED 👑`;
+            document.getElementById('fridge-progress-fill').style.width = `100%`;
         }
     }
 
     async function upgradeFridgeLevel() {
         const currentLvl = currentUserProfile.fridge_level || 1;
         const nextTier = fridgeTiers[currentLvl + 1];
-        if (!nextTier) return alert("You are already at the max fridge tier!");
+        if (!nextTier) return alert("You are already at the max Level 30 Fridge Overlord tier!");
 
         if (currentUserProfile.beattie_bucks < nextTier.cost) {
             return alert(`You need ${nextTier.cost} Beattie Bucks to upgrade, but you only have ${currentUserProfile.beattie_bucks} BBs!`);
@@ -459,8 +511,21 @@ description: "House cooking schedule, rankings, and Fridge Fortress minigame."
 
         await supabaseApp.from('profiles').update({ beattie_bucks: newBucks, fridge_level: newLvl }).eq('id', currentUserProfile.id);
 
-        alert(`Success! Upgraded to Level ${newLvl}: ${nextTier.name}!`);
+        alert(`Success! Upgraded to Level ${newLvl}: ${nextTier.name}! 🧊`);
         location.reload();
+    }
+
+    async function claimDailyMaintenance() {
+        let newBucks = currentUserProfile.beattie_bucks + 15;
+        await supabaseApp.from('profiles').update({ beattie_bucks: newBucks }).eq('id', currentUserProfile.id);
+        alert("Shelf wiped clean! +15 Beattie Bucks added to your wallet.");
+        location.reload();
+    }
+
+    async function updateTrap(trapType) {
+        await supabaseApp.from('profiles').update({ active_trap: trapType }).eq('id', currentUserProfile.id);
+        currentUserProfile.active_trap = trapType;
+        alert(`Base trap updated to: ${trapType}`);
     }
 
     function renderNeighborhoodGrid() {
@@ -469,49 +534,77 @@ description: "House cooking schedule, rankings, and Fridge Fortress minigame."
         grid.innerHTML = '';
 
         allProfiles.forEach(p => {
-            if (currentUserProfile && p.id === currentUserProfile.id) return; // Skip self
+            if (currentUserProfile && p.id === currentUserProfile.id) return;
             let pLvl = p.fridge_level || 1;
-            let tierName = fridgeTiers[pLvl]?.name || "Mini-Fridge";
+            let tier = fridgeTiers[pLvl] || fridgeTiers[30];
 
             grid.innerHTML += `
             <div style="background: #F8F9FA; padding: 14px; border-radius: 12px; margin-top: 8px; border: 1.5px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <strong style="text-transform: capitalize;">${p.username}'s Fridge</strong><br>
-                <span style="font-size: 0.85rem; color: var(--text-muted);">Tier ${pLvl}: ${tierName} | 💰 ${p.beattie_bucks} BBs</span>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 2rem;">${tier.sprite}</span>
+                <div>
+                  <strong style="text-transform: capitalize;">${p.username}'s Fridge</strong><br>
+                  <span style="font-size: 0.85rem; color: var(--text-muted);">Tier ${pLvl}: ${tier.name} | 💰 ${p.beattie_bucks} BBs</span>
+                </div>
               </div>
-              <button onclick="launchMidnightRaid('${p.id}', '${p.username}')" class="secondary-btn" style="width: auto; padding: 8px 14px; font-size: 0.85rem; background: var(--accent-red); color: white; margin:0;">🌙 Midnight Raid</button>
+              <button onclick="openRaidModal('${p.id}', '${p.username}')" class="secondary-btn" style="width: auto; padding: 8px 14px; font-size: 0.85rem; background: var(--accent-red); color: white; margin:0;">🌙 Raid Base</button>
             </div>`;
         });
     }
 
-    async function launchMidnightRaid(targetId, targetName) {
+    function openRaidModal(targetId, targetName) {
+        raidTargetId = targetId;
+        raidTargetName = targetName;
+        document.getElementById('raid-target-label').innerText = `Target: ${targetName.toUpperCase()}'s Base`;
+        document.getElementById('raid-modal').style.display = 'flex';
+    }
+
+    async function executeRaid(tactic) {
+        document.getElementById('raid-modal').style.display = 'none';
         const raidCost = 30;
+
         if (currentUserProfile.beattie_bucks < raidCost) {
-            return alert(`You need at least ${raidCost} BBs in your wallet to fund a midnight raid expedition!`);
+            return alert(`You need at least ${raidCost} BBs to launch a midnight raid!`);
         }
 
-        const { data: targetProfile } = await supabaseApp.from('profiles').select('*').eq('id', targetId).single();
-        if (!targetProfile) return alert("Target base not found.");
+        const { data: targetProfile } = await supabaseApp.from('profiles').select('*').eq('id', raidTargetId).single();
+        if (!targetProfile) return alert("Target not found.");
 
-        let targetLvl = targetProfile.fridge_level || 1;
-        
-        // Deduct raid cost
+        // Deduct expedition cost
         await supabaseApp.from('profiles').update({ beattie_bucks: currentUserProfile.beattie_bucks - raidCost }).eq('id', currentUserProfile.id);
 
-        // Defense success calculation based on their fridge level defenses
-        let defenseChance = Math.min(targetLvl * 2.5, 75); // Higher level fridges have tougher defenses
+        let targetLvl = targetProfile.fridge_level || 1;
+        let baseDefense = targetLvl * 2.2;
+
+        // Tactic modifiers
+        if (tactic === 'Stealth') baseDefense += 10;
+        if (tactic === 'Distraction') baseDefense -= 15; // Risky
+        if (tactic === 'Bribe') baseDefense += 5;
+
         let roll = Math.random() * 100;
+        let trapPenalty = 0;
 
-        if (roll < defenseChance) {
-            alert(`🛡️ Raid Failed! ${targetName}'s Fridge defenses (Tier ${targetLvl}) successfully repelled your raid. You lost your ${raidCost} BB expedition fee!`);
+        // Check if they have an active trap set
+        if (targetProfile.active_trap === 'Sticky Floor Mat') trapPenalty = 20;
+        if (targetProfile.active_trap === 'Guard Cat Snare') trapPenalty = 40;
+
+        if (roll < baseDefense) {
+            let failureMsg = `🛡️ Raid Failed! ${raidTargetName}'s base defenses repelled your ${tactic} infiltration. You lost your ${raidCost} BB fee!`;
+            if (targetProfile.active_trap && targetProfile.active_trap !== 'None') {
+                failureMsg += ` They also sprung a trap (${targetProfile.active_trap})!`;
+            }
+            alert(failureMsg);
         } else {
-            let loot = Math.min(Math.floor(targetProfile.beattie_bucks * 0.15), 100); // Tax 15% of their stash
-            if (loot < 10) loot = 15;
+            let loot = Math.min(Math.floor(targetProfile.beattie_bucks * 0.18), 120);
+            if (loot < 15) loot = 20;
 
-            await supabaseApp.from('profiles').update({ beattie_bucks: targetProfile.beattie_bucks - loot }).eq('id', targetId);
-            await supabaseApp.from('profiles').update({ beattie_bucks: currentUserProfile.beattie_bucks - raidCost + loot }).eq('id', currentUserProfile.id);
+            // Apply trap penalty to raider if active
+            let finalLoot = Math.max(loot - trapPenalty, 5);
 
-            alert(`🌙 Successful Midnight Raid! You successfully bypassed ${targetName}'s defenses and looted ${loot} Beattie Bucks!`);
+            await supabaseApp.from('profiles').update({ beattie_bucks: targetProfile.beattie_bucks - finalLoot }).eq('id', raidTargetId);
+            await supabaseApp.from('profiles').update({ beattie_bucks: currentUserProfile.beattie_bucks - raidCost + finalLoot }).eq('id', currentUserProfile.id);
+
+            alert(`🌙 Successful ${tactic} Raid! You bypassed ${raidTargetName}'s fridge and looted ${finalLoot} Beattie Bucks! 💰`);
         }
         location.reload();
     }
@@ -528,7 +621,7 @@ description: "House cooking schedule, rankings, and Fridge Fortress minigame."
             await supabaseApp.from('profiles').update({ beattie_bucks: updatedBucks }).eq('id', allProfiles[i].id);
         }
 
-        alert("Saturday Coefficient Dividends successfully paid out to the house leaderboard!");
+        alert("Saturday Coefficient Dividends successfully paid out!");
         location.reload();
     }
 
@@ -658,7 +751,7 @@ description: "House cooking schedule, rankings, and Fridge Fortress minigame."
         renderCalendar();
     }
 
-    // --- SMART FAIR GENERATOR ---
+    // --- SMART FAIR GENERATOR (NO 2 WEEKS OFF IN A ROW) ---
     async function generateFairWeek() {
         if (!allProfiles || allProfiles.length < 5) return alert("Need all 5 housemates logged in first!");
         if (!confirm("Generate next free Mon-Thu schedule? Top ranked chef gets the week off (unless they had it last week).")) return;
@@ -679,10 +772,14 @@ description: "House cooking schedule, rankings, and Fridge Fortress minigame."
 
         let monDateStr = targetMonday.toISOString().split('T')[0];
 
+        // Sort by coefficient descending
         let sortedByCoeff = [...allProfiles].sort((a, b) => b.coefficient - a.coefficient);
+        
+        // Anti-Consecutive Check: Find top chef who did NOT get the week off last week
         let weekOffChef = sortedByCoeff.find(p => p.last_week_off !== monDateStr);
-        if (!weekOffChef) weekOffChef = sortedByCoeff[0];
+        if (!weekOffChef) weekOffChef = sortedByCoeff[0]; // Fallback
 
+        // Stamp their last week off record
         await supabaseApp.from('profiles').update({ last_week_off: monDateStr }).eq('id', weekOffChef.id);
 
         let remainingChefs = allProfiles.filter(p => p.id !== weekOffChef.id).sort(() => 0.5 - Math.random());
@@ -704,7 +801,7 @@ description: "House cooking schedule, rankings, and Fridge Fortress minigame."
         fetchProfiles();
     }
 
-    // --- MEAL BOUNTIES & ESCROW SYSTEM ---
+    // --- MEAL BOUNTIES ---
     async function loadCravings() {
         const { data: noms } = await supabaseApp.from('cravings').select('*, profiles(username), claimed_profile:profiles!cravings_claimed_by_fkey(username)');
         const container = document.getElementById('cravings-container');
@@ -761,12 +858,12 @@ description: "House cooking schedule, rankings, and Fridge Fortress minigame."
 
     async function claimBounty(id) {
         await supabaseApp.from('cravings').update({ claimed_by: currentUserProfile.id, status: 'claimed' }).eq('id', id);
-        alert("Bounty claimed! The creator has been notified to approve and transfer.");
+        alert("Bounty claimed! Creator notified.");
         loadCravings();
     }
 
     async function acceptClaim(id, winnerUsername, bounty, winnerId) {
-        if(currentUserProfile.beattie_bucks < bounty) return alert("You no longer have enough Beattie Bucks to cover this bounty transfer!");
+        if(currentUserProfile.beattie_bucks < bounty) return alert("Insufficient Beattie Bucks to cover this transfer!");
         if(!confirm(`Approve ${winnerUsername} for this tub meal and transfer ${bounty} BBs?`)) return;
 
         await supabaseApp.from('profiles').update({ beattie_bucks: currentUserProfile.beattie_bucks - bounty }).eq('id', currentUserProfile.id);
@@ -890,7 +987,7 @@ description: "House cooking schedule, rankings, and Fridge Fortress minigame."
         await supabaseApp.from('wagers').delete().neq('id', 0);
         
         for (let user of allProfiles) {
-            await supabaseApp.from('profiles').update({ beattie_bucks: 100, coefficient: 4.0, fridge_level: 1, last_week_off: null }).eq('id', user.id);
+            await supabaseApp.from('profiles').update({ beattie_bucks: 100, coefficient: 4.0, fridge_level: 1, last_week_off: null, active_trap: 'None' }).eq('id', user.id);
         }
 
         alert("Total house reset complete!"); location.reload();
