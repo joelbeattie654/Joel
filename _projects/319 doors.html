@@ -20,7 +20,7 @@ description: "319 door challenge hub"
     // HARDCODED SUPABASE CONFIGURATION (OPTIONAL)
     // ==========================================
     const SUPABASE_URL = "YOUR_SUPABASE_URL_HERE"; 
-    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY_HERE";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjZWhyZWZkbHZnd2VmZHF5aGNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMjM5NzMsImV4cCI6MjEwODc5OTk3M30.Br0SmeYBatsm_W-UXm49v4kV4A6EhFNcVju9lRNTWKM";
 
     // Safe SVG Icon Components
     const Trophy = (props) => (
@@ -69,7 +69,7 @@ description: "319 door challenge hub"
     let supabase = null;
     const initSupabase = (url, key) => {
       try {
-        if (url && key && url !== "YOUR_SUPABASE_URL_HERE" && window.supabase) {
+        if (url && key && url !== "https://rcehrefdlvgwefdqyhce.supabase.co" && window.supabase) {
           supabase = window.supabase.createClient(url, key);
           return true;
         }
