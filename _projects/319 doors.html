@@ -38,7 +38,7 @@ description: "319 door challenge hub"
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
         
-        // Lucide icon components wrapper
+        // Safe icon components
         const Trophy = (props) => <i data-lucide="trophy" {...props}></i>;
         const Play = (props) => <i data-lucide="play" {...props}></i>;
         const Square = (props) => <i data-lucide="square" {...props}></i>;
@@ -105,6 +105,33 @@ description: "319 door challenge hub"
           }
         ];
 
+        class ErrorBoundary extends React.Component {
+          constructor(props) {
+            super(props);
+            this.state = { hasError: false, error: null };
+          }
+          static getDerivedStateFromError(error) {
+            return { hasError: true, error };
+          }
+          componentDidCatch(error, errorInfo) {
+            console.error("ErrorBoundary caught an error", error, errorInfo);
+          }
+          render() {
+            if (this.state.hasError) {
+              return (
+                <div className="p-8 max-w-xl mx-auto mt-20 rounded-3xl bg-zinc-900 border border-red-500/50 text-center space-y-4">
+                  <h2 className="text-xl font-black text-white uppercase">Something went wrong</h2>
+                  <p className="text-xs font-mono text-red-400">{this.state.error?.toString()}</p>
+                  <button onClick={() => window.location.reload()} className="px-6 py-2.5 rounded-xl bg-yellow-400 text-zinc-950 font-bold text-xs uppercase">
+                    Reload App
+                  </button>
+                </div>
+              );
+            }
+            return this.props.children;
+          }
+        }
+
         function App() {
           const [activeTab, setActiveTab] = useState('timer');
           const [isDemoMode, setIsDemoMode] = useState(true);
@@ -140,13 +167,11 @@ description: "319 door challenge hub"
           const videoRef = useRef(null);
           const canvasRef = useRef(null);
 
-          // Delete run confirmation modal state (PIN 134 required)
           const [showDeleteModal, setShowDeleteModal] = useState(false);
           const [attemptToDelete, setAttemptToDelete] = useState(null);
           const [deletePinInput, setDeletePinInput] = useState('');
           const [deleteErrorMsg, setDeleteErrorMsg] = useState('');
 
-          // Delete profile confirmation modal state (PIN 134 required)
           const [showDeleteProfileModal, setShowDeleteProfileModal] = useState(false);
           const [profileToDelete, setProfileToDelete] = useState(null);
           const [deleteProfilePinInput, setDeleteProfilePinInput] = useState('');
@@ -155,11 +180,22 @@ description: "319 door challenge hub"
           const [leaderboardFilter, setLeaderboardFilter] = useState('all');
 
           useEffect(() => {
-            if (!window.supabase) {
-              const script = document.createElement('script');
-              script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-              script.async = true;
-              script.onload = () => {
+            try {
+              if (!window.supabase) {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+                script.async = true;
+                script.onload = () => {
+                  if (supabaseUrl && supabaseKey) {
+                    const success = initSupabase(supabaseUrl, supabaseKey);
+                    if (success) {
+                      setIsConnected(true);
+                      setIsDemoMode(false);
+                    }
+                  }
+                };
+                document.body.appendChild(script);
+              } else {
                 if (supabaseUrl && supabaseKey) {
                   const success = initSupabase(supabaseUrl, supabaseKey);
                   if (success) {
@@ -167,45 +203,38 @@ description: "319 door challenge hub"
                     setIsDemoMode(false);
                   }
                 }
-              };
-              document.body.appendChild(script);
-            } else {
-              if (supabaseUrl && supabaseKey) {
-                const success = initSupabase(supabaseUrl, supabaseKey);
-                if (success) {
-                  setIsConnected(true);
-                  setIsDemoMode(false);
-                }
               }
+              loadData();
+            } catch (err) {
+              console.error("Init effect error:", err);
             }
-            loadData();
           }, [isDemoMode, supabaseUrl, supabaseKey]);
 
           useEffect(() => {
             setTimeout(() => {
-              if (window.lucide) {
+              if (window.lucide && typeof window.lucide.createIcons === 'function') {
                 window.lucide.createIcons();
               }
             }, 50);
           });
 
           const loadData = async () => {
-            setLoading(true);
-            setErrorMsg(null);
-
-            if (isDemoMode || !window.supabase) {
-              const savedProfiles = JSON.parse(localStorage.getItem('h319_profiles')) || DEFAULT_PROFILES;
-              const savedAttempts = JSON.parse(localStorage.getItem('h319_attempts')) || DEFAULT_ATTEMPTS;
-              setProfiles(savedProfiles);
-              setAttempts(savedAttempts);
-              if (savedProfiles.length > 0 && !activeProfile) {
-                setActiveProfile(savedProfiles[0]);
-              }
-              setLoading(false);
-              return;
-            }
-
             try {
+              setLoading(true);
+              setErrorMsg(null);
+
+              if (isDemoMode || !window.supabase) {
+                const savedProfiles = JSON.parse(localStorage.getItem('h319_profiles')) || DEFAULT_PROFILES;
+                const savedAttempts = JSON.parse(localStorage.getItem('h319_attempts')) || DEFAULT_ATTEMPTS;
+                setProfiles(savedProfiles);
+                setAttempts(savedAttempts);
+                if (savedProfiles.length > 0 && !activeProfile) {
+                  setActiveProfile(savedProfiles[0]);
+                }
+                setLoading(false);
+                return;
+              }
+
               const { data: profData, error: profErr } = await supabase
                 .from('profiles')
                 .select('*')
@@ -1456,7 +1485,13 @@ description: "319 door challenge hub"
           );
         }
 
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+        ReactDOM.createRoot(document.getElementById('root')).render(
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
+        );
     </script>
 </body>
 </html>
+```
+eof
