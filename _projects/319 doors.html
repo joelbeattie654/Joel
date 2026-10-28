@@ -1,0 +1,1097 @@
+---
+layout: app
+title: "Knockout Bracket Generator"
+description: "Generate beautiful wall-chart tournament brackets with custom quadrants."
+---
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Trophy, Play, Square, User, Plus, History, BookOpen, 
+  Settings, Check, ChevronDown, Sparkles, Clock, AlertCircle, 
+  RotateCcw, Trash2, ArrowRight, Database, Award, Flame, Zap, Shield, HelpCircle, Lock, Key
+} from 'lucide-react';
+import confetti from 'canvas-confetti';
+
+// ==========================================
+// SUPABASE CLIENT SETUP & LOCAL STORAGE FALLBACK
+// ==========================================
+let supabase = null;
+const initSupabase = (url, key) => {
+  try {
+    if (url && key && window.supabase) {
+      supabase = window.supabase.createClient(url, key);
+      return true;
+    }
+  } catch (e) {
+    console.error("Supabase init error:", e);
+  }
+  return false;
+};
+
+// ==========================================
+// DEFAULT MOCK DATA FOR DEMO MODE
+// ==========================================
+const DEFAULT_PROFILES = [
+  { id: 'demo-1', name: 'Alex Rivera', avatar_url: '⚡', created_at: new Date().toISOString() },
+  { id: 'demo-2', name: 'Sarah Connor', avatar_url: '🔥', created_at: new Date().toISOString() },
+  { id: 'demo-3', name: 'David 319', avatar_url: '🛡️', created_at: new Date().toISOString() }
+];
+
+const DEFAULT_ATTEMPTS = [
+  { 
+    id: 'att-1', 
+    profile_id: 'demo-1', 
+    time_ms: 54320, 
+    notes: 'Clean run through kitchen & living room!', 
+    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+    profiles: { name: 'Alex Rivera', avatar_url: '⚡' }
+  },
+  { 
+    id: 'att-2', 
+    profile_id: 'demo-2', 
+    time_ms: 61050, 
+    notes: 'Stumbled on the upstairs hallway rug.', 
+    created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
+    profiles: { name: 'Sarah Connor', avatar_url: '🔥' }
+  },
+  { 
+    id: 'att-3', 
+    profile_id: 'demo-3', 
+    time_ms: 48900, 
+    notes: 'God tier routing. Zero door bounce.', 
+    created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
+    profiles: { name: 'David 319', avatar_url: '🛡️' }
+  }
+];
+
+export default function App() {
+  // Navigation & UI State
+  const [activeTab, setActiveTab] = useState('timer'); // timer, leaderboard, profiles, setup
+  const [isDemoMode, setIsDemoMode] = useState(true);
+  
+  // Supabase Config State
+  const [supabaseUrl, setSupabaseUrl] = useState(localStorage.getItem('h319_sb_url') || '');
+  const [supabaseKey, setSupabaseKey] = useState(localStorage.getItem('h319_sb_key') || '');
+  const [isConnected, setIsConnected] = useState(false);
+
+  // App Data State
+  const [profiles, setProfiles] = useState([]);
+  const [activeProfile, setActiveProfile] = useState(null);
+  const [attempts, setAttempts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState(null);
+
+  // Timer State
+  const [timerState, setTimerState] = useState('idle'); // idle, running, stopped
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [attemptNotes, setAttemptNotes] = useState('');
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [lastSavedAttempt, setLastSavedAttempt] = useState(null);
+  const startTimeRef = useRef(null);
+  const requestRef = useRef(null);
+
+  // Profile Modal / Dropdown state
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [showNewProfileModal, setShowNewProfileModal] = useState(false);
+  const [newProfileName, setNewProfileName] = useState('');
+  const [newProfileEmoji, setNewProfileEmoji] = useState('⚡');
+
+  // Delete confirmation modal state (PIN 314 required)
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [attemptToDelete, setAttemptToDelete] = useState(null);
+  const [deletePinInput, setDeletePinInput] = useState('');
+  const [deleteErrorMsg, setDeleteErrorMsg] = useState('');
+
+  // Filter for leaderboard
+  const [leaderboardFilter, setLeaderboardFilter] = useState('all'); // all, personal
+
+  // Ensure Supabase CDN script is loaded
+  useEffect(() => {
+    if (!window.supabase) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+      script.async = true;
+      script.onload = () => {
+        if (supabaseUrl && supabaseKey) {
+          const success = initSupabase(supabaseUrl, supabaseKey);
+          if (success) {
+            setIsConnected(true);
+            setIsDemoMode(false);
+          }
+        }
+      };
+      document.body.appendChild(script);
+    } else {
+      if (supabaseUrl && supabaseKey) {
+        const success = initSupabase(supabaseUrl, supabaseKey);
+        if (success) {
+          setIsConnected(true);
+          setIsDemoMode(false);
+        }
+      }
+    }
+    loadData();
+  }, [isDemoMode, supabaseUrl, supabaseKey]);
+
+  // Load profiles and attempts from Supabase or localStorage fallback
+  const loadData = async () => {
+    setLoading(true);
+    setErrorMsg(null);
+
+    if (isDemoMode || !supabase) {
+      const savedProfiles = JSON.parse(localStorage.getItem('h319_profiles')) || DEFAULT_PROFILES;
+      const savedAttempts = JSON.parse(localStorage.getItem('h319_attempts')) || DEFAULT_ATTEMPTS;
+      setProfiles(savedProfiles);
+      setAttempts(savedAttempts);
+      if (savedProfiles.length > 0 && !activeProfile) {
+        setActiveProfile(savedProfiles[0]);
+      }
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data: profData, error: profErr } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (profErr) throw profErr;
+
+      const { data: attData, error: attErr } = await supabase
+        .from('attempts')
+        .select('*, profiles(name, avatar_url)')
+        .order('time_ms', { ascending: true });
+
+      if (attErr) throw attErr;
+
+      setProfiles(profData || []);
+      setAttempts(attData || []);
+
+      if (profData && profData.length > 0 && !activeProfile) {
+        setActiveProfile(profData[0]);
+      }
+    } catch (err) {
+      console.error("Error loading from Supabase:", err);
+      setErrorMsg("Failed to connect to Supabase. Switched to local demo mode.");
+      setIsDemoMode(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ==========================================
+  // TIMER LOGIC
+  // ==========================================
+  const updateTimer = () => {
+    if (startTimeRef.current !== null) {
+      const now = performance.now();
+      setElapsedMs(Math.floor(now - startTimeRef.current));
+      requestRef.current = requestAnimationFrame(updateTimer);
+    }
+  };
+
+  const startTimer = () => {
+    if (!activeProfile) {
+      setShowNewProfileModal(true);
+      return;
+    }
+    setElapsedMs(0);
+    startTimeRef.current = performance.now();
+    setTimerState('running');
+    requestRef.current = requestAnimationFrame(updateTimer);
+  };
+
+  const stopTimer = () => {
+    if (requestRef.current) {
+      cancelAnimationFrame(requestRef.current);
+    }
+    setTimerState('stopped');
+    setShowSaveModal(true);
+  };
+
+  const resetTimer = () => {
+    if (requestRef.current) {
+      cancelAnimationFrame(requestRef.current);
+    }
+    setTimerState('idle');
+    setElapsedMs(0);
+    setAttemptNotes('');
+    setShowSaveModal(false);
+  };
+
+  // SAVE ATTEMPT (PERSONAL BESTS ONLY RULE)
+  const saveAttempt = async () => {
+    if (!activeProfile) return;
+
+    const newTimeMs = elapsedMs;
+    const newNotes = attemptNotes || 'Standard speedrun attempt';
+    const newCreatedAt = new Date().toISOString();
+
+    if (isDemoMode || !supabase) {
+      // Check existing attempt for this profile
+      const existingUserAttempt = attempts.find(a => a.profile_id === activeProfile.id);
+      const isNewBest = !existingUserAttempt || newTimeMs < existingUserAttempt.time_ms;
+
+      if (!isNewBest) {
+        // Did not beat personal best, do not save
+        resetTimer();
+        setActiveTab('leaderboard');
+        return;
+      }
+
+      // Remove any previous attempt by this profile (Personal Bests Only)
+      const filteredAttempts = attempts.filter(a => a.profile_id !== activeProfile.id);
+      
+      const fullAttempt = {
+        id: 'att-' + Date.now(),
+        profile_id: activeProfile.id,
+        time_ms: newTimeMs,
+        notes: newNotes,
+        created_at: newCreatedAt,
+        profiles: { name: activeProfile.name, avatar_url: activeProfile.avatar_url }
+      };
+
+      const updatedAttempts = [fullAttempt, ...filteredAttempts].sort((a, b) => a.time_ms - b.time_ms);
+      setAttempts(updatedAttempts);
+      localStorage.setItem('h319_attempts', JSON.stringify(updatedAttempts));
+      handleSaveSuccess(fullAttempt, updatedAttempts, true);
+
+    } else {
+      try {
+        const { data: existingUserAttempts, error: fetchErr } = await supabase
+          .from('attempts')
+          .select('*')
+          .eq('profile_id', activeProfile.id);
+
+        if (fetchErr) throw fetchErr;
+
+        let isNewBest = true;
+        if (existingUserAttempts && existingUserAttempts.length > 0) {
+          const currentBest = existingUserAttempts[0];
+          if (newTimeMs >= currentBest.time_ms) {
+            isNewBest = false;
+          }
+        }
+
+        if (!isNewBest) {
+          resetTimer();
+          setActiveTab('leaderboard');
+          return;
+        }
+
+        // Delete old attempt for this profile in Supabase
+        await supabase.from('attempts').delete().eq('profile_id', activeProfile.id);
+
+        // Insert new personal best
+        const { data, error } = await supabase
+          .from('attempts')
+          .insert([{
+            profile_id: activeProfile.id,
+            time_ms: newTimeMs,
+            notes: newNotes,
+            created_at: newCreatedAt
+          }])
+          .select('*, profiles(name, avatar_url)')
+          .single();
+
+        if (error) throw error;
+        
+        const filtered = attempts.filter(a => a.profile_id !== activeProfile.id);
+        const updatedAttempts = [data, ...filtered].sort((a, b) => a.time_ms - b.time_ms);
+        setAttempts(updatedAttempts);
+        handleSaveSuccess(data, updatedAttempts, true);
+
+      } catch (err) {
+        console.error("Error saving attempt:", err);
+      }
+    }
+  };
+
+  const handleSaveSuccess = (savedAtt, allAtts, isNewBest) => {
+    const isHouseRecord = allAtts.length > 0 && allAtts[0].id === savedAtt.id;
+
+    if (isHouseRecord || isNewBest) {
+      confetti({
+        particleCount: 150,
+        spread: 90,
+        origin: { y: 0.6 },
+        colors: ['#facc15', '#eab308', '#ffffff', '#22c55e']
+      });
+    }
+
+    setLastSavedAttempt({ ...savedAtt, isHouseRecord, isPersonalBest: isNewBest });
+    setShowSaveModal(false);
+    setTimerState('idle');
+    setActiveTab('leaderboard');
+  };
+
+  // ==========================================
+  // DELETE RUN LOGIC (OWNER CHECK + PIN 314)
+  // ==========================================
+  const confirmDeleteAttempt = (att) => {
+    // Verify user owns this run
+    if (!activeProfile || att.profile_id !== activeProfile.id) {
+      setErrorMsg("Security Protocol: You can only delete your own speedrun records!");
+      return;
+    }
+    setAttemptToDelete(att);
+    setDeletePinInput('');
+    setDeleteErrorMsg('');
+    setShowDeleteModal(true);
+  };
+
+  const executeDeleteAttempt = async () => {
+    if (!attemptToDelete) return;
+
+    if (deletePinInput.trim() !== '314') {
+      setDeleteErrorMsg('Invalid security PIN. Enter 314 to authorize deletion.');
+      return;
+    }
+
+    if (isDemoMode || !supabase) {
+      const updated = attempts.filter(a => a.id !== attemptToDelete.id);
+      setAttempts(updated);
+      localStorage.setItem('h319_attempts', JSON.stringify(updated));
+      setShowDeleteModal(false);
+      setAttemptToDelete(null);
+      setDeletePinInput('');
+    } else {
+      try {
+        const { error } = await supabase
+          .from('attempts')
+          .delete()
+          .eq('id', attemptToDelete.id);
+
+        if (error) throw error;
+
+        const updated = attempts.filter(a => a.id !== attemptToDelete.id);
+        setAttempts(updated);
+        setShowDeleteModal(false);
+        setAttemptToDelete(null);
+        setDeletePinInput('');
+      } catch (err) {
+        console.error("Error deleting attempt:", err);
+        setDeleteErrorMsg('Database error while deleting record.');
+      }
+    }
+  };
+
+  // ==========================================
+  // PROFILE CREATION
+  // ==========================================
+  const handleCreateProfile = async (e) => {
+    e.preventDefault();
+    if (!newProfileName.trim()) return;
+
+    if (isDemoMode || !supabase) {
+      const newProf = {
+        id: 'prof-' + Date.now(),
+        name: newProfileName.trim(),
+        avatar_url: newProfileEmoji,
+        created_at: new Date().toISOString()
+      };
+      const updated = [newProf, ...profiles];
+      setProfiles(updated);
+      setActiveProfile(newProf);
+      localStorage.setItem('h319_profiles', JSON.stringify(updated));
+      setNewProfileName('');
+      setShowNewProfileModal(false);
+    } else {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .insert([{ name: newProfileName.trim(), avatar_url: newProfileEmoji }])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        const updated = [data, ...profiles];
+        setProfiles(updated);
+        setActiveProfile(data);
+        setNewProfileName('');
+        setShowNewProfileModal(false);
+      } catch (err) {
+        console.error("Error creating profile:", err);
+      }
+    }
+  };
+
+  // Format milliseconds to MM:SS.ms
+  const formatTime = (ms) => {
+    const totalSecs = Math.floor(ms / 1000);
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    const centis = Math.floor((ms % 1000) / 10);
+
+    const minsStr = String(mins).padStart(2, '0');
+    const secsStr = String(secs).padStart(2, '0');
+    const centisStr = String(centis).padStart(2, '0');
+
+    return `${minsStr}:${secsStr}.${centisStr}`;
+  };
+
+  // Filtered attempts for leaderboard
+  const filteredAttempts = attempts.filter(att => {
+    if (leaderboardFilter === 'personal') {
+      return activeProfile && att.profile_id === activeProfile.id;
+    }
+    return true;
+  });
+
+  return (
+    <div className="min-h-screen bg-[#060608] text-zinc-100 flex flex-col font-sans selection:bg-yellow-400 selection:text-black">
+      
+      {/* ================= TOP NAVIGATION & RACING HUD BAR ================= */}
+      <header className="sticky top-0 z-40 w-full border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-xl">
+        <div className="max-w-6xl mx-auto px-4 h-18 flex items-center justify-between">
+          
+          {/* Logo & Branding (Lando Norris / Quadrant Inspired) */}
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-yellow-500 via-amber-400 to-yellow-300 p-[2px] shadow-lg shadow-yellow-500/20 rotate-[-3deg]">
+              <div className="w-full h-full bg-zinc-950 rounded-[10px] flex items-center justify-center text-yellow-400 font-black text-lg tracking-tighter">
+                319
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-black text-white tracking-wider text-base sm:text-lg uppercase italic">HOUSE <span className="text-yellow-400">319</span></span>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-yellow-400/15 text-yellow-300 border border-yellow-400/30 uppercase tracking-widest">
+                  SPEEDRUN HUD
+                </span>
+              </div>
+              <p className="text-[11px] font-mono text-zinc-400 tracking-tight">TELEMETRY & DOOR TIME ATTACK</p>
+            </div>
+          </div>
+
+          {/* Profile Switcher Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+              className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 transition-all shadow-md group"
+            >
+              <div className="w-8 h-8 rounded-lg bg-yellow-400/20 border border-yellow-400/40 flex items-center justify-center text-base">
+                {activeProfile ? activeProfile.avatar_url : '👤'}
+              </div>
+              <div className="text-left hidden sm:block">
+                <div className="text-xs font-bold text-zinc-200 group-hover:text-white uppercase tracking-wider">
+                  {activeProfile ? activeProfile.name : 'Select Driver'}
+                </div>
+                <div className="text-[10px] font-mono text-yellow-400/90 font-semibold">ACTIVE PILOT</div>
+              </div>
+              <ChevronDown className="w-4 h-4 text-zinc-400 ml-1" />
+            </button>
+
+            {/* Dropdown Menu */}
+            {showProfileDropdown && (
+              <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-zinc-900 border border-zinc-800 shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-3 py-2 text-[10px] font-mono uppercase tracking-widest text-zinc-500 border-b border-zinc-800">
+                  Household Pilots
+                </div>
+                <div className="py-1 max-h-48 overflow-y-auto space-y-1">
+                  {profiles.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        setActiveProfile(p);
+                        setShowProfileDropdown(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${activeProfile?.id === p.id ? 'bg-yellow-400 text-zinc-950 shadow-md' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'}`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-base">{p.avatar_url}</span>
+                        <span>{p.name}</span>
+                      </div>
+                      {activeProfile?.id === p.id && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                    </button>
+                  ))}
+                </div>
+                <div className="pt-1 mt-1 border-t border-zinc-800">
+                  <button
+                    onClick={() => {
+                      setShowProfileDropdown(false);
+                      setShowNewProfileModal(true);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold text-yellow-400 hover:bg-yellow-400/10 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" /> Register New Pilot
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+        </div>
+      </header>
+
+      {/* ================= MAIN CONTAINER ================= */}
+      <div className="max-w-6xl mx-auto w-full px-4 py-8 flex-1 flex flex-col gap-6">
+
+        {/* Navigation Tabs */}
+        <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <button
+              onClick={() => setActiveTab('timer')}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'timer' ? 'bg-yellow-400 text-zinc-950 shadow-lg shadow-yellow-400/25' : 'bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'}`}
+            >
+              <Play className="w-4 h-4 fill-current" /> Time Attack
+            </button>
+            <button
+              onClick={() => setActiveTab('leaderboard')}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'leaderboard' ? 'bg-yellow-400 text-zinc-950 shadow-lg shadow-yellow-400/25' : 'bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'}`}
+            >
+              <Trophy className="w-4 h-4" /> Leaderboard
+            </button>
+            <button
+              onClick={() => setActiveTab('profiles')}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'profiles' ? 'bg-yellow-400 text-zinc-950 shadow-lg shadow-yellow-400/25' : 'bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'}`}
+            >
+              <User className="w-4 h-4" /> Pilots
+            </button>
+          </div>
+
+          <button
+            onClick={() => setActiveTab('setup')}
+            className={`flex items-center gap-1.5 px-4 py-3 rounded-xl text-xs font-mono font-bold transition-all border ${activeTab === 'setup' ? 'bg-zinc-800 border-yellow-400/50 text-yellow-400' : 'bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:text-zinc-200'}`}
+          >
+            <Database className="w-3.5 h-3.5 text-yellow-400" /> Database HUD
+          </button>
+        </div>
+
+        {/* Error Banner */}
+        {errorMsg && (
+          <div className="p-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-xs font-mono flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-yellow-400" />
+              <span>{errorMsg}</span>
+            </div>
+            <button onClick={() => setErrorMsg(null)} className="font-bold underline uppercase">Dismiss</button>
+          </div>
+        )}
+
+        {/* ================= TAB 1: TIMER / ATTEMPT ================= */}
+        {activeTab === 'timer' && (
+          <div className="flex-1 flex flex-col items-center justify-center max-w-xl mx-auto w-full py-8 text-center space-y-8">
+            
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-400">
+                <span>ACTIVE PILOT:</span>
+                <span className="text-yellow-400 font-bold uppercase">{activeProfile ? `${activeProfile.avatar_url} ${activeProfile.name}` : 'NONE SELECTED'}</span>
+              </div>
+              <h1 className="text-3xl sm:text-5xl font-black text-white uppercase italic tracking-wider">DOOR SPEEDRUN HUD</h1>
+              <p className="text-xs sm:text-sm text-zinc-400 font-mono">Tap start on door #1, sprint through the house, and hit stop on the final door!</p>
+            </div>
+
+            {/* Giant High-Impact Timer Display (Telemetry style) */}
+            <div className={`w-full p-8 sm:p-12 rounded-3xl border backdrop-blur-2xl transition-all duration-300 shadow-2xl relative overflow-hidden ${
+              timerState === 'running' 
+                ? 'bg-yellow-950/20 border-yellow-400/60 shadow-yellow-500/20 animate-pulse' 
+                : 'bg-zinc-900/90 border-zinc-800/90'
+            }`}>
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-400 to-transparent opacity-50"></div>
+              
+              <div className="text-5xl sm:text-7xl font-mono font-black tracking-widest text-white drop-shadow-[0_0_25px_rgba(250,204,21,0.3)]">
+                {formatTime(elapsedMs)}
+              </div>
+              <div className="text-xs font-mono font-bold uppercase tracking-widest text-yellow-400/90 mt-4">
+                {timerState === 'running' ? '⚡ LIVE TELEMETRY RUNNING...' : timerState === 'stopped' ? '🏁 FINISH RECORDED' : 'SYSTEM READY • STANDBY'}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="w-full space-y-4">
+              {timerState !== 'running' ? (
+                <button
+                  onClick={startTimer}
+                  className="w-full py-6 rounded-2xl bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:from-yellow-300 hover:to-amber-300 text-zinc-950 font-black text-xl tracking-wider uppercase shadow-xl shadow-yellow-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-3"
+                >
+                  <Play className="w-6 h-6 fill-current" /> INITIALIZE RUN
+                </button>
+              ) : (
+                <button
+                  onClick={stopTimer}
+                  className="w-full py-6 rounded-2xl bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-500 hover:to-red-500 text-white font-black text-xl tracking-wider uppercase shadow-xl shadow-rose-600/30 transition-all transform active:scale-95 flex items-center justify-center gap-3 animate-bounce"
+                >
+                  <Square className="w-6 h-6 fill-current" /> STOP TIMER & FINISH!
+                </button>
+              )}
+
+              {timerState === 'running' && (
+                <button
+                  onClick={resetTimer}
+                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 text-xs font-mono uppercase tracking-wider transition-colors inline-flex items-center gap-2"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" /> Abort Telemetry
+                </button>
+              )}
+            </div>
+
+            {/* Rules Card */}
+            <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 text-left space-y-2 max-w-md w-full">
+              <div className="text-xs font-bold font-mono text-yellow-400 uppercase tracking-wider flex items-center gap-2">
+                <HelpCircle className="w-4 h-4" /> Challenge Parameters
+              </div>
+              <ul className="text-[11px] font-mono text-zinc-400 space-y-1 list-disc list-inside">
+                <li>Only your <strong className="text-white">personal best time</strong> is stored (automatically replaces slower runs).</li>
+                <li>To delete any existing run record, security PIN <strong className="text-yellow-400">314</strong> is required.</li>
+              </ul>
+            </div>
+
+          </div>
+        )}
+
+        {/* ================= TAB 2: LEADERBOARD ================= */}
+        {activeTab === 'leaderboard' && (
+          <div className="space-y-6">
+            
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-black text-white uppercase italic tracking-wider flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-yellow-400" />
+                  House 319 Leaderboard
+                </h2>
+                <p className="text-xs font-mono text-zinc-400">Personal best telemetry per pilot. Fastest overall.</p>
+              </div>
+
+              <div className="flex items-center gap-1.5 bg-zinc-900 p-1 rounded-xl border border-zinc-800">
+                <button
+                  onClick={() => setLeaderboardFilter('all')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${leaderboardFilter === 'all' ? 'bg-yellow-400 text-zinc-950 shadow-md' : 'text-zinc-400 hover:text-zinc-200'}`}
+                >
+                  Global Standings
+                </button>
+                <button
+                  onClick={() => setLeaderboardFilter('personal')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${leaderboardFilter === 'personal' ? 'bg-yellow-400 text-zinc-950 shadow-md' : 'text-zinc-400 hover:text-zinc-200'}`}
+                >
+                  My Best Run
+                </button>
+              </div>
+            </div>
+
+            {filteredAttempts.length === 0 ? (
+              <div className="text-center py-16 px-4 rounded-3xl bg-zinc-900/60 border border-zinc-800 backdrop-blur-xl">
+                <Award className="w-12 h-12 text-zinc-600 mx-auto mb-3" />
+                <h3 className="text-base font-bold text-white uppercase tracking-wider mb-1">No speedrun telemetry found</h3>
+                <p className="text-xs font-mono text-zinc-400 mb-6">Initialize a time attack run to set the benchmark!</p>
+                <button
+                  onClick={() => setActiveTab('timer')}
+                  className="px-6 py-3 rounded-xl bg-yellow-400 text-zinc-950 text-xs font-black uppercase tracking-wider hover:bg-yellow-300 transition-all shadow-lg shadow-yellow-400/25"
+                >
+                  Start First Run
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredAttempts.map((att, index) => {
+                  const isChampion = index === 0 && leaderboardFilter === 'all';
+                  const profileName = att.profiles?.name || 'Unknown Pilot';
+                  const avatar = att.profiles?.avatar_url || '👤';
+                  const isMyRun = activeProfile && att.profile_id === activeProfile.id;
+
+                  return (
+                    <div 
+                      key={att.id || index}
+                      className={`relative p-4 sm:p-5 rounded-2xl border backdrop-blur-xl transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group ${
+                        isChampion 
+                          ? 'bg-gradient-to-r from-yellow-500/10 via-zinc-900/90 to-zinc-900/90 border-yellow-400/50 shadow-lg shadow-yellow-500/10' 
+                          : 'bg-zinc-900/80 border-zinc-800/80 hover:border-zinc-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-mono font-black text-sm shrink-0 ${
+                          isChampion 
+                            ? 'bg-yellow-400 text-zinc-950 shadow-md shadow-yellow-400/30' 
+                            : index === 1 
+                            ? 'bg-zinc-300 text-zinc-950' 
+                            : index === 2 
+                            ? 'bg-amber-700/80 text-amber-100' 
+                            : 'bg-zinc-800 text-zinc-400'
+                        }`}>
+                          {isChampion ? <Trophy className="w-4 h-4 fill-current" /> : `#${index + 1}`}
+                        </div>
+
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-11 h-11 rounded-xl bg-zinc-800 flex items-center justify-center text-xl shrink-0 border border-zinc-700">
+                            {avatar}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-white text-sm uppercase tracking-wider">{profileName}</span>
+                              {isChampion && (
+                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-yellow-400/20 text-yellow-300 border border-yellow-400/30 flex items-center gap-1 uppercase">
+                                  <Sparkles className="w-3 h-3 text-yellow-400" /> House Champion
+                                </span>
+                              )}
+                              {isMyRun && !isChampion && (
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700 uppercase">
+                                  You
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs font-mono text-zinc-400 italic mt-0.5 max-w-xs sm:max-w-md truncate">
+                              "{att.notes || 'No notes'}"
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-4 pt-3 sm:pt-0 border-t sm:border-0 border-zinc-800">
+                        <div className="text-right">
+                          <div className="text-xl sm:text-2xl font-mono font-black text-white tracking-wider">
+                            {formatTime(att.time_ms)}
+                          </div>
+                          <div className="text-[10px] font-mono text-zinc-500">
+                            {new Date(att.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+
+                        {/* Delete button (Only enabled if it's the user's run, prompts PIN 314) */}
+                        <button
+                          onClick={() => confirmDeleteAttempt(att)}
+                          disabled={!isMyRun}
+                          className={`p-2.5 rounded-xl border transition-all ${
+                            isMyRun 
+                              ? 'bg-zinc-800/80 hover:bg-rose-500/20 text-zinc-300 hover:text-rose-400 border-zinc-700 hover:border-rose-500/40 cursor-pointer' 
+                              : 'bg-zinc-950/40 text-zinc-600 border-zinc-900 cursor-not-allowed opacity-50'
+                          }`}
+                          title={isMyRun ? "Delete your run (PIN: 314 required)" : "You can only delete your own run records"}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {/* ================= TAB 3: PROFILES ================= */}
+        {activeTab === 'profiles' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-black text-white uppercase italic tracking-wider">Household Pilots</h2>
+                <p className="text-xs font-mono text-zinc-400">Registered drivers participating in House 319 Door Challenge.</p>
+              </div>
+              <button
+                onClick={() => setShowNewProfileModal(true)}
+                className="px-5 py-3 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-zinc-950 text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-yellow-400/25 flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" /> Register Pilot
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {profiles.map(p => {
+                const userAttempts = attempts.filter(a => a.profile_id === p.id);
+                const bestTime = userAttempts.length > 0 ? Math.min(...userAttempts.map(a => a.time_ms)) : null;
+                const isCurrent = activeProfile?.id === p.id;
+
+                return (
+                  <div 
+                    key={p.id}
+                    className={`p-5 rounded-2xl border backdrop-blur-xl flex flex-col justify-between transition-all ${
+                      isCurrent 
+                        ? 'bg-zinc-900/90 border-yellow-400/60 shadow-xl shadow-yellow-400/10' 
+                        : 'bg-zinc-900/60 border-zinc-800 hover:border-zinc-700'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="w-12 h-12 rounded-xl bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-center text-2xl">
+                          {p.avatar_url}
+                        </div>
+                        {isCurrent && (
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-yellow-400/20 text-yellow-300 border border-yellow-400/30 uppercase tracking-widest">
+                            Active
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-black text-white text-base uppercase tracking-wider mb-1">{p.name}</h3>
+                      <div className="text-xs font-mono text-zinc-400 space-y-1 mt-3">
+                        <div className="flex justify-between">
+                          <span>Personal Best:</span>
+                          <span className="font-mono text-yellow-400 font-bold">{bestTime ? formatTime(bestTime) : 'No Runs Yet'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 pt-4 border-t border-zinc-800 flex items-center justify-between">
+                      {!isCurrent ? (
+                        <button
+                          onClick={() => setActiveProfile(p)}
+                          className="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold font-mono text-zinc-200 uppercase tracking-wider transition-colors"
+                        >
+                          Switch to Pilot
+                        </button>
+                      ) : (
+                        <span className="w-full text-center py-2.5 text-xs font-mono font-bold text-yellow-400 uppercase tracking-wider">Active Pilot Selected</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ================= TAB 4: SETUP ================= */}
+        {activeTab === 'setup' && (
+          <div className="space-y-6 max-w-2xl mx-auto">
+            <div className="p-6 rounded-3xl bg-zinc-900/80 border border-zinc-800 backdrop-blur-xl space-y-6">
+              <div>
+                <h2 className="text-xl font-black text-white uppercase italic tracking-wider flex items-center gap-2">
+                  <Database className="w-5 h-5 text-yellow-400" />
+                  Supabase Configuration HUD
+                </h2>
+                <p className="text-xs font-mono text-zinc-400 mt-1">
+                  Connect your Supabase backend to sync speedrun records in real-time across all household devices.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider mb-1.5">Supabase Project URL</label>
+                  <input
+                    type="text"
+                    placeholder="https://xyzproject.supabase.co"
+                    value={supabaseUrl}
+                    onChange={(e) => setSupabaseUrl(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-zinc-950 border border-zinc-800 text-sm text-zinc-100 focus:outline-none focus:border-yellow-400 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider mb-1.5">Supabase Anon Key</label>
+                  <input
+                    type="password"
+                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    value={supabaseKey}
+                    onChange={(e) => setSupabaseKey(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-zinc-950 border border-zinc-800 text-sm text-zinc-100 focus:outline-none focus:border-yellow-400 font-mono"
+                  />
+                </div>
+                <div className="flex items-center justify-between pt-2">
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('h319_sb_url', supabaseUrl);
+                      localStorage.setItem('h319_sb_key', supabaseKey);
+                      setIsDemoMode(false);
+                      loadData();
+                    }}
+                    className="px-6 py-3 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-zinc-950 text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-yellow-400/25"
+                  >
+                    Save & Initialize DB
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSupabaseUrl('');
+                      setSupabaseKey('');
+                      localStorage.removeItem('h319_sb_url');
+                      localStorage.removeItem('h319_sb_key');
+                      setIsDemoMode(true);
+                      loadData();
+                    }}
+                    className="text-xs font-mono text-zinc-400 hover:text-zinc-200 uppercase underline"
+                  >
+                    Use Local Demo Mode
+                  </button>
+                </div>
+              </div>
+
+              <hr className="border-zinc-800" />
+
+              <div className="space-y-4 text-sm text-zinc-300 font-mono">
+                <h3 className="font-bold text-white text-base uppercase tracking-wider">SQL Table Setup Instructions</h3>
+                
+                <div className="space-y-3 text-xs text-zinc-400">
+                  <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800">
+                    <span className="font-bold text-white">1. Create Tables:</span> Run the following script in your Supabase SQL Editor:
+                    <pre className="p-3 rounded-lg bg-zinc-900 font-mono text-[11px] text-yellow-300 overflow-x-auto mt-2">
+{`create table profiles (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  avatar_url text default '⚡',
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+create table attempts (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid references profiles(id) on delete cascade not null,
+  time_ms integer not null,
+  notes text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table profiles enable row level security;
+alter table attempts enable row level security;
+
+create policy "Enable all for profiles" on profiles for all using (true) with check (true);
+create policy "Enable all for attempts" on attempts for all using (true) with check (true);`}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* ================= SAVE ATTEMPT MODAL ================= */}
+      {showSaveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-3xl bg-zinc-900 border border-zinc-800 p-6 shadow-2xl space-y-6">
+            <div>
+              <div className="text-xs font-mono font-bold uppercase tracking-widest text-yellow-400 mb-1">Telemetry Captured</div>
+              <h3 className="text-3xl font-black font-mono text-white tracking-wider">{formatTime(elapsedMs)}</h3>
+              <p className="text-xs font-mono text-zinc-400 mt-1">Pilot: <span className="text-white font-bold">{activeProfile?.name}</span> (Saves if this is your new personal best!)</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider mb-2">Run Notes / Highlights</label>
+              <input
+                type="text"
+                placeholder="e.g. Flawless kitchen and hallway routing"
+                value={attemptNotes}
+                onChange={(e) => setAttemptNotes(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-zinc-950 border border-zinc-800 text-sm text-zinc-100 font-mono focus:outline-none focus:border-yellow-400"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={resetTimer}
+                className="w-1/2 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-mono font-bold uppercase tracking-wider transition-colors"
+              >
+                Discard
+              </button>
+              <button
+                onClick={saveAttempt}
+                className="w-1/2 py-3 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-zinc-950 text-xs font-black uppercase tracking-wider shadow-lg shadow-yellow-400/25 transition-all"
+              >
+                Save Run 🚀
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= DELETE CONFIRMATION MODAL (PIN 314) ================= */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-3xl bg-zinc-900 border border-zinc-800 p-6 shadow-2xl space-y-6 text-center">
+            <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mx-auto text-rose-400">
+              <Lock className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-white uppercase tracking-wider mb-1">Secure Deletion</h3>
+              <p className="text-xs font-mono text-zinc-400">Enter security PIN <strong className="text-yellow-400">314</strong> to authorize deleting this record.</p>
+            </div>
+
+            <div className="space-y-3">
+              <input
+                type="password"
+                maxLength="3"
+                placeholder="Enter PIN (314)"
+                value={deletePinInput}
+                onChange={(e) => setDeletePinInput(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-zinc-950 border border-zinc-800 text-center text-lg font-mono text-white tracking-widest focus:outline-none focus:border-yellow-400"
+                autoFocus
+              />
+              {deleteErrorMsg && (
+                <p className="text-[11px] font-mono text-rose-400">{deleteErrorMsg}</p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setAttemptToDelete(null);
+                  setDeletePinInput('');
+                  setDeleteErrorMsg('');
+                }}
+                className="w-1/2 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-mono font-bold uppercase tracking-wider transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeDeleteAttempt}
+                className="w-1/2 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-mono font-black uppercase tracking-wider shadow-lg shadow-rose-600/30 transition-all"
+              >
+                Authorize Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= CREATE NEW PROFILE MODAL ================= */}
+      {showNewProfileModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-3xl bg-zinc-900 border border-zinc-800 p-6 shadow-2xl space-y-6">
+            <div>
+              <h3 className="text-lg font-black text-white uppercase tracking-wider">Register New Pilot</h3>
+              <p className="text-xs font-mono text-zinc-400 mt-1">Create a driver profile to track leaderboard speedruns.</p>
+            </div>
+
+            <form onSubmit={handleCreateProfile} className="space-y-4">
+              <div>
+                <label className="block text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider mb-2">Pilot Call Sign / Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Lando 319"
+                  value={newProfileName}
+                  onChange={(e) => setNewProfileName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-zinc-950 border border-zinc-800 text-sm text-zinc-100 font-mono focus:outline-none focus:border-yellow-400"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider mb-2">Select Avatar</label>
+                <div className="flex gap-2">
+                  {['⚡', '🔥', '🛡️', '👑', '🚀', '🎯', '🐱', '⭐'].map(emoji => (
+                    <button
+                      type="button"
+                      key={emoji}
+                      onClick={() => setNewProfileEmoji(emoji)}
+                      className={`w-10 h-10 rounded-xl text-lg flex items-center justify-center border transition-all ${newProfileEmoji === emoji ? 'bg-yellow-400/20 border-yellow-400 text-white scale-105 shadow-md' : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'}`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowNewProfileModal(false)}
+                  className="w-1/2 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-mono font-bold uppercase tracking-wider transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="w-1/2 py-3 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-zinc-950 text-xs font-black uppercase tracking-wider shadow-lg shadow-yellow-400/25 transition-all"
+                >
+                  Register Pilot
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
