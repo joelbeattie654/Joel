@@ -55,6 +55,8 @@ description: "319 door challenge hub"
         const Award = (props) => <i data-lucide="award" {...props}></i>;
         const HelpCircle = (props) => <i data-lucide="help-circle" {...props}></i>;
         const Lock = (props) => <i data-lucide="lock" {...props}></i>;
+        const Camera = (props) => <i data-lucide="camera" {...props}></i>;
+        const Upload = (props) => <i data-lucide="upload" {...props}></i>;
 
         let supabase = null;
         const initSupabase = (url, key) => {
@@ -126,6 +128,12 @@ description: "319 door challenge hub"
           const [showNewProfileModal, setShowNewProfileModal] = useState(false);
           const [newProfileName, setNewProfileName] = useState('');
           const [newProfileEmoji, setNewProfileEmoji] = useState('⚡');
+          const [newProfilePhoto, setNewProfilePhoto] = useState(null);
+
+          // Camera capture states for profile creation
+          const [isCameraActive, setIsCameraActive] = useState(false);
+          const videoRef = useRef(null);
+          const canvasRef = useRef(null);
 
           const [showDeleteModal, setShowDeleteModal] = useState(false);
           const [attemptToDelete, setAttemptToDelete] = useState(null);
@@ -212,6 +220,54 @@ description: "319 door challenge hub"
               setIsDemoMode(true);
             } finally {
               setLoading(false);
+            }
+          };
+
+          const startCamera = async () => {
+            setIsCameraActive(true);
+            try {
+              const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+              if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+              }
+            } catch (err) {
+              console.error("Camera access error:", err);
+              setErrorMsg("Unable to access camera. Please allow camera permissions or upload an image file.");
+              setIsCameraActive(false);
+            }
+          };
+
+          const capturePhoto = () => {
+            if (videoRef.current && canvasRef.current) {
+              const video = videoRef.current;
+              const canvas = canvasRef.current;
+              canvas.width = video.videoWidth || 320;
+              canvas.height = video.videoHeight || 240;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const dataUrl = canvas.toDataURL('image/jpeg');
+              setNewProfilePhoto(dataUrl);
+              stopCameraStream();
+            }
+          };
+
+          const stopCameraStream = () => {
+            if (videoRef.current && videoRef.current.srcObject) {
+              const stream = videoRef.current.srcObject;
+              stream.getTracks().forEach(track => track.stop());
+              videoRef.current.srcObject = null;
+            }
+            setIsCameraActive(false);
+          };
+
+          const handleFileUpload = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                setNewProfilePhoto(reader.result);
+              };
+              reader.readAsDataURL(file);
             }
           };
 
@@ -397,11 +453,13 @@ description: "319 door challenge hub"
             e.preventDefault();
             if (!newProfileName.trim()) return;
 
+            const avatarVal = newProfilePhoto || newProfileEmoji;
+
             if (isDemoMode || !window.supabase) {
               const newProf = {
                 id: 'prof-' + Date.now(),
                 name: newProfileName.trim(),
-                avatar_url: newProfileEmoji,
+                avatar_url: avatarVal,
                 created_at: new Date().toISOString()
               };
               const updated = [newProf, ...profiles];
@@ -409,12 +467,13 @@ description: "319 door challenge hub"
               setActiveProfile(newProf);
               localStorage.setItem('h319_profiles', JSON.stringify(updated));
               setNewProfileName('');
+              setNewProfilePhoto(null);
               setShowNewProfileModal(false);
             } else {
               try {
                 const { data, error } = await supabase
                   .from('profiles')
-                  .insert([{ name: newProfileName.trim(), avatar_url: newProfileEmoji }])
+                  .insert([{ name: newProfileName.trim(), avatar_url: avatarVal }])
                   .select()
                   .single();
 
@@ -424,6 +483,7 @@ description: "319 door challenge hub"
                 setProfiles(updated);
                 setActiveProfile(data);
                 setNewProfileName('');
+                setNewProfilePhoto(null);
                 setShowNewProfileModal(false);
               } catch (err) {
                 console.error("Error creating profile:", err);
@@ -445,6 +505,17 @@ description: "319 door challenge hub"
             }
             return true;
           });
+
+          const renderAvatar = (avatarValue, sizeClasses = "w-8 h-8 rounded-lg") => {
+            if (avatarValue && (avatarValue.startsWith('data:image') || avatarValue.startsWith('http'))) {
+              return <img src={avatarValue} alt="Pilot Avatar" className={`${sizeClasses} object-cover`} />;
+            }
+            return (
+              <div className={`${sizeClasses} bg-yellow-400/20 border border-yellow-400/40 flex items-center justify-center text-base`}>
+                {avatarValue || '⚡'}
+              </div>
+            );
+          };
 
           return (
             <div className="min-h-screen bg-[#060608] text-zinc-100 flex flex-col font-sans">
@@ -475,9 +546,7 @@ description: "319 door challenge hub"
                       onClick={() => setShowProfileDropdown(!showProfileDropdown)}
                       className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 transition-all shadow-md group cursor-pointer"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-yellow-400/20 border border-yellow-400/40 flex items-center justify-center text-base">
-                        {activeProfile ? activeProfile.avatar_url : '👤'}
-                      </div>
+                      {renderAvatar(activeProfile?.avatar_url, "w-8 h-8 rounded-lg")}
                       <div className="text-left hidden sm:block">
                         <div className="text-xs font-bold text-zinc-200 group-hover:text-white uppercase tracking-wider">
                           {activeProfile ? activeProfile.name : 'Select Driver'}
@@ -503,7 +572,7 @@ description: "319 door challenge hub"
                               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeProfile?.id === p.id ? 'bg-yellow-400 text-zinc-950 shadow-md' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'}`}
                             >
                               <div className="flex items-center gap-2.5">
-                                <span className="text-base">{p.avatar_url}</span>
+                                {renderAvatar(p.avatar_url, "w-6 h-6 rounded-md")}
                                 <span>{p.name}</span>
                               </div>
                               {activeProfile?.id === p.id && <Check className="w-3.5 h-3.5" />}
@@ -577,7 +646,7 @@ description: "319 door challenge hub"
                     <div className="space-y-2">
                       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-400">
                         <span>ACTIVE PILOT:</span>
-                        <span className="text-yellow-400 font-bold uppercase">{activeProfile ? `${activeProfile.avatar_url} ${activeProfile.name}` : 'NONE SELECTED'}</span>
+                        <span className="text-yellow-400 font-bold uppercase">{activeProfile ? `${activeProfile.name}` : 'NONE SELECTED'}</span>
                       </div>
                       <h1 className="text-3xl sm:text-5xl font-black text-white uppercase italic tracking-wider">DOOR SPEEDRUN HUD</h1>
                       <p className="text-xs sm:text-sm text-zinc-400 font-mono">Tap start on door #1, sprint through the house, and hit stop on the final door!</p>
@@ -671,7 +740,7 @@ description: "319 door challenge hub"
                         {filteredAttempts.map((att, index) => {
                           const isChampion = index === 0 && leaderboardFilter === 'all';
                           const profileName = att.profiles?.name || 'Unknown Pilot';
-                          const avatar = att.profiles?.avatar_url || '👤';
+                          const avatar = att.profiles?.avatar_url || '⚡';
                           const isMyRun = activeProfile && att.profile_id === activeProfile.id;
 
                           return (
@@ -693,8 +762,8 @@ description: "319 door challenge hub"
                                 </div>
 
                                 <div className="flex items-center gap-3.5">
-                                  <div className="w-11 h-11 rounded-xl bg-zinc-800 flex items-center justify-center text-xl shrink-0 border border-zinc-700">
-                                    {avatar}
+                                  <div className="w-11 h-11 rounded-xl bg-zinc-800 flex items-center justify-center text-xl shrink-0 border border-zinc-700 overflow-hidden">
+                                    {renderAvatar(avatar, "w-full h-full")}
                                   </div>
                                   <div>
                                     <div className="flex items-center gap-2">
@@ -776,8 +845,8 @@ description: "319 door challenge hub"
                           >
                             <div>
                               <div className="flex items-center justify-between mb-4">
-                                <div className="w-12 h-12 rounded-xl bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-center text-2xl">
-                                  {p.avatar_url}
+                                <div className="w-12 h-12 rounded-xl bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-center text-2xl overflow-hidden">
+                                  {renderAvatar(p.avatar_url, "w-full h-full")}
                                 </div>
                                 {isCurrent && (
                                   <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-yellow-400/20 text-yellow-300 border border-yellow-400/30 uppercase tracking-widest">
@@ -970,13 +1039,13 @@ description: "319 door challenge hub"
                 </div>
               )}
 
-              {/* New Profile Modal */}
+              {/* New Profile Modal (with Camera Snapshot & File Upload) */}
               {showNewProfileModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-md">
-                  <div className="w-full max-w-md rounded-3xl bg-zinc-900 border border-zinc-800 p-6 shadow-2xl space-y-6">
+                  <div className="w-full max-w-md rounded-3xl bg-zinc-900 border border-zinc-800 p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
                     <div>
                       <h3 className="text-lg font-black text-white uppercase tracking-wider">Register New Pilot</h3>
-                      <p className="text-xs font-mono text-zinc-400 mt-1">Create a driver profile to track leaderboard speedruns.</p>
+                      <p className="text-xs font-mono text-zinc-400 mt-1">Create a driver profile and take a picture or pick an avatar.</p>
                     </div>
 
                     <form onSubmit={handleCreateProfile} className="space-y-4">
@@ -993,26 +1062,85 @@ description: "319 door challenge hub"
                         />
                       </div>
 
-                      <div>
-                        <label className="block text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider mb-2">Select Avatar</label>
-                        <div className="flex gap-2">
-                          {['⚡', '🔥', '🛡️', '👑', '🚀', '🎯', '🐱', '⭐'].map(emoji => (
-                            <button
-                              type="button"
-                              key={emoji}
-                              onClick={() => setNewProfileEmoji(emoji)}
-                              className={`w-10 h-10 rounded-xl text-lg flex items-center justify-center border transition-all cursor-pointer ${newProfileEmoji === emoji ? 'bg-yellow-400/20 border-yellow-400 text-white scale-105 shadow-md' : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'}`}
-                            >
-                              {emoji}
-                            </button>
-                          ))}
+                      {/* Profile Picture / Camera / Upload Section */}
+                      <div className="space-y-3">
+                        <label className="block text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider">Profile Avatar / Photo</label>
+                        
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 rounded-2xl bg-zinc-950 border border-zinc-800 overflow-hidden flex items-center justify-center shrink-0">
+                            {newProfilePhoto ? (
+                              <img src={newProfilePhoto} alt="Preview" className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-2xl">{newProfileEmoji}</span>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col gap-2 flex-1">
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={startCamera}
+                                className="flex-1 py-2 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-mono font-bold text-zinc-200 uppercase flex items-center justify-center gap-1.5 cursor-pointer"
+                              >
+                                <Camera className="w-3.5 h-3.5 text-yellow-400" /> Take Photo
+                              </button>
+                              <label className="flex-1 py-2 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-mono font-bold text-zinc-200 uppercase flex items-center justify-center gap-1.5 cursor-pointer">
+                                <Upload className="w-3.5 h-3.5 text-yellow-400" /> Upload File
+                                <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                              </label>
+                            </div>
+                            <div className="flex gap-1.5 justify-center">
+                              {['⚡', '🔥', '🛡️', '👑', '🚀', '🎯'].map(emoji => (
+                                <button
+                                  type="button"
+                                  key={emoji}
+                                  onClick={() => {
+                                    setNewProfilePhoto(null);
+                                    setNewProfileEmoji(emoji);
+                                  }}
+                                  className={`w-8 h-8 rounded-lg text-sm flex items-center justify-center border transition-all cursor-pointer ${!newProfilePhoto && newProfileEmoji === emoji ? 'bg-yellow-400/20 border-yellow-400 text-white' : 'bg-zinc-950 border-zinc-800 text-zinc-400'}`}
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         </div>
+
+                        {/* Live Camera Stream Modal inside New Profile */}
+                        {isCameraActive && (
+                          <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-3">
+                            <div className="relative rounded-xl overflow-hidden bg-black aspect-video flex items-center justify-center">
+                              <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover"></video>
+                              <canvas ref={canvasRef} className="hidden"></canvas>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={capturePhoto}
+                                className="flex-1 py-2.5 rounded-xl bg-yellow-400 text-zinc-950 text-xs font-black uppercase tracking-wider cursor-pointer"
+                              >
+                                Capture Snapshot 📸
+                              </button>
+                              <button
+                                type="button"
+                                onClick={stopCameraStream}
+                                className="px-4 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-mono uppercase cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-3 pt-2">
                         <button
                           type="button"
-                          onClick={() => setShowNewProfileModal(false)}
+                          onClick={() => {
+                            stopCameraStream();
+                            setShowNewProfileModal(false);
+                          }}
                           className="w-1/2 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer"
                         >
                           Cancel
