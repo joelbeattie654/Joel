@@ -75,8 +75,9 @@ description: "319 door challenge hub"
         let supabase = null;
         const initSupabase = (url, key) => {
             try {
-                if (url && key && window.supabase) {
-                    supabase = window.supabase.createClient(url, key);
+                const clientCreator = window.supabase?.createClient || window.supabase;
+                if (url && key && clientCreator) {
+                    supabase = clientCreator(url, key);
                     return true;
                 }
             } catch (e) {
