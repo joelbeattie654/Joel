@@ -16,8 +16,6 @@ description: "319 door challenge hub"
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Supabase JS SDK CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8/dist/umd/supabase.min.js"></script>
     <!-- Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <!-- Google Fonts -->
@@ -71,13 +69,23 @@ description: "319 door challenge hub"
         const SUPABASE_URL = "https://rcehrefdlvgwetdqyhdce.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjZWhyZWZkbHZnd2VmZHF5aGNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMjM5NzMsImV4cCI6MjEwODc5OTk3M30.Br0SmeYBatsm_W-UXm49v4kV4A6EhFNcVju9lRNTWKM";
 
-        let supabase = null;
-        try {
-            if (window.supabase && window.supabase.createClient) {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Direct REST helper to talk to Supabase without any SDK
+        async function sbApi(endpoint, options = {}) {
+            const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+            const headers = {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation',
+                ...(options.headers || {})
+            };
+            const response = await fetch(url, { ...options, headers });
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || response.statusText);
             }
-        } catch (e) {
-            console.error("Supabase init failed:", e);
+            const text = await response.text();
+            return text ? JSON.parse(text) : null;
         }
 
         function App() {
@@ -115,25 +123,14 @@ description: "319 door challenge hub"
             const canvasRef = React.useRef(null);
 
             React.useEffect(() => {
-                fetchSupabaseData();
+                fetchData();
             }, []);
 
-            const fetchSupabaseData = async () => {
-                if (!supabase) {
-                    setErrorMsg("Supabase client failed to load.");
-                    setIsInitialized(true);
-                    return;
-                }
-
+            const fetchData = async () => {
+                setErrorMsg(null);
                 try {
-                    const { data: profData, error: profErr } = await supabase.from('profiles').select('*').order('created_at', { ascending: true });
-                    if (profErr) throw profErr;
-
-                    const { data: attData, error: attErr } = await supabase
-                        .from('attempts')
-                        .select('id, profile_id, time_ms, notes, created_at, profiles(name, avatar_url)')
-                        .order('time_ms', { ascending: true });
-                    if (attErr) throw attErr;
+                    const profData = await sbApi('profiles?select=*&order=created_at.asc');
+                    const attData = await sbApi('attempts?select=id,profile_id,time_ms,notes,created_at,profiles(name,avatar_url)&order=time_ms.asc');
 
                     setProfiles(profData || []);
                     if (profData && profData.length > 0) {
@@ -141,8 +138,8 @@ description: "319 door challenge hub"
                     }
                     setAttempts(attData || []);
                 } catch (err) {
-                    console.error("Supabase error:", err);
-                    setErrorMsg("Failed to fetch from Supabase. Check your tables and RLS policies.");
+                    console.error("Supabase REST error:", err);
+                    setErrorMsg("Failed to connect to Supabase: " + err.message);
                 } finally {
                     setIsInitialized(true);
                 }
@@ -182,12 +179,11 @@ description: "319 door challenge hub"
             };
 
             const saveAttempt = async () => {
-                if (!activeProfile || !supabase) return;
+                if (!activeProfile) return;
                 const newTimeMs = elapsedMs;
                 const newNotes = attemptNotes || 'Standard speedrun attempt';
 
                 try {
-                    // Check personal best rule
                     const existingUserAttempt = attempts.find(a => a.profile_id === activeProfile.id);
                     if (existingUserAttempt) {
                         if (newTimeMs >= existingUserAttempt.time_ms) {
@@ -196,26 +192,28 @@ description: "319 door challenge hub"
                             setTimerState('idle');
                             return;
                         }
-                        // Delete old slower attempt before inserting new personal best
-                        await supabase.from('attempts').delete().eq('profile_id', activeProfile.id);
+                        // Delete slower previous attempt
+                        await sbApi(`attempts?profile_id=eq.${activeProfile.id}`, { method: 'DELETE' });
                     }
 
-                    const { error } = await supabase.from('attempts').insert([{
-                        profile_id: activeProfile.id,
-                        time_ms: newTimeMs,
-                        notes: newNotes
-                    }]);
+                    // Insert new attempt
+                    await sbApi('attempts', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            profile_id: activeProfile.id,
+                            time_ms: newTimeMs,
+                            notes: newNotes
+                        })
+                    });
 
-                    if (error) throw error;
-
-                    await fetchSupabaseData();
+                    await fetchData();
                     setShowSaveModal(false);
                     setTimerState('idle');
                     setActiveTab('leaderboard');
                     confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 }, colors: ['#facc15', '#eab308', '#ffffff', '#22c55e'] });
                 } catch (err) {
-                    console.error("Error saving attempt to Supabase:", err);
-                    alert("Supabase Error: " + (err.message || "Failed to save attempt."));
+                    console.error("Error saving attempt:", err);
+                    alert("Failed to save attempt: " + err.message);
                 }
             };
 
@@ -231,12 +229,11 @@ description: "319 door challenge hub"
                     setDeleteErrorMsg('Incorrect PIN. Required PIN is 134.');
                     return;
                 }
-                if (!attemptToDelete || !supabase) return;
+                if (!attemptToDelete) return;
 
                 try {
-                    const { error } = await supabase.from('attempts').delete().eq('id', attemptToDelete.id);
-                    if (error) throw error;
-                    await fetchSupabaseData();
+                    await sbApi(`attempts?id=eq.${attemptToDelete.id}`, { method: 'DELETE' });
+                    await fetchData();
                     setShowDeleteModal(false);
                     setAttemptToDelete(null);
                 } catch (err) {
@@ -246,17 +243,19 @@ description: "319 door challenge hub"
 
             const handleCreateProfile = async (e) => {
                 e.preventDefault();
-                if (!newProfileName.trim() || !supabase) return;
+                if (!newProfileName.trim()) return;
 
                 try {
-                    const { data, error } = await supabase.from('profiles').insert([{
-                        name: newProfileName.trim(),
-                        avatar_url: newProfileEmoji
-                    }]).select('*').single();
-
-                    if (error) throw error;
-                    await fetchSupabaseData();
-                    setActiveProfile(data);
+                    const data = await sbApi('profiles', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            name: newProfileName.trim(),
+                            avatar_url: newProfileEmoji
+                        })
+                    });
+                    const created = data && data[0] ? data[0] : null;
+                    await fetchData();
+                    if (created) setActiveProfile(created);
                     setNewProfileName('');
                     setShowProfileModal(false);
                 } catch (err) {
@@ -266,12 +265,14 @@ description: "319 door challenge hub"
 
             const handleUpdateAvatar = async (newUrl) => {
                 setNewProfileEmoji(newUrl);
-                if (!activeProfile || !supabase) return;
+                if (!activeProfile) return;
 
                 try {
-                    const { error } = await supabase.from('profiles').update({ avatar_url: newUrl }).eq('id', activeProfile.id);
-                    if (error) throw error;
-                    await fetchSupabaseData();
+                    await sbApi(`profiles?id=eq.${activeProfile.id}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ avatar_url: newUrl })
+                    });
+                    await fetchData();
                 } catch (err) {
                     alert("Failed to update avatar: " + err.message);
                 }
@@ -282,14 +283,12 @@ description: "319 door challenge hub"
                     setAccountDeleteErrorMsg('Incorrect PIN. Required PIN is 134.');
                     return;
                 }
-                if (!activeProfile || !supabase) return;
+                if (!activeProfile) return;
 
                 try {
-                    await supabase.from('attempts').delete().eq('profile_id', activeProfile.id);
-                    const { error } = await supabase.from('profiles').delete().eq('id', activeProfile.id);
-                    if (error) throw error;
-
-                    await fetchSupabaseData();
+                    await sbApi(`attempts?profile_id=eq.${activeProfile.id}`, { method: 'DELETE' });
+                    await sbApi(`profiles?id=eq.${activeProfile.id}`, { method: 'DELETE' });
+                    await fetchData();
                     setShowAccountDeleteModal(false);
                     setAccountPinInput('');
                 } catch (err) {
@@ -348,7 +347,7 @@ description: "319 door challenge hub"
             if (!isInitialized) {
                 return (
                     <div className="flex items-center justify-center min-h-screen bg-background text-primary">
-                        <div className="animate-pulse font-mono tracking-widest text-lg">INITIALIZING SUPABASE...</div>
+                        <div className="animate-pulse font-mono tracking-widest text-lg">INITIALIZING TELEMETRY...</div>
                     </div>
                 );
             }
