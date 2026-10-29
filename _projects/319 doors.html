@@ -16,8 +16,8 @@ description: "319 door challenge hub"
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Supabase JS SDK UMD -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Supabase JS SDK CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8/dist/umd/supabase.min.js"></script>
     <!-- Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <!-- Google Fonts -->
@@ -68,27 +68,33 @@ description: "319 door challenge hub"
     <div id="root"></div>
 
     <script type="text/babel">
-        // --- SUPABASE CONFIGURATION ---
         const SUPABASE_URL = "https://rcehrefdlvgwetdqyhdce.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjZWhyZWZkbHZnd2VmZHF5aGNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMjM5NzMsImV4cCI6MjEwODc5OTk3M30.Br0SmeYBatsm_W-UXm49v4kV4A6EhFNcVju9lRNTWKM";
 
         let supabase = null;
-        const initSupabase = (url, key) => {
-            try {
-                const clientCreator = window.supabase?.createClient || window.supabase;
-                if (url && key && clientCreator) {
-                    supabase = clientCreator(url, key);
-                    return true;
-                }
-            } catch (e) {
-                console.error("Supabase init error:", e);
+        try {
+            if (window.supabase && window.supabase.createClient) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             }
-            return false;
-        };
+        } catch (e) {
+            console.error("Supabase init failed:", e);
+        }
+
+        const DEFAULT_PROFILES = [
+            { id: 'demo-1', name: 'Alex Rivera', avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', created_at: new Date().toISOString() },
+            { id: 'demo-2', name: 'Sarah Connor', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', created_at: new Date().toISOString() },
+            { id: 'demo-3', name: 'David 319', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', created_at: new Date().toISOString() }
+        ];
+
+        const DEFAULT_ATTEMPTS = [
+            { id: 'att-1', profile_id: 'demo-1', time_ms: 3310, notes: 'Standard speedrun attempt', created_at: new Date().toISOString(), profiles: { name: 'Alex Rivera', avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' } },
+            { id: 'att-2', profile_id: 'demo-2', time_ms: 4180, notes: 'Stumbled on the upstairs hallway rug.', created_at: new Date(Date.now() - 3600000 * 24).toISOString(), profiles: { name: 'Sarah Connor', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150' } }
+        ];
 
         function App() {
             const [activeTab, setActiveTab] = React.useState('timer');
             const [isInitialized, setIsInitialized] = React.useState(false);
+            const [isLocalMode, setIsLocalMode] = React.useState(false);
             const [profiles, setProfiles] = React.useState([]);
             const [activeProfile, setActiveProfile] = React.useState(null);
             const [attempts, setAttempts] = React.useState([]);
@@ -121,17 +127,19 @@ description: "319 door challenge hub"
             const canvasRef = React.useRef(null);
 
             React.useEffect(() => {
-                const success = initSupabase(SUPABASE_URL, SUPABASE_ANON_KEY);
-                if (success) {
-                    loadDataFromSupabase();
-                } else {
-                    setErrorMsg("Failed to initialize Supabase client.");
-                }
-                setIsInitialized(true);
+                loadData();
             }, []);
 
-            const loadDataFromSupabase = async () => {
-                setErrorMsg(null);
+            const loadData = async () => {
+                if (!supabase) {
+                    setIsLocalMode(true);
+                    setProfiles(DEFAULT_PROFILES);
+                    setActiveProfile(DEFAULT_PROFILES[0]);
+                    setAttempts(DEFAULT_ATTEMPTS);
+                    setIsInitialized(true);
+                    return;
+                }
+
                 try {
                     const { data: profData, error: profErr } = await supabase.from('profiles').select('*').order('created_at', { ascending: true });
                     if (profErr) throw profErr;
@@ -148,8 +156,14 @@ description: "319 door challenge hub"
                     }
                     setAttempts(attData || []);
                 } catch (err) {
-                    console.error("Supabase load error:", err);
-                    setErrorMsg("Database connection error. Check your table RLS policies.");
+                    console.error("Supabase load error, falling back to local storage:", err);
+                    setIsLocalMode(true);
+                    setProfiles(DEFAULT_PROFILES);
+                    setActiveProfile(DEFAULT_PROFILES[0]);
+                    setAttempts(DEFAULT_ATTEMPTS);
+                    setErrorMsg("Using offline local mode (Supabase tables empty or RLS restricted).");
+                } finally {
+                    setIsInitialized(true);
                 }
             };
 
@@ -187,9 +201,35 @@ description: "319 door challenge hub"
             };
 
             const saveAttempt = async () => {
-                if (!activeProfile || !supabase) return;
+                if (!activeProfile) return;
                 const newTimeMs = elapsedMs;
                 const newNotes = attemptNotes || 'Standard speedrun attempt';
+
+                if (isLocalMode || !supabase) {
+                    const existing = attempts.find(a => a.profile_id === activeProfile.id);
+                    let updated = [...attempts];
+                    if (existing) {
+                        if (newTimeMs < existing.time_ms) {
+                            updated = updated.map(a => a.profile_id === activeProfile.id ? { ...a, time_ms: newTimeMs, notes: newNotes } : a);
+                        }
+                    } else {
+                        updated.push({
+                            id: 'local-' + Date.now(),
+                            profile_id: activeProfile.id,
+                            time_ms: newTimeMs,
+                            notes: newNotes,
+                            created_at: new Date().toISOString(),
+                            profiles: { name: activeProfile.name, avatar_url: activeProfile.avatar_url }
+                        });
+                    }
+                    updated.sort((a, b) => a.time_ms - b.time_ms);
+                    setAttempts(updated);
+                    setShowSaveModal(false);
+                    setTimerState('idle');
+                    setActiveTab('leaderboard');
+                    confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 }, colors: ['#facc15', '#eab308', '#ffffff', '#22c55e'] });
+                    return;
+                }
 
                 try {
                     const existingUserAttempt = attempts.find(a => a.profile_id === activeProfile.id);
@@ -212,7 +252,7 @@ description: "319 door challenge hub"
                         if (error) throw error;
                     }
 
-                    await loadDataFromSupabase();
+                    await loadData();
                     setShowSaveModal(false);
                     setTimerState('idle');
                     setActiveTab('leaderboard');
@@ -235,7 +275,14 @@ description: "319 door challenge hub"
                     setDeleteErrorMsg('Incorrect PIN. Required PIN is 134.');
                     return;
                 }
-                if (!attemptToDelete || !supabase) return;
+                if (!attemptToDelete) return;
+
+                if (isLocalMode || !supabase) {
+                    setAttempts(attempts.filter(a => a.id !== attemptToDelete.id));
+                    setShowDeleteModal(false);
+                    setAttemptToDelete(null);
+                    return;
+                }
 
                 try {
                     const { error } = await supabase.from('attempts').delete().eq('id', attemptToDelete.id);
@@ -251,7 +298,21 @@ description: "319 door challenge hub"
 
             const handleCreateProfile = async (e) => {
                 e.preventDefault();
-                if (!newProfileName.trim() || !supabase) return;
+                if (!newProfileName.trim()) return;
+
+                if (isLocalMode || !supabase) {
+                    const newProf = {
+                        id: 'local-' + Date.now(),
+                        name: newProfileName.trim(),
+                        avatar_url: newProfileEmoji,
+                        created_at: new Date().toISOString()
+                    };
+                    setProfiles([...profiles, newProf]);
+                    setActiveProfile(newProf);
+                    setNewProfileName('');
+                    setShowProfileModal(false);
+                    return;
+                }
 
                 try {
                     const { data, error } = await supabase.from('profiles').insert([{
@@ -272,16 +333,18 @@ description: "319 door challenge hub"
 
             const handleUpdateAvatar = async (newUrl) => {
                 setNewProfileEmoji(newUrl);
-                if (!activeProfile || !supabase) return;
+                if (!activeProfile) return;
 
                 const updated = { ...activeProfile, avatar_url: newUrl };
                 setActiveProfile(updated);
                 setProfiles(profiles.map(p => p.id === activeProfile.id ? updated : p));
 
-                try {
-                    await supabase.from('profiles').update({ avatar_url: newUrl }).eq('id', activeProfile.id);
-                } catch (err) {
-                    console.error("Error updating avatar in Supabase:", err);
+                if (!isLocalMode && supabase) {
+                    try {
+                        await supabase.from('profiles').update({ avatar_url: newUrl }).eq('id', activeProfile.id);
+                    } catch (err) {
+                        console.error("Error updating avatar in Supabase:", err);
+                    }
                 }
             };
 
@@ -290,7 +353,17 @@ description: "319 door challenge hub"
                     setAccountDeleteErrorMsg('Incorrect PIN. Required PIN is 134.');
                     return;
                 }
-                if (!activeProfile || !supabase) return;
+                if (!activeProfile) return;
+
+                if (isLocalMode || !supabase) {
+                    const remaining = profiles.filter(p => p.id !== activeProfile.id);
+                    setProfiles(remaining);
+                    setActiveProfile(remaining.length > 0 ? remaining[0] : null);
+                    setAttempts(attempts.filter(a => a.profile_id !== activeProfile.id));
+                    setShowAccountDeleteModal(false);
+                    setAccountPinInput('');
+                    return;
+                }
 
                 try {
                     await supabase.from('attempts').delete().eq('profile_id', activeProfile.id);
@@ -458,7 +531,7 @@ description: "319 door challenge hub"
 
                     <main className="max-w-xl mx-auto w-full px-4 flex-1 flex flex-col justify-center">
                         {errorMsg && (
-                            <div className="mb-4 bg-red-950/40 border border-red-500/30 text-red-400 text-xs p-3 rounded-lg text-center font-mono">
+                            <div className="mb-4 bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs p-3 rounded-lg text-center font-mono">
                                 {errorMsg}
                             </div>
                         )}
