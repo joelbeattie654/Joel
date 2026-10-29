@@ -91,6 +91,26 @@ description: "319 door challenge hub"
         // Helper to check if the avatar string is a URL/Data Photo or just an Emoji
         const isUrl = (str) => typeof str === 'string' && (str.startsWith('http') || str.startsWith('data:'));
 
+        // Image compressor to ensure photos save fast and don't get blocked by database limits
+        const compressImage = (dataUrl, callback) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const size = 256; 
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                
+                const min = Math.min(img.width, img.height);
+                const sx = (img.width - min) / 2;
+                const sy = (img.height - min) / 2;
+                
+                ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+                callback(canvas.toDataURL('image/jpeg', 0.8));
+            };
+            img.src = dataUrl;
+        };
+
         function App() {
             const [activeTab, setActiveTab] = React.useState('timer');
             const [isInitialized, setIsInitialized] = React.useState(false);
@@ -195,11 +215,9 @@ description: "319 door challenge hub"
                             setTimerState('idle');
                             return;
                         }
-                        // Delete slower previous attempt
                         await sbApi(`attempts?profile_id=eq.${activeProfile.id}`, { method: 'DELETE' });
                     }
 
-                    // Insert new attempt
                     await sbApi('attempts', {
                         method: 'POST',
                         body: JSON.stringify({
@@ -269,14 +287,21 @@ description: "319 door challenge hub"
             const handleUpdateAvatar = async (newUrl) => {
                 if (!activeProfile || !newUrl) return;
 
+                // Optimistic UI update: instantly show photo without waiting for database!
+                const updatedProfile = { ...activeProfile, avatar_url: newUrl };
+                setActiveProfile(updatedProfile);
+                setProfiles(profiles.map(p => p.id === activeProfile.id ? updatedProfile : p));
+
                 try {
                     await sbApi(`profiles?id=eq.${activeProfile.id}`, {
                         method: 'PATCH',
                         body: JSON.stringify({ avatar_url: newUrl })
                     });
-                    await fetchData();
+                    // Sync quietly in background
+                    fetchData();
                 } catch (err) {
-                    alert("Failed to update avatar: " + err.message);
+                    alert("Failed to save avatar to database: " + err.message);
+                    fetchData(); // Revert back to original on failure
                 }
             };
 
@@ -313,11 +338,20 @@ description: "319 door challenge hub"
                 if (videoRef.current && canvasRef.current) {
                     const video = videoRef.current;
                     const canvas = canvasRef.current;
-                    canvas.width = video.videoWidth || 300;
-                    canvas.height = video.videoHeight || 300;
+                    const size = 256; 
+                    canvas.width = size;
+                    canvas.height = size;
                     const ctx = canvas.getContext('2d');
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    handleUpdateAvatar(canvas.toDataURL('image/png'));
+                    
+                    const min = Math.min(video.videoWidth, video.videoHeight);
+                    const sx = (video.videoWidth - min) / 2;
+                    const sy = (video.videoHeight - min) / 2;
+                    
+                    ctx.drawImage(video, sx, sy, min, min, 0, 0, size, size);
+                    
+                    // Compress to lightweight JPEG before sending to Supabase
+                    handleUpdateAvatar(canvas.toDataURL('image/jpeg', 0.8));
+                    
                     stopCameraStream();
                     setShowCameraModal(false);
                 }
@@ -334,7 +368,7 @@ description: "319 door challenge hub"
                 const file = e.target.files[0];
                 if (file) {
                     const reader = new FileReader();
-                    reader.onloadend = () => handleUpdateAvatar(reader.result);
+                    reader.onload = (event) => compressImage(event.target.result, handleUpdateAvatar);
                     reader.readAsDataURL(file);
                 }
             };
