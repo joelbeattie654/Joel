@@ -80,21 +80,9 @@ description: "319 door challenge hub"
             console.error("Supabase init failed:", e);
         }
 
-        const DEFAULT_PROFILES = [
-            { id: 'demo-1', name: 'Alex Rivera', avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', created_at: new Date().toISOString() },
-            { id: 'demo-2', name: 'Sarah Connor', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', created_at: new Date().toISOString() },
-            { id: 'demo-3', name: 'David 319', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', created_at: new Date().toISOString() }
-        ];
-
-        const DEFAULT_ATTEMPTS = [
-            { id: 'att-1', profile_id: 'demo-1', time_ms: 3310, notes: 'Standard speedrun attempt', created_at: new Date().toISOString(), profiles: { name: 'Alex Rivera', avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' } },
-            { id: 'att-2', profile_id: 'demo-2', time_ms: 4180, notes: 'Stumbled on the upstairs hallway rug.', created_at: new Date(Date.now() - 3600000 * 24).toISOString(), profiles: { name: 'Sarah Connor', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150' } }
-        ];
-
         function App() {
             const [activeTab, setActiveTab] = React.useState('timer');
             const [isInitialized, setIsInitialized] = React.useState(false);
-            const [isLocalMode, setIsLocalMode] = React.useState(false);
             const [profiles, setProfiles] = React.useState([]);
             const [activeProfile, setActiveProfile] = React.useState(null);
             const [attempts, setAttempts] = React.useState([]);
@@ -127,15 +115,12 @@ description: "319 door challenge hub"
             const canvasRef = React.useRef(null);
 
             React.useEffect(() => {
-                loadData();
+                fetchSupabaseData();
             }, []);
 
-            const loadData = async () => {
+            const fetchSupabaseData = async () => {
                 if (!supabase) {
-                    setIsLocalMode(true);
-                    setProfiles(DEFAULT_PROFILES);
-                    setActiveProfile(DEFAULT_PROFILES[0]);
-                    setAttempts(DEFAULT_ATTEMPTS);
+                    setErrorMsg("Supabase client failed to load.");
                     setIsInitialized(true);
                     return;
                 }
@@ -156,12 +141,8 @@ description: "319 door challenge hub"
                     }
                     setAttempts(attData || []);
                 } catch (err) {
-                    console.error("Supabase load error, falling back to local storage:", err);
-                    setIsLocalMode(true);
-                    setProfiles(DEFAULT_PROFILES);
-                    setActiveProfile(DEFAULT_PROFILES[0]);
-                    setAttempts(DEFAULT_ATTEMPTS);
-                    setErrorMsg("Using offline local mode (Supabase tables empty or RLS restricted).");
+                    console.error("Supabase error:", err);
+                    setErrorMsg("Failed to fetch from Supabase. Check your tables and RLS policies.");
                 } finally {
                     setIsInitialized(true);
                 }
@@ -201,65 +182,40 @@ description: "319 door challenge hub"
             };
 
             const saveAttempt = async () => {
-                if (!activeProfile) return;
+                if (!activeProfile || !supabase) return;
                 const newTimeMs = elapsedMs;
                 const newNotes = attemptNotes || 'Standard speedrun attempt';
 
-                if (isLocalMode || !supabase) {
-                    const existing = attempts.find(a => a.profile_id === activeProfile.id);
-                    let updated = [...attempts];
-                    if (existing) {
-                        if (newTimeMs < existing.time_ms) {
-                            updated = updated.map(a => a.profile_id === activeProfile.id ? { ...a, time_ms: newTimeMs, notes: newNotes } : a);
-                        }
-                    } else {
-                        updated.push({
-                            id: 'local-' + Date.now(),
-                            profile_id: activeProfile.id,
-                            time_ms: newTimeMs,
-                            notes: newNotes,
-                            created_at: new Date().toISOString(),
-                            profiles: { name: activeProfile.name, avatar_url: activeProfile.avatar_url }
-                        });
-                    }
-                    updated.sort((a, b) => a.time_ms - b.time_ms);
-                    setAttempts(updated);
-                    setShowSaveModal(false);
-                    setTimerState('idle');
-                    setActiveTab('leaderboard');
-                    confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 }, colors: ['#facc15', '#eab308', '#ffffff', '#22c55e'] });
-                    return;
-                }
-
                 try {
+                    // Check personal best rule
                     const existingUserAttempt = attempts.find(a => a.profile_id === activeProfile.id);
                     if (existingUserAttempt) {
-                        if (newTimeMs < existingUserAttempt.time_ms) {
-                            await supabase.from('attempts').delete().eq('profile_id', activeProfile.id);
-                            const { error } = await supabase.from('attempts').insert([{
-                                profile_id: activeProfile.id,
-                                time_ms: newTimeMs,
-                                notes: newNotes
-                            }]);
-                            if (error) throw error;
+                        if (newTimeMs >= existingUserAttempt.time_ms) {
+                            alert("Run not saved: You already have a faster personal best time recorded!");
+                            setShowSaveModal(false);
+                            setTimerState('idle');
+                            return;
                         }
-                    } else {
-                        const { error } = await supabase.from('attempts').insert([{
-                            profile_id: activeProfile.id,
-                            time_ms: newTimeMs,
-                            notes: newNotes
-                        }]);
-                        if (error) throw error;
+                        // Delete old slower attempt before inserting new personal best
+                        await supabase.from('attempts').delete().eq('profile_id', activeProfile.id);
                     }
 
-                    await loadData();
+                    const { error } = await supabase.from('attempts').insert([{
+                        profile_id: activeProfile.id,
+                        time_ms: newTimeMs,
+                        notes: newNotes
+                    }]);
+
+                    if (error) throw error;
+
+                    await fetchSupabaseData();
                     setShowSaveModal(false);
                     setTimerState('idle');
                     setActiveTab('leaderboard');
                     confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 }, colors: ['#facc15', '#eab308', '#ffffff', '#22c55e'] });
                 } catch (err) {
-                    console.error("Error saving attempt:", err);
-                    alert("Failed to save attempt to Supabase.");
+                    console.error("Error saving attempt to Supabase:", err);
+                    alert("Supabase Error: " + (err.message || "Failed to save attempt."));
                 }
             };
 
@@ -275,44 +231,22 @@ description: "319 door challenge hub"
                     setDeleteErrorMsg('Incorrect PIN. Required PIN is 134.');
                     return;
                 }
-                if (!attemptToDelete) return;
-
-                if (isLocalMode || !supabase) {
-                    setAttempts(attempts.filter(a => a.id !== attemptToDelete.id));
-                    setShowDeleteModal(false);
-                    setAttemptToDelete(null);
-                    return;
-                }
+                if (!attemptToDelete || !supabase) return;
 
                 try {
                     const { error } = await supabase.from('attempts').delete().eq('id', attemptToDelete.id);
                     if (error) throw error;
-                    setAttempts(attempts.filter(a => a.id !== attemptToDelete.id));
+                    await fetchSupabaseData();
                     setShowDeleteModal(false);
                     setAttemptToDelete(null);
                 } catch (err) {
-                    console.error("Error deleting attempt:", err);
-                    alert("Failed to delete attempt.");
+                    alert("Failed to delete attempt: " + err.message);
                 }
             };
 
             const handleCreateProfile = async (e) => {
                 e.preventDefault();
-                if (!newProfileName.trim()) return;
-
-                if (isLocalMode || !supabase) {
-                    const newProf = {
-                        id: 'local-' + Date.now(),
-                        name: newProfileName.trim(),
-                        avatar_url: newProfileEmoji,
-                        created_at: new Date().toISOString()
-                    };
-                    setProfiles([...profiles, newProf]);
-                    setActiveProfile(newProf);
-                    setNewProfileName('');
-                    setShowProfileModal(false);
-                    return;
-                }
+                if (!newProfileName.trim() || !supabase) return;
 
                 try {
                     const { data, error } = await supabase.from('profiles').insert([{
@@ -321,30 +255,25 @@ description: "319 door challenge hub"
                     }]).select('*').single();
 
                     if (error) throw error;
-                    setProfiles([...profiles, data]);
+                    await fetchSupabaseData();
                     setActiveProfile(data);
                     setNewProfileName('');
                     setShowProfileModal(false);
                 } catch (err) {
-                    console.error("Error creating profile:", err);
-                    alert("Failed to create profile.");
+                    alert("Failed to create profile: " + err.message);
                 }
             };
 
             const handleUpdateAvatar = async (newUrl) => {
                 setNewProfileEmoji(newUrl);
-                if (!activeProfile) return;
+                if (!activeProfile || !supabase) return;
 
-                const updated = { ...activeProfile, avatar_url: newUrl };
-                setActiveProfile(updated);
-                setProfiles(profiles.map(p => p.id === activeProfile.id ? updated : p));
-
-                if (!isLocalMode && supabase) {
-                    try {
-                        await supabase.from('profiles').update({ avatar_url: newUrl }).eq('id', activeProfile.id);
-                    } catch (err) {
-                        console.error("Error updating avatar in Supabase:", err);
-                    }
+                try {
+                    const { error } = await supabase.from('profiles').update({ avatar_url: newUrl }).eq('id', activeProfile.id);
+                    if (error) throw error;
+                    await fetchSupabaseData();
+                } catch (err) {
+                    alert("Failed to update avatar: " + err.message);
                 }
             };
 
@@ -353,32 +282,18 @@ description: "319 door challenge hub"
                     setAccountDeleteErrorMsg('Incorrect PIN. Required PIN is 134.');
                     return;
                 }
-                if (!activeProfile) return;
-
-                if (isLocalMode || !supabase) {
-                    const remaining = profiles.filter(p => p.id !== activeProfile.id);
-                    setProfiles(remaining);
-                    setActiveProfile(remaining.length > 0 ? remaining[0] : null);
-                    setAttempts(attempts.filter(a => a.profile_id !== activeProfile.id));
-                    setShowAccountDeleteModal(false);
-                    setAccountPinInput('');
-                    return;
-                }
+                if (!activeProfile || !supabase) return;
 
                 try {
                     await supabase.from('attempts').delete().eq('profile_id', activeProfile.id);
                     const { error } = await supabase.from('profiles').delete().eq('id', activeProfile.id);
                     if (error) throw error;
 
-                    const remainingProfiles = profiles.filter(p => p.id !== activeProfile.id);
-                    setProfiles(remainingProfiles);
-                    setActiveProfile(remainingProfiles.length > 0 ? remainingProfiles[0] : null);
-                    setAttempts(attempts.filter(a => a.profile_id !== activeProfile.id));
+                    await fetchSupabaseData();
                     setShowAccountDeleteModal(false);
                     setAccountPinInput('');
                 } catch (err) {
-                    console.error("Error deleting account:", err);
-                    alert("Failed to delete account.");
+                    alert("Failed to delete account: " + err.message);
                 }
             };
 
@@ -386,11 +301,8 @@ description: "319 door challenge hub"
                 setShowCameraModal(true);
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
-                    if (videoRef.current) {
-                        videoRef.current.srcObject = stream;
-                    }
+                    if (videoRef.current) videoRef.current.srcObject = stream;
                 } catch (err) {
-                    console.error("Camera access error:", err);
                     alert("Unable to access camera. Please upload an image file instead.");
                     setShowCameraModal(false);
                 }
@@ -404,8 +316,7 @@ description: "319 door challenge hub"
                     canvas.height = video.videoHeight || 300;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    const dataUrl = canvas.toDataURL('image/png');
-                    handleUpdateAvatar(dataUrl);
+                    handleUpdateAvatar(canvas.toDataURL('image/png'));
                     stopCameraStream();
                     setShowCameraModal(false);
                 }
@@ -413,8 +324,7 @@ description: "319 door challenge hub"
 
             const stopCameraStream = () => {
                 if (videoRef.current && videoRef.current.srcObject) {
-                    const stream = videoRef.current.srcObject;
-                    stream.getTracks().forEach(track => track.stop());
+                    videoRef.current.srcObject.getTracks().forEach(t => t.stop());
                     videoRef.current.srcObject = null;
                 }
             };
@@ -423,9 +333,7 @@ description: "319 door challenge hub"
                 const file = e.target.files[0];
                 if (file) {
                     const reader = new FileReader();
-                    reader.onloadend = () => {
-                        handleUpdateAvatar(reader.result);
-                    };
+                    reader.onloadend = () => handleUpdateAvatar(reader.result);
                     reader.readAsDataURL(file);
                 }
             };
@@ -440,7 +348,7 @@ description: "319 door challenge hub"
             if (!isInitialized) {
                 return (
                     <div className="flex items-center justify-center min-h-screen bg-background text-primary">
-                        <div className="animate-pulse font-mono tracking-widest text-lg">INITIALIZING TELEMETRY...</div>
+                        <div className="animate-pulse font-mono tracking-widest text-lg">INITIALIZING SUPABASE...</div>
                     </div>
                 );
             }
@@ -499,9 +407,7 @@ description: "319 door challenge hub"
                             <button
                                 onClick={() => setActiveTab('timer')}
                                 className={`py-2.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
-                                    activeTab === 'timer'
-                                        ? 'bg-primary text-black shadow-lg glow-yellow'
-                                        : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                                    activeTab === 'timer' ? 'bg-primary text-black shadow-lg glow-yellow' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
                                 }`}
                             >
                                 TIME ATTACK
@@ -509,9 +415,7 @@ description: "319 door challenge hub"
                             <button
                                 onClick={() => setActiveTab('leaderboard')}
                                 className={`py-2.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
-                                    activeTab === 'leaderboard'
-                                        ? 'bg-primary text-black shadow-lg glow-yellow'
-                                        : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                                    activeTab === 'leaderboard' ? 'bg-primary text-black shadow-lg glow-yellow' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
                                 }`}
                             >
                                 LEADERBOARD
@@ -519,9 +423,7 @@ description: "319 door challenge hub"
                             <button
                                 onClick={() => setActiveTab('profiles')}
                                 className={`py-2.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
-                                    activeTab === 'profiles'
-                                        ? 'bg-primary text-black shadow-lg glow-yellow'
-                                        : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                                    activeTab === 'profiles' ? 'bg-primary text-black shadow-lg glow-yellow' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
                                 }`}
                             >
                                 PILOT SETUP
@@ -531,7 +433,7 @@ description: "319 door challenge hub"
 
                     <main className="max-w-xl mx-auto w-full px-4 flex-1 flex flex-col justify-center">
                         {errorMsg && (
-                            <div className="mb-4 bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs p-3 rounded-lg text-center font-mono">
+                            <div className="mb-4 bg-red-950/40 border border-red-500/30 text-red-400 text-xs p-3 rounded-lg text-center font-mono">
                                 {errorMsg}
                             </div>
                         )}
@@ -545,7 +447,7 @@ description: "319 door challenge hub"
                                     </div>
                                 ) : (
                                     <div className="mb-4 bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs px-4 py-2 rounded-lg">
-                                        Please select or create a pilot profile first!
+                                        Please create a pilot profile first!
                                     </div>
                                 )}
 
@@ -620,9 +522,7 @@ description: "319 door challenge hub"
                                                     <div
                                                         key={att.id}
                                                         className={`p-4 rounded-xl border flex items-center justify-between transition-all ${
-                                                            isChampion
-                                                                ? 'bg-card border-primary/50 glow-yellow'
-                                                                : 'bg-card/70 border-zinc-800 hover:border-zinc-700'
+                                                            isChampion ? 'bg-card border-primary/50 glow-yellow' : 'bg-card/70 border-zinc-800 hover:border-zinc-700'
                                                         }`}
                                                     >
                                                         <div className="flex items-center space-x-3">
