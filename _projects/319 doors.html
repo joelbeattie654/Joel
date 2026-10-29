@@ -19,7 +19,7 @@ description: "319 door challenge hub"
     <!-- Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,500;0,800;1,800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -27,7 +27,7 @@ description: "319 door challenge hub"
                 extend: {
                     colors: {
                         background: '#09090b',
-                        card: '#121216',
+                        card: '#121214',
                         border: '#27272a',
                         primary: {
                             DEFAULT: '#facc15',
@@ -38,6 +38,11 @@ description: "319 door challenge hub"
                     fontFamily: {
                         sans: ['"Space Grotesk"', 'sans-serif'],
                         mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    boxShadow: {
+                        'brutal': '4px 4px 0px 0px rgba(250,204,21,1)',
+                        'brutal-sm': '2px 2px 0px 0px rgba(250,204,21,1)',
+                        'brutal-dark': '4px 4px 0px 0px rgba(39,39,42,1)',
                     }
                 }
             }
@@ -45,31 +50,43 @@ description: "319 door challenge hub"
     </script>
     <style>
         body {
-            background-color: #09090b;
+            background-color: #050505;
             color: #f4f4f5;
             font-family: 'Space Grotesk', sans-serif;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 32px 32px;
         }
-        .glow-yellow {
-            box-shadow: 0 0 25px rgba(250, 204, 21, 0.15);
+        .scanline {
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.25) 51%);
+            background-size: 100% 4px;
         }
-        .glow-yellow-lg {
-            box-shadow: 0 0 45px rgba(250, 204, 21, 0.3);
+        .tactical-corner {
+            position: relative;
         }
-        .glass-panel {
-            background: rgba(18, 18, 22, 0.75);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+        .tactical-corner::before {
+            content: ''; position: absolute; top: -1px; left: -1px; width: 8px; height: 8px;
+            border-top: 2px solid #facc15; border-left: 2px solid #facc15; z-index: 10; pointer-events: none;
         }
+        .tactical-corner::after {
+            content: ''; position: absolute; bottom: -1px; right: -1px; width: 8px; height: 8px;
+            border-bottom: 2px solid #facc15; border-right: 2px solid #facc15; z-index: 10; pointer-events: none;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #facc15; }
     </style>
 </head>
-<body class="bg-background text-zinc-100 min-h-screen selection:bg-primary selection:text-black">
+<body class="min-h-screen selection:bg-primary selection:text-black">
     <div id="root"></div>
 
     <script type="text/babel">
         const SUPABASE_URL = "https://rcehrefdlvgwefdqyhce.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjZWhyZWZkbHZnd2VmZHF5aGNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMjM5NzMsImV4cCI6MjEwODc5OTk3M30.Br0SmeYBatsm_W-UXm49v4kV4A6EhFNcVju9lRNTWKM";
 
-        // Direct REST helper to talk to Supabase without any SDK
         async function sbApi(endpoint, options = {}) {
             const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
             const headers = {
@@ -88,15 +105,13 @@ description: "319 door challenge hub"
             return text ? JSON.parse(text) : null;
         }
 
-        // Helper to check if the avatar string is a URL/Data Photo or just an Emoji
         const isUrl = (str) => typeof str === 'string' && (str.startsWith('http') || str.startsWith('data:'));
 
-        // Image compressor to ensure photos save fast and don't get blocked by database limits
         const compressImage = (dataUrl, callback) => {
             const img = new Image();
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const size = 256; 
+                const size = 320; 
                 canvas.width = size;
                 canvas.height = size;
                 const ctx = canvas.getContext('2d');
@@ -119,17 +134,17 @@ description: "319 door challenge hub"
             const [attempts, setAttempts] = React.useState([]);
             const [errorMsg, setErrorMsg] = React.useState(null);
 
-            // Timer state
             const [timerState, setTimerState] = React.useState('idle');
             const [elapsedMs, setElapsedMs] = React.useState(0);
             const [attemptNotes, setAttemptNotes] = React.useState('');
             const [showSaveModal, setShowSaveModal] = React.useState(false);
             const timerRef = React.useRef(null);
 
-            // Modals
+            // Creation Profile State
             const [showProfileModal, setShowProfileModal] = React.useState(false);
             const [newProfileName, setNewProfileName] = React.useState('');
-            const [newProfileEmoji, setNewProfileEmoji] = React.useState('🏁');
+            const [newProfileNickname, setNewProfileNickname] = React.useState('');
+            const [newProfileAvatar, setNewProfileAvatar] = React.useState('🏁');
 
             const [showDeleteModal, setShowDeleteModal] = React.useState(false);
             const [attemptToDelete, setAttemptToDelete] = React.useState(null);
@@ -142,6 +157,7 @@ description: "319 door challenge hub"
 
             const [leaderboardFilter, setLeaderboardFilter] = React.useState('all');
             const [showCameraModal, setShowCameraModal] = React.useState(false);
+            const [cameraTarget, setCameraTarget] = React.useState('edit'); // 'edit' or 'create'
             const videoRef = React.useRef(null);
             const canvasRef = React.useRef(null);
 
@@ -153,16 +169,23 @@ description: "319 door challenge hub"
                 setErrorMsg(null);
                 try {
                     const profData = await sbApi('profiles?select=*&order=created_at.asc');
-                    const attData = await sbApi('attempts?select=id,profile_id,time_ms,notes,created_at,profiles(name,avatar_url)&order=time_ms.asc');
+                    const attData = await sbApi('attempts?select=id,profile_id,time_ms,notes,created_at,profiles(name,nickname,avatar_url)&order=time_ms.asc');
 
                     setProfiles(profData || []);
-                    if (profData && profData.length > 0) {
-                        setActiveProfile(profData[0]);
-                    }
                     setAttempts(attData || []);
+
+                    // BUG FIX: Maintain the active profile instead of always resetting to the first profile.
+                    setActiveProfile(current => {
+                        if (!profData || profData.length === 0) return null;
+                        if (current) {
+                            const stillExists = profData.find(p => p.id === current.id);
+                            if (stillExists) return stillExists;
+                        }
+                        return profData[0];
+                    });
                 } catch (err) {
-                    console.error("Supabase REST error:", err);
-                    setErrorMsg("Failed to connect to Supabase: " + err.message);
+                    console.error("Supabase error:", err);
+                    setErrorMsg("Telemetry Offline: " + err.message);
                 } finally {
                     setIsInitialized(true);
                 }
@@ -170,8 +193,7 @@ description: "319 door challenge hub"
 
             const updateTimer = () => {
                 if (timerRef.current !== null) {
-                    const now = performance.now();
-                    setElapsedMs(Math.floor(now - timerRef.current));
+                    setElapsedMs(Math.floor(performance.now() - timerRef.current));
                 }
             };
 
@@ -185,151 +207,98 @@ description: "319 door challenge hub"
                 timerRef.current = performance.now();
                 const loop = () => {
                     updateTimer();
-                    if (timerRef.current !== null) {
-                        requestAnimationFrame(loop);
-                    }
+                    if (timerRef.current !== null) requestAnimationFrame(loop);
                 };
                 requestAnimationFrame(loop);
             };
 
             const stopTimer = () => {
-                if (timerRef.current !== null) {
-                    timerRef.current = null;
-                }
+                if (timerRef.current !== null) timerRef.current = null;
                 setTimerState('stopped');
                 setShowSaveModal(true);
-                setAttemptNotes('Standard speedrun attempt');
+                setAttemptNotes('Standard sector clear');
             };
 
             const saveAttempt = async () => {
                 if (!activeProfile) return;
-                const newTimeMs = elapsedMs;
-                const newNotes = attemptNotes || 'Standard speedrun attempt';
-
                 try {
-                    const existingUserAttempt = attempts.find(a => a.profile_id === activeProfile.id);
-                    if (existingUserAttempt) {
-                        if (newTimeMs >= existingUserAttempt.time_ms) {
-                            alert("Run not saved: You already have a faster personal best time recorded!");
-                            setShowSaveModal(false);
-                            setTimerState('idle');
-                            return;
-                        }
+                    const existingAttempt = attempts.find(a => a.profile_id === activeProfile.id);
+                    if (existingAttempt && elapsedMs >= existingAttempt.time_ms) {
+                        alert("SECTOR REJECTED: Not a personal best.");
+                        setShowSaveModal(false);
+                        setTimerState('idle');
+                        return;
+                    }
+                    if (existingAttempt) {
                         await sbApi(`attempts?profile_id=eq.${activeProfile.id}`, { method: 'DELETE' });
                     }
-
                     await sbApi('attempts', {
                         method: 'POST',
                         body: JSON.stringify({
                             profile_id: activeProfile.id,
-                            time_ms: newTimeMs,
-                            notes: newNotes
+                            time_ms: elapsedMs,
+                            notes: attemptNotes || 'Standard sector clear'
                         })
                     });
-
                     await fetchData();
                     setShowSaveModal(false);
                     setTimerState('idle');
                     setActiveTab('leaderboard');
-                    confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 }, colors: ['#facc15', '#eab308', '#ffffff', '#22c55e'] });
+                    confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: ['#facc15', '#000000', '#ffffff'], disableForReducedMotion: true });
                 } catch (err) {
-                    console.error("Error saving attempt:", err);
-                    alert("Failed to save attempt: " + err.message);
-                }
-            };
-
-            const requestDeleteAttempt = (attempt) => {
-                setAttemptToDelete(attempt);
-                setDeletePinInput('');
-                setDeleteErrorMsg('');
-                setShowDeleteModal(true);
-            };
-
-            const confirmDeleteAttempt = async () => {
-                if (deletePinInput !== '134') {
-                    setDeleteErrorMsg('Incorrect PIN. Required PIN is 134.');
-                    return;
-                }
-                if (!attemptToDelete) return;
-
-                try {
-                    await sbApi(`attempts?id=eq.${attemptToDelete.id}`, { method: 'DELETE' });
-                    await fetchData();
-                    setShowDeleteModal(false);
-                    setAttemptToDelete(null);
-                } catch (err) {
-                    alert("Failed to delete attempt: " + err.message);
+                    alert("Database write error: " + err.message);
                 }
             };
 
             const handleCreateProfile = async (e) => {
                 e.preventDefault();
                 if (!newProfileName.trim()) return;
-
                 try {
                     const data = await sbApi('profiles', {
                         method: 'POST',
                         body: JSON.stringify({
                             name: newProfileName.trim(),
-                            avatar_url: newProfileEmoji || '🏁'
+                            nickname: newProfileNickname.trim() || null,
+                            avatar_url: newProfileAvatar || '🏁'
                         })
                     });
-                    const created = data && data[0] ? data[0] : null;
                     await fetchData();
-                    if (created) setActiveProfile(created);
+                    if (data && data[0]) setActiveProfile(data[0]);
+                    
                     setNewProfileName('');
+                    setNewProfileNickname('');
+                    setNewProfileAvatar('🏁');
                     setShowProfileModal(false);
                 } catch (err) {
-                    alert("Failed to create profile: " + err.message);
+                    alert("Error registering pilot. Make sure the 'nickname' column exists in your database table. Error: " + err.message);
                 }
             };
 
             const handleUpdateAvatar = async (newUrl) => {
                 if (!activeProfile || !newUrl) return;
-
-                // Optimistic UI update: instantly show photo without waiting for database!
                 const updatedProfile = { ...activeProfile, avatar_url: newUrl };
                 setActiveProfile(updatedProfile);
                 setProfiles(profiles.map(p => p.id === activeProfile.id ? updatedProfile : p));
-
                 try {
                     await sbApi(`profiles?id=eq.${activeProfile.id}`, {
                         method: 'PATCH',
                         body: JSON.stringify({ avatar_url: newUrl })
                     });
-                    // Sync quietly in background
                     fetchData();
                 } catch (err) {
-                    alert("Failed to save avatar to database: " + err.message);
-                    fetchData(); // Revert back to original on failure
+                    alert("Sync failed: " + err.message);
+                    fetchData(); 
                 }
             };
 
-            const confirmDeleteAccount = async () => {
-                if (accountPinInput !== '134') {
-                    setAccountDeleteErrorMsg('Incorrect PIN. Required PIN is 134.');
-                    return;
-                }
-                if (!activeProfile) return;
-
-                try {
-                    await sbApi(`attempts?profile_id=eq.${activeProfile.id}`, { method: 'DELETE' });
-                    await sbApi(`profiles?id=eq.${activeProfile.id}`, { method: 'DELETE' });
-                    await fetchData();
-                    setShowAccountDeleteModal(false);
-                    setAccountPinInput('');
-                } catch (err) {
-                    alert("Failed to delete account: " + err.message);
-                }
-            };
-
-            const startCamera = async () => {
+            const startCamera = async (target) => {
+                setCameraTarget(target);
                 setShowCameraModal(true);
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
                     if (videoRef.current) videoRef.current.srcObject = stream;
                 } catch (err) {
-                    alert("Unable to access camera. Please upload an image file instead.");
+                    alert("Unable to access optics. Please upload a file instead.");
                     setShowCameraModal(false);
                 }
             };
@@ -338,19 +307,22 @@ description: "319 door challenge hub"
                 if (videoRef.current && canvasRef.current) {
                     const video = videoRef.current;
                     const canvas = canvasRef.current;
-                    const size = 256; 
+                    const size = 320; 
                     canvas.width = size;
                     canvas.height = size;
                     const ctx = canvas.getContext('2d');
-                    
                     const min = Math.min(video.videoWidth, video.videoHeight);
                     const sx = (video.videoWidth - min) / 2;
                     const sy = (video.videoHeight - min) / 2;
                     
                     ctx.drawImage(video, sx, sy, min, min, 0, 0, size, size);
+                    const photoDataUrl = canvas.toDataURL('image/jpeg', 0.8);
                     
-                    // Compress to lightweight JPEG before sending to Supabase
-                    handleUpdateAvatar(canvas.toDataURL('image/jpeg', 0.8));
+                    if (cameraTarget === 'create') {
+                        setNewProfileAvatar(photoDataUrl);
+                    } else {
+                        handleUpdateAvatar(photoDataUrl);
+                    }
                     
                     stopCameraStream();
                     setShowCameraModal(false);
@@ -364,11 +336,14 @@ description: "319 door challenge hub"
                 }
             };
 
-            const handleFileUpload = (e) => {
+            const handleFileUpload = (e, target) => {
                 const file = e.target.files[0];
                 if (file) {
                     const reader = new FileReader();
-                    reader.onload = (event) => compressImage(event.target.result, handleUpdateAvatar);
+                    reader.onload = (event) => compressImage(event.target.result, (compressed) => {
+                        if (target === 'create') setNewProfileAvatar(compressed);
+                        else handleUpdateAvatar(compressed);
+                    });
                     reader.readAsDataURL(file);
                 }
             };
@@ -379,145 +354,136 @@ description: "319 door challenge hub"
                 const centiseconds = Math.floor((ms % 1000) / 10);
                 return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
             };
+            
+            const confirmDeleteAttempt = async () => {
+                if (deletePinInput !== '134') return setDeleteErrorMsg('AUTH FAILED. REQUIRED PIN: 134.');
+                if (!attemptToDelete) return;
+                try {
+                    await sbApi(`attempts?id=eq.${attemptToDelete.id}`, { method: 'DELETE' });
+                    await fetchData();
+                    setShowDeleteModal(false);
+                    setAttemptToDelete(null);
+                } catch (err) { alert(err.message); }
+            };
+
+            const confirmDeleteAccount = async () => {
+                if (accountPinInput !== '134') return setAccountDeleteErrorMsg('AUTH FAILED. REQUIRED PIN: 134.');
+                if (!activeProfile) return;
+                try {
+                    await sbApi(`attempts?profile_id=eq.${activeProfile.id}`, { method: 'DELETE' });
+                    await sbApi(`profiles?id=eq.${activeProfile.id}`, { method: 'DELETE' });
+                    await fetchData();
+                    setShowAccountDeleteModal(false);
+                    setAccountPinInput('');
+                } catch (err) { alert(err.message); }
+            };
 
             if (!isInitialized) {
                 return (
                     <div className="flex items-center justify-center min-h-screen bg-background text-primary">
-                        <div className="animate-pulse font-mono tracking-widest text-lg">INITIALIZING TELEMETRY...</div>
+                        <div className="animate-pulse font-mono font-bold tracking-widest text-sm flex gap-3 items-center">
+                            <span className="w-3 h-3 bg-primary block rounded-sm"></span> CONNECTING TO SYS_CORE...
+                        </div>
                     </div>
                 );
             }
 
             return (
-                <div className="min-h-screen bg-background text-zinc-100 flex flex-col selection:bg-primary selection:text-black pt-24 pb-12">
+                <div className="min-h-screen flex flex-col pt-16 pb-12">
                     <div className="max-w-xl mx-auto w-full px-4 mb-4">
-                        <div className="flex items-center justify-between bg-card p-3 rounded-2xl border border-border shadow-md">
-                            <div className="flex items-center space-x-2">
-                                <div className="bg-primary text-black font-extrabold px-2.5 py-1 text-xs tracking-wider rounded uppercase">
+                        <div className="flex items-center justify-between bg-card p-3 border-2 border-border shadow-brutal-dark rounded-sm mb-4">
+                            <div className="flex items-center space-x-3">
+                                <div className="bg-primary text-black font-black px-2 py-1 text-xs tracking-wider uppercase shadow-[2px_2px_0_0_#fff]">
                                     319
                                 </div>
-                                <span className="font-bold tracking-tight text-sm text-white">
-                                    DOOR CHALLENGE
+                                <span className="font-extrabold tracking-widest text-xs text-white uppercase opacity-90">
+                                    SYS.TIMER
                                 </span>
                             </div>
 
                             <div className="flex items-center space-x-2">
                                 {profiles.length > 0 && activeProfile && (
-                                    <div className="relative">
-                                        <select
-                                            value={activeProfile.id}
-                                            onChange={(e) => {
-                                                const found = profiles.find(p => p.id === e.target.value);
-                                                if (found) setActiveProfile(found);
-                                            }}
-                                            className="bg-zinc-900 border border-zinc-700 text-white text-xs rounded-lg px-2.5 py-1.5 pr-7 appearance-none focus:outline-none focus:border-primary cursor-pointer font-medium"
-                                        >
-                                            {profiles.map(p => (
-                                                <option key={p.id} value={p.id}>
-                                                    {isUrl(p.avatar_url) ? '👤' : p.avatar_url} {p.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-zinc-400 text-xs">
-                                            ▼
-                                        </div>
-                                    </div>
+                                    <select
+                                        value={activeProfile.id}
+                                        onChange={(e) => {
+                                            const found = profiles.find(p => p.id === e.target.value);
+                                            if (found) setActiveProfile(found);
+                                        }}
+                                        className="bg-black border border-zinc-700 text-white text-xs font-mono font-bold px-2 py-1 focus:border-primary focus:outline-none cursor-pointer uppercase appearance-none"
+                                        style={{ WebkitAppearance: 'none' }}
+                                    >
+                                        {profiles.map(p => (
+                                            <option key={p.id} value={p.id}>
+                                                [ {p.nickname ? p.nickname : p.name.split(' ')[0]} ]
+                                            </option>
+                                        ))}
+                                    </select>
                                 )}
                                 <button
                                     onClick={() => {
-                                        setNewProfileName('');
-                                        setNewProfileEmoji('🏁');
+                                        setNewProfileName(''); setNewProfileNickname(''); setNewProfileAvatar('🏁');
                                         setShowProfileModal(true);
                                     }}
-                                    className="bg-primary hover:bg-primary-hover text-black font-bold px-3 py-1.5 text-xs rounded-lg transition-all shadow-md"
+                                    className="bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-600 font-bold px-3 py-1 text-[10px] uppercase transition-all"
                                 >
-                                    + PILOT
+                                    + REGISTER
                                 </button>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="max-w-xl mx-auto w-full px-4 mb-4">
-                        <div className="grid grid-cols-3 gap-2 bg-card p-1.5 rounded-xl border border-border">
-                            <button
-                                onClick={() => setActiveTab('timer')}
-                                className={`py-2.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
-                                    activeTab === 'timer' ? 'bg-primary text-black shadow-lg glow-yellow' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
-                                }`}
-                            >
-                                TIME ATTACK
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('leaderboard')}
-                                className={`py-2.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
-                                    activeTab === 'leaderboard' ? 'bg-primary text-black shadow-lg glow-yellow' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
-                                }`}
-                            >
-                                LEADERBOARD
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('profiles')}
-                                className={`py-2.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
-                                    activeTab === 'profiles' ? 'bg-primary text-black shadow-lg glow-yellow' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
-                                }`}
-                            >
-                                PILOT SETUP
-                            </button>
+                        <div className="grid grid-cols-3 gap-0 border-2 border-border bg-black shadow-brutal-dark">
+                            {['timer', 'leaderboard', 'profiles'].map((tab) => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    className={`py-3 text-[10px] font-black uppercase tracking-widest transition-all ${
+                                        activeTab === tab ? 'bg-primary text-black' : 'text-zinc-500 hover:text-white hover:bg-zinc-900'
+                                    }`}
+                                >
+                                    {tab === 'profiles' ? 'Pilot ID' : tab}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
-                    <main className="max-w-xl mx-auto w-full px-4 flex-1 flex flex-col justify-center">
+                    <main className="max-w-xl mx-auto w-full px-4 flex-1 flex flex-col relative">
                         {errorMsg && (
-                            <div className="mb-4 bg-red-950/40 border border-red-500/30 text-red-400 text-xs p-3 rounded-lg text-center font-mono">
+                            <div className="mb-4 bg-red-950 border-l-4 border-red-500 text-red-400 text-xs p-3 font-mono">
                                 {errorMsg}
                             </div>
                         )}
 
                         {activeTab === 'timer' && (
-                            <div className="flex flex-col items-center justify-center py-2">
-                                {activeProfile ? (
-                                    <div className="flex items-center gap-3 mb-4 bg-card px-4 py-2 rounded-full border border-zinc-800">
-                                        {isUrl(activeProfile.avatar_url) ? (
-                                            <img src={activeProfile.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover border border-primary" />
-                                        ) : (
-                                            <div className="w-8 h-8 flex items-center justify-center text-sm bg-zinc-800 rounded-full border border-primary shadow-sm">{activeProfile.avatar_url}</div>
-                                        )}
-                                        <div className="text-sm font-bold">PILOT: <span className="text-primary font-mono">{activeProfile.name}</span></div>
-                                    </div>
-                                ) : (
-                                    <div className="mb-4 bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs px-4 py-2 rounded-lg">
-                                        Please create a pilot profile first!
-                                    </div>
-                                )}
-
-                                <div className="w-full glass-panel rounded-3xl p-8 flex flex-col items-center justify-center relative overflow-hidden glow-yellow-lg border-zinc-800">
-                                    <div className="absolute top-4 left-4 flex items-center gap-1.5 text-xs font-mono text-zinc-500">
-                                        <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                                        319 DOOR SPEEDRUN v2.4
-                                    </div>
-
-                                    <div className="my-10 text-center">
-                                        <div className="font-mono text-6xl sm:text-7xl font-bold tracking-tighter text-white drop-shadow-md">
-                                            {formatTime(elapsedMs)}
+                            <div className="flex flex-col flex-1 pb-10 justify-center animate-[fadeIn_0.2s_ease-out]">
+                                <div className="tactical-corner bg-card border border-border p-8 md:p-12 flex flex-col items-center shadow-brutal-dark relative overflow-hidden">
+                                    <div className="absolute inset-0 scanline opacity-20 pointer-events-none"></div>
+                                    
+                                    <div className="absolute top-4 left-4 flex gap-2">
+                                        <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                                            <div className={`w-1.5 h-1.5 rounded-full ${timerState === 'running' ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
+                                            T-MTRX
                                         </div>
-                                        <div className="text-xs uppercase tracking-widest text-zinc-500 mt-2 font-mono">
-                                            {timerState === 'running' ? 'CHRONO ACTIVE — SPRINTING' : timerState === 'stopped' ? 'ATTEMPT RECORDED' : 'READY FOR LAUNCH'}
+                                    </div>
+
+                                    <div className="my-12 w-full text-center">
+                                        <div className="font-mono text-6xl sm:text-7xl font-black italic tracking-tighter text-white drop-shadow-[0_0_15px_rgba(250,204,21,0.2)]">
+                                            {formatTime(elapsedMs)}
                                         </div>
                                     </div>
 
                                     {timerState === 'idle' || timerState === 'stopped' ? (
                                         <button
                                             onClick={startTimer}
-                                            className="w-full py-6 bg-primary hover:bg-primary-hover text-black font-extrabold text-xl rounded-2xl transition-all shadow-xl active:scale-95 tracking-wider uppercase flex items-center justify-center gap-2"
+                                            className="w-full py-5 bg-primary text-black font-black text-lg sm:text-xl transition-transform active:scale-[0.98] tracking-widest uppercase shadow-brutal"
                                         >
-                                            ⚡ INITIALIZE RUN
+                                            ENGAGE TIMING
                                         </button>
                                     ) : (
                                         <button
                                             onClick={stopTimer}
-                                            className="w-full py-6 bg-red-600 hover:bg-red-500 text-white font-extrabold text-xl rounded-2xl transition-all shadow-2xl active:scale-95 tracking-wider uppercase animate-pulse flex items-center justify-center gap-2"
+                                            className="w-full py-5 bg-red-600 text-white font-black text-lg sm:text-xl transition-transform active:scale-[0.98] tracking-widest uppercase shadow-[4px_4px_0_0_#450a0a]"
                                         >
-                                            🛑 TAP TO STOP CLOCK
+                                            HALT
                                         </button>
                                     )}
                                 </div>
@@ -525,168 +491,119 @@ description: "319 door challenge hub"
                         )}
 
                         {activeTab === 'leaderboard' && (
-                            <div className="py-2">
+                            <div className="animate-[fadeIn_0.2s_ease-out]">
                                 <div className="flex items-center justify-between mb-4">
-                                    <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                                        🏆 HOUSE <span className="text-primary">LEADERBOARD</span>
+                                    <h2 className="text-sm font-black tracking-widest text-white uppercase">
+                                        Sector <span className="text-primary">Standings</span>
                                     </h2>
-                                    <div className="flex bg-card p-1 rounded-lg border border-border">
-                                        <button
-                                            onClick={() => setLeaderboardFilter('all')}
-                                            className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${leaderboardFilter === 'all' ? 'bg-primary text-black' : 'text-zinc-400'}`}
-                                        >
-                                            GLOBAL
-                                        </button>
-                                        <button
-                                            onClick={() => setLeaderboardFilter('personal')}
-                                            className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${leaderboardFilter === 'personal' ? 'bg-primary text-black' : 'text-zinc-400'}`}
-                                        >
-                                            MY BEST
-                                        </button>
+                                    <div className="flex bg-black border border-border">
+                                        <button onClick={() => setLeaderboardFilter('all')} className={`px-3 py-1.5 text-[10px] font-bold uppercase transition-all ${leaderboardFilter === 'all' ? 'bg-white text-black' : 'text-zinc-500 hover:text-white'}`}>Global</button>
+                                        <button onClick={() => setLeaderboardFilter('personal')} className={`px-3 py-1.5 text-[10px] font-bold uppercase transition-all ${leaderboardFilter === 'personal' ? 'bg-primary text-black' : 'text-zinc-500 hover:text-white'}`}>Personal</button>
                                     </div>
                                 </div>
 
                                 {attempts.length === 0 ? (
-                                    <div className="text-center py-16 bg-card/50 rounded-2xl border border-border">
-                                        <div className="text-3xl mb-2">🏁</div>
-                                        <div className="text-zinc-400 font-medium text-sm">No telemetry runs recorded yet.</div>
-                                    </div>
+                                    <div className="border border-dashed border-zinc-700 py-12 text-center text-xs font-mono text-zinc-500">NO TELEMETRY FOUND</div>
                                 ) : (
-                                    <div className="space-y-3">
-                                        {attempts
-                                            .filter(att => leaderboardFilter === 'all' || (activeProfile && att.profile_id === activeProfile.id))
-                                            .map((att, idx) => {
-                                                const isChampion = idx === 0 && leaderboardFilter === 'all';
-                                                return (
-                                                    <div
-                                                        key={att.id}
-                                                        className={`p-4 rounded-xl border flex items-center justify-between transition-all ${
-                                                            isChampion ? 'bg-card border-primary/50 glow-yellow' : 'bg-card/70 border-zinc-800 hover:border-zinc-700'
-                                                        }`}
-                                                    >
-                                                        <div className="flex items-center space-x-3">
-                                                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-mono font-bold text-xs ${isChampion ? 'bg-primary text-black' : 'bg-zinc-800 text-zinc-400'}`}>
-                                                                #{idx + 1}
-                                                            </div>
+                                    <div className="space-y-2">
+                                        {attempts.filter(att => leaderboardFilter === 'all' || (activeProfile && att.profile_id === activeProfile.id)).map((att, idx) => {
+                                            const isP1 = idx === 0 && leaderboardFilter === 'all';
+                                            return (
+                                                <div key={att.id} className={`flex items-stretch border ${isP1 ? 'border-primary bg-primary/5' : 'border-zinc-800 bg-card'} group relative`}>
+                                                    {isP1 && <div className="absolute top-0 left-0 w-1 h-full bg-primary"></div>}
+                                                    
+                                                    <div className={`flex items-center justify-center w-12 font-mono font-black text-sm ${isP1 ? 'text-primary' : 'text-zinc-600'}`}>
+                                                        {idx + 1}
+                                                    </div>
+                                                    
+                                                    <div className="py-3 px-2 flex-1 flex items-center border-l border-zinc-800/50">
+                                                        <div className="w-8 h-8 mr-3 shrink-0 bg-black border border-zinc-700 flex items-center justify-center overflow-hidden">
                                                             {isUrl(att.profiles?.avatar_url) ? (
-                                                                <img src={att.profiles.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover border border-zinc-700" />
+                                                                <img src={att.profiles.avatar_url} alt="" className="w-full h-full object-cover filter grayscale group-hover:grayscale-0 transition-all" />
                                                             ) : (
-                                                                <div className="w-10 h-10 flex items-center justify-center text-xl bg-zinc-800 rounded-full border border-zinc-700">{att.profiles?.avatar_url || '👤'}</div>
+                                                                <span className="text-sm">{att.profiles?.avatar_url || '🏁'}</span>
                                                             )}
-                                                            <div>
-                                                                <div className="font-bold text-sm text-white flex items-center gap-2">
-                                                                    {att.profiles?.name || 'Unknown Pilot'}
-                                                                    {isChampion && (
-                                                                        <span className="bg-primary/20 text-primary border border-primary/30 text-[10px] px-2 py-0.5 rounded uppercase font-extrabold tracking-wider">
-                                                                            HOUSE CHAMPION
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                <div className="text-xs text-zinc-400 italic mt-0.5">"{att.notes || 'Standard speedrun'}"</div>
-                                                            </div>
                                                         </div>
-
-                                                        <div className="flex items-center space-x-4">
-                                                            <div className="text-right">
-                                                                <div className="font-mono font-bold text-lg text-white">
-                                                                    {formatTime(att.time_ms)}
-                                                                </div>
-                                                                <div className="text-[10px] text-zinc-500 font-mono">
-                                                                    {new Date(att.created_at).toLocaleDateString()}
-                                                                </div>
+                                                        <div className="overflow-hidden">
+                                                            <div className="font-bold text-xs uppercase text-white truncate flex items-center gap-1.5">
+                                                                {att.profiles?.name || 'UNKNOWN'}
+                                                                {att.profiles?.nickname && <span className="text-[9px] font-mono bg-zinc-800 px-1 text-primary tracking-tight">"{att.profiles.nickname}"</span>}
                                                             </div>
-                                                            {activeProfile && att.profile_id === activeProfile.id && (
-                                                                <button
-                                                                    onClick={() => requestDeleteAttempt(att)}
-                                                                    className="text-zinc-500 hover:text-red-400 p-2 transition-colors rounded-lg hover:bg-red-950/30"
-                                                                    title="Delete Run (PIN: 134)"
-                                                                >
-                                                                    🗑️
-                                                                </button>
-                                                            )}
+                                                            <div className="text-[10px] text-zinc-500 font-mono mt-0.5 truncate">{att.notes}</div>
                                                         </div>
                                                     </div>
-                                                );
-                                            })}
+
+                                                    <div className="py-3 px-4 text-right flex flex-col justify-center items-end border-l border-zinc-800/50 bg-black/20">
+                                                        <div className={`font-mono font-black italic tracking-tight ${isP1 ? 'text-white' : 'text-zinc-300'}`}>
+                                                            {formatTime(att.time_ms)}
+                                                        </div>
+                                                        {activeProfile && att.profile_id === activeProfile.id && (
+                                                            <button onClick={() => {setAttemptToDelete(att); setShowDeleteModal(true); setDeletePinInput('');}} className="text-[9px] text-red-500/50 hover:text-red-400 uppercase mt-1">Delete</button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
                         )}
 
                         {activeTab === 'profiles' && (
-                            <div className="py-2">
-                                <h2 className="text-lg font-bold tracking-tight text-white mb-4 flex items-center gap-2">
-                                    👤 PILOT <span className="text-primary">CONFIGURATION</span>
-                                </h2>
-
+                            <div className="animate-[fadeIn_0.2s_ease-out]">
+                                <h2 className="text-sm font-black tracking-widest text-white mb-4 uppercase">ID CARD</h2>
+                                
                                 {activeProfile ? (
-                                    <div className="bg-card border border-zinc-800 rounded-2xl p-6 shadow-xl">
-                                        <div className="flex flex-col items-center text-center">
-                                            <div className="relative group mb-4">
-                                                {isUrl(activeProfile.avatar_url) ? (
-                                                    <img src={activeProfile.avatar_url} alt="" className="w-24 h-24 rounded-full object-cover border-2 border-primary shadow-lg" />
-                                                ) : (
-                                                    <div className="w-24 h-24 flex items-center justify-center text-5xl bg-zinc-800 rounded-full border-2 border-primary shadow-lg">{activeProfile.avatar_url}</div>
-                                                )}
-                                            </div>
-                                            <h3 className="text-xl font-bold text-white">{activeProfile.name}</h3>
-                                            <p className="text-xs text-zinc-400 font-mono mt-1">ID: {activeProfile.id}</p>
-                                        </div>
-
-                                        <div className="mt-6 border-t border-zinc-800 pt-6">
-                                            <h4 className="text-xs font-bold tracking-wider text-zinc-400 uppercase mb-3">Change Profile Picture</h4>
-                                            <div className="flex gap-2 mb-4">
-                                                <button
-                                                    onClick={startCamera}
-                                                    className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs rounded-xl transition-all border border-zinc-700"
-                                                >
-                                                    📷 Take Photo
-                                                </button>
-                                                <label className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs rounded-xl transition-all border border-zinc-700 text-center cursor-pointer flex items-center justify-center">
-                                                    📁 Upload File
-                                                    <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                                    <div className="tactical-corner bg-card border border-border p-1 shadow-brutal-dark flex flex-col sm:flex-row">
+                                        <div className="w-full sm:w-40 aspect-square sm:aspect-auto sm:h-auto bg-black relative border-b sm:border-b-0 sm:border-r border-zinc-800 overflow-hidden flex items-center justify-center">
+                                            <div className="absolute inset-0 scanline opacity-30 pointer-events-none z-10"></div>
+                                            {isUrl(activeProfile.avatar_url) ? (
+                                                <img src={activeProfile.avatar_url} alt="" className="w-full h-full object-cover filter contrast-125" />
+                                            ) : (
+                                                <div className="text-6xl">{activeProfile.avatar_url}</div>
+                                            )}
+                                            <div className="absolute bottom-2 right-2 z-20 flex gap-1">
+                                                <button onClick={() => startCamera('edit')} className="bg-black/80 p-1.5 border border-zinc-700 hover:border-primary text-white text-xs">📷</button>
+                                                <label className="bg-black/80 p-1.5 border border-zinc-700 hover:border-primary text-white text-xs cursor-pointer">
+                                                    📁<input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'edit')} className="hidden" />
                                                 </label>
                                             </div>
-
-                                            <div className="mb-4">
-                                                <label className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1 font-mono">Or Set Pilot Emoji / Initials</label>
-                                                <input
-                                                    type="text"
-                                                    maxLength="5"
-                                                    placeholder={isUrl(activeProfile.avatar_url) ? "🏁" : activeProfile.avatar_url}
-                                                    onChange={(e) => {
-                                                        if(e.target.value) handleUpdateAvatar(e.target.value);
-                                                    }}
-                                                    className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-xl text-center text-white focus:outline-none focus:border-primary font-mono"
-                                                />
-                                            </div>
                                         </div>
-
-                                        <div className="mt-6 border-t border-zinc-800 pt-6 flex justify-between items-center">
-                                            <div>
-                                                <div className="text-xs font-bold text-red-400">Danger Zone</div>
-                                                <div className="text-[11px] text-zinc-500">Permanently delete this account and all runs (PIN: 134)</div>
+                                        
+                                        <div className="p-6 flex-1 flex flex-col justify-center bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')]">
+                                            <div className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest mb-1">Registered Alias</div>
+                                            <div className="text-3xl font-black text-white uppercase tracking-tight leading-none mb-1">
+                                                {activeProfile.nickname || activeProfile.name.split(' ')[0]}
                                             </div>
-                                            <button
-                                                onClick={() => {
-                                                    setAccountPinInput('');
-                                                    setAccountDeleteErrorMsg('');
-                                                    setShowAccountDeleteModal(true);
-                                                }}
-                                                className="bg-red-950/50 hover:bg-red-900/60 text-red-400 border border-red-500/30 font-bold text-xs px-4 py-2 rounded-xl transition-all"
-                                            >
-                                                Delete Account
-                                            </button>
+                                            <div className="text-sm font-mono text-zinc-400 uppercase mb-4">
+                                                {activeProfile.name}
+                                            </div>
+                                            
+                                            <div className="h-px bg-gradient-to-r from-zinc-800 to-transparent w-full mb-4"></div>
+                                            
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <div className="text-[9px] text-zinc-500 uppercase font-mono">Profile UID</div>
+                                                    <div className="text-xs text-zinc-300 font-mono truncate">{activeProfile.id.split('-')[0]}</div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-[9px] text-zinc-500 uppercase font-mono">Registration</div>
+                                                    <div className="text-xs text-zinc-300 font-mono">{new Date(activeProfile.created_at).toLocaleDateString()}</div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="mt-8 flex justify-end">
+                                                <button onClick={() => setShowAccountDeleteModal(true)} className="text-[10px] font-bold text-red-500/60 hover:text-red-400 uppercase tracking-widest border-b border-red-900/50 pb-0.5">
+                                                    Revoke Credential
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="text-center py-12 bg-card rounded-2xl border border-zinc-800">
-                                        <p className="text-zinc-400 text-sm mb-4">No active pilot selected.</p>
-                                        <button
-                                            onClick={() => setShowProfileModal(true)}
-                                            className="bg-primary text-black font-bold text-xs px-4 py-2 rounded-lg"
-                                        >
-                                            Create Pilot Profile
+                                    <div className="border border-dashed border-zinc-700 py-12 text-center bg-card">
+                                        <p className="text-zinc-500 text-xs font-mono uppercase mb-4">NO ACTIVE PILOT IDENTIFIED</p>
+                                        <button onClick={() => setShowProfileModal(true)} className="bg-white text-black font-bold text-xs uppercase px-6 py-3 tracking-widest shadow-brutal hover:translate-y-px transition-transform">
+                                            Initialize Pilot
                                         </button>
                                     </div>
                                 )}
@@ -694,79 +611,64 @@ description: "319 door challenge hub"
                         )}
                     </main>
 
+                    {/* Modals */}
                     {showSaveModal && (
-                        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-                            <div className="bg-card border border-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl">
-                                <h3 className="text-lg font-bold text-white mb-1">RUN COMPLETED!</h3>
-                                <p className="text-xs text-zinc-400 mb-4">Final Time: <span className="font-mono font-bold text-primary text-lg">{formatTime(elapsedMs)}</span></p>
-                                
-                                <label className="text-xs text-zinc-400 font-mono block mb-1">Add Run Notes (Optional):</label>
+                        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
+                            <div className="tactical-corner bg-card border-2 border-border p-6 max-w-sm w-full">
+                                <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">SECTOR LOGGED</h3>
+                                <div className="font-mono font-black italic text-4xl text-primary mb-4">{formatTime(elapsedMs)}</div>
                                 <input
                                     type="text"
                                     value={attemptNotes}
                                     onChange={(e) => setAttemptNotes(e.target.value)}
-                                    placeholder="e.g. Clean run, no slips"
-                                    className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2.5 text-sm text-white mb-6 focus:outline-none focus:border-primary"
+                                    placeholder="Mission specifics (optional)"
+                                    className="w-full bg-black border border-zinc-700 px-3 py-3 text-sm text-white mb-6 focus:outline-none focus:border-primary font-mono uppercase"
                                 />
-
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={() => setShowSaveModal(false)}
-                                        className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs rounded-xl transition-all"
-                                    >
-                                        Discard
-                                    </button>
-                                    <button
-                                        onClick={saveAttempt}
-                                        className="flex-1 py-3 bg-primary hover:bg-primary-hover text-black font-bold text-xs rounded-xl transition-all"
-                                    >
-                                        Save Best Run
-                                    </button>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setShowSaveModal(false)} className="flex-1 py-3 bg-zinc-800 text-white font-bold text-xs uppercase tracking-widest">Scrap</button>
+                                    <button onClick={saveAttempt} className="flex-1 py-3 bg-primary text-black font-bold text-xs uppercase tracking-widest">Commit</button>
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {showProfileModal && (
-                        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-                            <div className="bg-card border border-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl">
-                                <h3 className="text-lg font-bold text-white mb-1">CREATE NEW PILOT</h3>
-                                <p className="text-xs text-zinc-400 mb-4">Enter runner name & avatar.</p>
+                        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50 overflow-y-auto">
+                            <div className="tactical-corner bg-card border-2 border-border p-6 max-w-sm w-full my-8">
+                                <h3 className="text-lg font-black text-white uppercase tracking-tight mb-6 flex items-center justify-between">
+                                    <span>NEW PILOT</span>
+                                    <span className="text-[10px] text-primary font-mono bg-primary/10 px-2 py-0.5">AUTH REQ</span>
+                                </h3>
+                                
+                                <form onSubmit={handleCreateProfile} className="space-y-4">
+                                    <div>
+                                        <label className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest block mb-1">Full Designation</label>
+                                        <input type="text" value={newProfileName} onChange={(e) => setNewProfileName(e.target.value)} required placeholder="e.g. Max Verstappen" className="w-full bg-black border border-zinc-700 px-3 py-2.5 text-sm text-white focus:border-primary focus:outline-none uppercase" />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest block mb-1">Callsign / Nickname</label>
+                                        <input type="text" value={newProfileNickname} onChange={(e) => setNewProfileNickname(e.target.value)} placeholder="e.g. MadMax" className="w-full bg-black border border-zinc-700 px-3 py-2.5 text-sm text-primary focus:border-primary focus:outline-none uppercase font-mono font-bold" />
+                                    </div>
 
-                                <form onSubmit={handleCreateProfile}>
-                                    <label className="text-xs text-zinc-400 font-mono block mb-1">Pilot Name:</label>
-                                    <input
-                                        type="text"
-                                        value={newProfileName}
-                                        onChange={(e) => setNewProfileName(e.target.value)}
-                                        placeholder="e.g. Max Verstappen"
-                                        required
-                                        className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2.5 text-sm text-white mb-4 focus:outline-none focus:border-primary"
-                                    />
+                                    <div>
+                                        <label className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest block mb-2">Visual ID (Photo/Emoji)</label>
+                                        <div className="flex gap-4 items-center">
+                                            <div className="w-16 h-16 shrink-0 bg-black border border-zinc-700 flex items-center justify-center overflow-hidden">
+                                                {isUrl(newProfileAvatar) ? <img src={newProfileAvatar} className="w-full h-full object-cover filter grayscale" /> : <input type="text" maxLength="5" value={newProfileAvatar} onChange={(e) => setNewProfileAvatar(e.target.value)} className="w-full h-full bg-transparent text-center text-2xl" />}
+                                            </div>
+                                            <div className="flex flex-col gap-2 flex-1">
+                                                <button type="button" onClick={() => startCamera('create')} className="w-full bg-zinc-800 hover:bg-zinc-700 text-white text-[10px] uppercase font-bold py-2 px-3 border border-zinc-700 transition-colors">📷 Capture Optic</button>
+                                                <label className="w-full bg-zinc-800 hover:bg-zinc-700 text-white text-[10px] uppercase font-bold py-2 px-3 border border-zinc-700 text-center cursor-pointer transition-colors">
+                                                    📁 Upload File <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'create')} className="hidden" />
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                    <label className="text-xs text-zinc-400 font-mono block mb-1">Pilot Emoji / Initials:</label>
-                                    <input
-                                        type="text"
-                                        maxLength="5"
-                                        value={newProfileEmoji}
-                                        onChange={(e) => setNewProfileEmoji(e.target.value)}
-                                        className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2.5 text-2xl text-center text-white mb-6 focus:outline-none focus:border-primary font-mono"
-                                    />
-
-                                    <div className="flex gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowProfileModal(false)}
-                                            className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs rounded-xl transition-all"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            className="flex-1 py-3 bg-primary hover:bg-primary-hover text-black font-bold text-xs rounded-xl transition-all"
-                                        >
-                                            Create Pilot
-                                        </button>
+                                    <div className="flex gap-2 pt-4">
+                                        <button type="button" onClick={() => setShowProfileModal(false)} className="flex-1 py-3 bg-zinc-800 text-white font-bold text-[10px] uppercase tracking-widest">Abort</button>
+                                        <button type="submit" className="flex-1 py-3 bg-white text-black font-bold text-[10px] uppercase tracking-widest shadow-brutal-sm">Register</button>
                                     </div>
                                 </form>
                             </div>
@@ -774,95 +676,45 @@ description: "319 door challenge hub"
                     )}
 
                     {showDeleteModal && (
-                        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-                            <div className="bg-card border border-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl">
-                                <h3 className="text-lg font-bold text-white mb-1">AUTHORIZE DELETION</h3>
-                                <p className="text-xs text-zinc-400 mb-4">Enter security PIN <span className="text-primary font-mono font-bold">134</span> to delete this run.</p>
-
-                                <input
-                                    type="password"
-                                    maxLength="3"
-                                    value={deletePinInput}
-                                    onChange={(e) => setDeletePinInput(e.target.value)}
-                                    placeholder="Enter PIN"
-                                    className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2.5 text-center text-lg text-white mb-2 font-mono tracking-widest focus:outline-none focus:border-primary"
-                                />
-                                {deleteErrorMsg && <div className="text-xs text-red-400 mb-4 text-center font-mono">{deleteErrorMsg}</div>}
-
-                                <div className="flex gap-3 mt-4">
-                                    <button
-                                        onClick={() => setShowDeleteModal(false)}
-                                        className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs rounded-xl transition-all"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={confirmDeleteAttempt}
-                                        className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl transition-all"
-                                    >
-                                        Delete Run
-                                    </button>
+                        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
+                            <div className="tactical-corner bg-card border-2 border-red-900/50 p-6 max-w-sm w-full text-center">
+                                <h3 className="text-sm font-black text-red-500 uppercase tracking-widest mb-4">Authorize Purge</h3>
+                                <input type="password" maxLength="3" value={deletePinInput} onChange={(e) => setDeletePinInput(e.target.value)} placeholder="PIN" className="w-24 mx-auto bg-black border border-red-900 px-3 py-2 text-center text-xl text-red-500 mb-2 font-mono focus:outline-none" />
+                                {deleteErrorMsg && <div className="text-[10px] text-red-500 mb-4 font-mono">{deleteErrorMsg}</div>}
+                                <div className="flex gap-2 mt-4">
+                                    <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-3 bg-zinc-800 text-white font-bold text-xs uppercase">Cancel</button>
+                                    <button onClick={confirmDeleteAttempt} className="flex-1 py-3 bg-red-900 text-white font-bold text-xs uppercase">Confirm</button>
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {showAccountDeleteModal && (
-                        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-                            <div className="bg-card border border-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl">
-                                <h3 className="text-lg font-bold text-red-400 mb-1">DELETE ACCOUNT</h3>
-                                <p className="text-xs text-zinc-400 mb-4">Enter security PIN <span className="text-primary font-mono font-bold">134</span> to permanently delete this profile and its runs.</p>
-
-                                <input
-                                    type="password"
-                                    maxLength="3"
-                                    value={accountPinInput}
-                                    onChange={(e) => setAccountPinInput(e.target.value)}
-                                    placeholder="Enter PIN"
-                                    className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2.5 text-center text-lg text-white mb-2 font-mono tracking-widest focus:outline-none focus:border-primary"
-                                />
-                                {accountDeleteErrorMsg && <div className="text-xs text-red-400 mb-4 text-center font-mono">{accountDeleteErrorMsg}</div>}
-
-                                <div className="flex gap-3 mt-4">
-                                    <button
-                                        onClick={() => setShowAccountDeleteModal(false)}
-                                        className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs rounded-xl transition-all"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={confirmDeleteAccount}
-                                        className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl transition-all"
-                                    >
-                                        Delete Account
-                                    </button>
+                        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
+                            <div className="tactical-corner bg-card border-2 border-red-900/50 p-6 max-w-sm w-full text-center">
+                                <h3 className="text-sm font-black text-red-500 uppercase tracking-widest mb-4">Purge Pilot Data</h3>
+                                <input type="password" maxLength="3" value={accountPinInput} onChange={(e) => setAccountPinInput(e.target.value)} placeholder="PIN" className="w-24 mx-auto bg-black border border-red-900 px-3 py-2 text-center text-xl text-red-500 mb-2 font-mono focus:outline-none" />
+                                {accountDeleteErrorMsg && <div className="text-[10px] text-red-500 mb-4 font-mono">{accountDeleteErrorMsg}</div>}
+                                <div className="flex gap-2 mt-4">
+                                    <button onClick={() => setShowAccountDeleteModal(false)} className="flex-1 py-3 bg-zinc-800 text-white font-bold text-xs uppercase">Cancel</button>
+                                    <button onClick={confirmDeleteAccount} className="flex-1 py-3 bg-red-900 text-white font-bold text-xs uppercase">Confirm</button>
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {showCameraModal && (
-                        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
-                            <div className="bg-card border border-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl flex flex-col items-center">
-                                <h3 className="text-lg font-bold text-white mb-3">CAPTURE PILOT PHOTO</h3>
-                                <div className="relative w-full aspect-square bg-black rounded-2xl overflow-hidden mb-4 border border-zinc-800">
-                                    <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover"></video>
+                        <div className="fixed inset-0 bg-black/95 flex items-center justify-center p-4 z-[60]">
+                            <div className="tactical-corner bg-card border-2 border-border p-4 max-w-sm w-full flex flex-col items-center">
+                                <h3 className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest mb-4 w-full text-left">Optic Capture</h3>
+                                <div className="relative w-full aspect-square bg-black border border-zinc-800 mb-4">
+                                    <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover filter grayscale"></video>
+                                    <div className="absolute inset-0 border-[4px] border-black/40 pointer-events-none mix-blend-overlay"></div>
                                 </div>
                                 <canvas ref={canvasRef} className="hidden"></canvas>
-
-                                <div className="flex gap-3 w-full">
-                                    <button
-                                        onClick={() => { stopCameraStream(); setShowCameraModal(false); }}
-                                        className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs rounded-xl transition-all"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={capturePhoto}
-                                        className="flex-1 py-3 bg-primary hover:bg-primary-hover text-black font-bold text-xs rounded-xl transition-all"
-                                    >
-                                        Capture
-                                    </button>
+                                <div className="flex gap-2 w-full">
+                                    <button onClick={() => { stopCameraStream(); setShowCameraModal(false); }} className="flex-1 py-3 bg-zinc-800 text-white font-bold text-[10px] uppercase tracking-widest">Abort</button>
+                                    <button onClick={capturePhoto} className="flex-1 py-3 bg-white text-black font-bold text-[10px] uppercase tracking-widest shadow-brutal-sm">Snap</button>
                                 </div>
                             </div>
                         </div>
@@ -870,7 +722,6 @@ description: "319 door challenge hub"
                 </div>
             );
         }
-
         ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
