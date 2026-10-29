@@ -113,12 +113,12 @@ description: "319 door challenge hub"
             const [lastSavedAttempt, setLastSavedAttempt] = React.useState(null);
             const timerRef = React.useRef(null);
 
-            // Profile creation / editing modal
+            // Profile creation modal
             const [showProfileModal, setShowProfileModal] = React.useState(false);
             const [newProfileName, setNewProfileName] = React.useState('');
             const [newProfileEmoji, setNewProfileEmoji] = React.useState('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150');
 
-            // Delete verification modal (PIN 134)
+            // Delete attempt verification modal (PIN 134)
             const [showDeleteModal, setShowDeleteModal] = React.useState(false);
             const [attemptToDelete, setAttemptToDelete] = React.useState(null);
             const [deletePinInput, setDeletePinInput] = React.useState('');
@@ -197,7 +197,6 @@ description: "319 door challenge hub"
                 setElapsedMs(0);
                 setTimerState('running');
                 timerRef.current = performance.now();
-                // Request animation frame loop
                 const loop = () => {
                     updateTimer();
                     if (timerRef.current !== null) {
@@ -246,7 +245,7 @@ description: "319 door challenge hub"
                     setAttempts(updatedAttempts);
 
                     const isNewBest = !existingUserAttempt || newTimeMs < existingUserAttempt.time_ms;
-                    const isHouseRecord = updatedAttempts.length > 0 && updatedAttempts[0].id.includes(activeProfile.id) || (updatedAttempts[0].time_ms === newTimeMs);
+                    const isHouseRecord = updatedAttempts.length > 0 && (updatedAttempts[0].profile_id === activeProfile.id);
 
                     setLastSavedAttempt({ time_ms: newTimeMs, isHouseRecord, isPersonalBest: isNewBest });
                     setShowSaveModal(false);
@@ -260,23 +259,22 @@ description: "319 door challenge hub"
                 }
 
                 try {
-                    // Supabase Personal Best Upsert Logic
                     if (existingUserAttempt) {
                         if (newTimeMs < existingUserAttempt.time_ms) {
                             await supabase.from('attempts').delete().eq('profile_id', activeProfile.id);
-                            const { data, error } = await supabase.from('attempts').insert([{
+                            const { error } = await supabase.from('attempts').insert([{
                                 profile_id: activeProfile.id,
                                 time_ms: newTimeMs,
                                 notes: newNotes
-                            }]).select('id, profile_id, time_ms, notes, created_at, profiles(name, avatar_url)').single();
+                            }]);
                             if (error) throw error;
                         }
                     } else {
-                        const { data, error } = await supabase.from('attempts').insert([{
+                        const { error } = await supabase.from('attempts').insert([{
                             profile_id: activeProfile.id,
                             time_ms: newTimeMs,
                             notes: newNotes
-                        }]).select('id, profile_id, time_ms, notes, created_at, profiles(name, avatar_url)').single();
+                        }]);
                         if (error) throw error;
                     }
 
@@ -362,8 +360,21 @@ description: "319 door challenge hub"
             };
 
             // UPDATE PROFILE PICTURE
-            const handleUpdateAvatar = (newUrl) => {
+            const handleUpdateAvatar = async (newUrl) => {
                 setNewProfileEmoji(newUrl);
+                if (!activeProfile) return;
+
+                const updated = { ...activeProfile, avatar_url: newUrl };
+                setActiveProfile(updated);
+                setProfiles(profiles.map(p => p.id === activeProfile.id ? updated : p));
+
+                if (!isDemoMode) {
+                    try {
+                        await supabase.from('profiles').update({ avatar_url: newUrl }).eq('id', activeProfile.id);
+                    } catch (err) {
+                        console.error("Error updating avatar in Supabase:", err);
+                    }
+                }
             };
 
             // DELETE ACCOUNT WITH PIN 134
@@ -385,7 +396,6 @@ description: "319 door challenge hub"
                 }
 
                 try {
-                    // Delete attempts first due to FK constraint
                     await supabase.from('attempts').delete().eq('profile_id', activeProfile.id);
                     const { error } = await supabase.from('profiles').delete().eq('id', activeProfile.id);
                     if (error) throw error;
@@ -426,7 +436,7 @@ description: "319 door challenge hub"
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                     const dataUrl = canvas.toDataURL('image/png');
-                    setNewProfileEmoji(dataUrl);
+                    handleUpdateAvatar(dataUrl);
                     stopCameraStream();
                     setShowCameraModal(false);
                 }
@@ -445,7 +455,7 @@ description: "319 door challenge hub"
                 if (file) {
                     const reader = new FileReader();
                     reader.onloadend = () => {
-                        setNewProfileEmoji(reader.result);
+                        handleUpdateAvatar(reader.result);
                     };
                     reader.readAsDataURL(file);
                 }
@@ -468,7 +478,7 @@ description: "319 door challenge hub"
 
             return (
                 <div className="min-h-screen bg-background text-zinc-100 flex flex-col selection:bg-primary selection:text-black">
-                    {/* TOP HEADER */}
+                    {/* TOP HEADER WITH PROFILE SWITCHER AND + PILOT BUTTON */}
                     <header className="border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                             <div className="bg-primary text-black font-extrabold px-2.5 py-1 text-xs tracking-wider rounded uppercase">
@@ -479,7 +489,7 @@ description: "319 door challenge hub"
                             </span>
                         </div>
 
-                        {/* PROFILE SWITCHER DROPDOWN */}
+                        {/* PROFILE SWITCHER & + PILOT BUTTON */}
                         <div className="flex items-center space-x-3">
                             {profiles.length > 0 && activeProfile && (
                                 <div className="relative">
@@ -503,7 +513,11 @@ description: "319 door challenge hub"
                                 </div>
                             )}
                             <button
-                                onClick={() => setShowProfileModal(true)}
+                                onClick={() => {
+                                    setNewProfileName('');
+                                    setNewProfileEmoji('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150');
+                                    setShowProfileModal(true);
+                                }}
                                 className="bg-primary hover:bg-primary-hover text-black font-bold px-3 py-1.5 text-xs rounded-lg transition-all flex items-center gap-1 shadow-md"
                             >
                                 + PILOT
@@ -734,7 +748,7 @@ description: "319 door challenge hub"
                                             </div>
 
                                             <div className="mb-4">
-                                                <label className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1 font-mono">Or Avatar Preset URL</label>
+                                                <label className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1 font-mono">Or Avatar Image URL</label>
                                                 <input
                                                     type="text"
                                                     value={newProfileEmoji}
