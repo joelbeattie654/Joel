@@ -16,6 +16,8 @@ description: "319 door challenge hub"
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Supabase JS SDK UMD -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <!-- Google Fonts -->
@@ -30,7 +32,7 @@ description: "319 door challenge hub"
                         card: '#121216',
                         border: '#27272a',
                         primary: {
-                            DEFAULT: '#facc15', // Lando / Quadrant yellow
+                            DEFAULT: '#facc15',
                             hover: '#eab308',
                         },
                         accent: '#22c55e',
@@ -83,56 +85,36 @@ description: "319 door challenge hub"
             return false;
         };
 
-        const DEFAULT_PROFILES = [
-            { id: 'demo-1', name: 'Alex Rivera', avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', created_at: new Date().toISOString() },
-            { id: 'demo-2', name: 'Sarah Connor', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', created_at: new Date().toISOString() },
-            { id: 'demo-3', name: 'David 319', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', created_at: new Date().toISOString() }
-        ];
-
-        const DEFAULT_ATTEMPTS = [
-            { id: 'att-1', profile_id: 'demo-1', time_ms: 3310, notes: 'Standard speedrun attempt', created_at: new Date().toISOString(), profiles: { name: 'Alex Rivera', avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' } },
-            { id: 'att-2', profile_id: 'demo-2', time_ms: 4180, notes: 'Stumbled on the upstairs hallway rug.', created_at: new Date(Date.now() - 3600000 * 24).toISOString(), profiles: { name: 'Sarah Connor', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150' } },
-            { id: 'att-3', profile_id: 'demo-3', time_ms: 48900, notes: 'God tier routing. Zero door bounce.', created_at: new Date(Date.now() - 3600000 * 48).toISOString(), profiles: { name: 'David 319', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150' } }
-        ];
-
         function App() {
-            const [activeTab, setActiveTab] = React.useState('timer'); // timer, leaderboard, profiles
-            const [isDemoMode, setIsDemoMode] = React.useState(false);
+            const [activeTab, setActiveTab] = React.useState('timer');
             const [isInitialized, setIsInitialized] = React.useState(false);
             const [profiles, setProfiles] = React.useState([]);
             const [activeProfile, setActiveProfile] = React.useState(null);
             const [attempts, setAttempts] = React.useState([]);
-            const [loading, setLoading] = React.useState(true);
             const [errorMsg, setErrorMsg] = React.useState(null);
 
             // Timer state
-            const [timerState, setTimerState] = React.useState('idle'); // idle, running, stopped
+            const [timerState, setTimerState] = React.useState('idle');
             const [elapsedMs, setElapsedMs] = React.useState(0);
             const [attemptNotes, setAttemptNotes] = React.useState('');
             const [showSaveModal, setShowSaveModal] = React.useState(false);
-            const [lastSavedAttempt, setLastSavedAttempt] = React.useState(null);
             const timerRef = React.useRef(null);
 
-            // Profile creation modal
+            // Modals
             const [showProfileModal, setShowProfileModal] = React.useState(false);
             const [newProfileName, setNewProfileName] = React.useState('');
             const [newProfileEmoji, setNewProfileEmoji] = React.useState('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150');
 
-            // Delete attempt verification modal (PIN 134)
             const [showDeleteModal, setShowDeleteModal] = React.useState(false);
             const [attemptToDelete, setAttemptToDelete] = React.useState(null);
             const [deletePinInput, setDeletePinInput] = React.useState('');
             const [deleteErrorMsg, setDeleteErrorMsg] = React.useState('');
 
-            // Account deletion modal (PIN 134)
             const [showAccountDeleteModal, setShowAccountDeleteModal] = React.useState(false);
             const [accountPinInput, setAccountPinInput] = React.useState('');
             const [accountDeleteErrorMsg, setAccountDeleteErrorMsg] = React.useState('');
 
-            // Leaderboard filter
-            const [leaderboardFilter, setLeaderboardFilter] = React.useState('all'); // all, personal
-
-            // Camera modal state
+            const [leaderboardFilter, setLeaderboardFilter] = React.useState('all');
             const [showCameraModal, setShowCameraModal] = React.useState(false);
             const videoRef = React.useRef(null);
             const canvasRef = React.useRef(null);
@@ -142,17 +124,12 @@ description: "319 door challenge hub"
                 if (success) {
                     loadDataFromSupabase();
                 } else {
-                    setIsDemoMode(true);
-                    setProfiles(DEFAULT_PROFILES);
-                    setActiveProfile(DEFAULT_PROFILES[0]);
-                    setAttempts(DEFAULT_ATTEMPTS);
-                    setLoading(false);
+                    setErrorMsg("Failed to initialize Supabase client.");
                 }
                 setIsInitialized(true);
             }, []);
 
             const loadDataFromSupabase = async () => {
-                setLoading(true);
                 setErrorMsg(null);
                 try {
                     const { data: profData, error: profErr } = await supabase.from('profiles').select('*').order('created_at', { ascending: true });
@@ -171,17 +148,10 @@ description: "319 door challenge hub"
                     setAttempts(attData || []);
                 } catch (err) {
                     console.error("Supabase load error:", err);
-                    setErrorMsg("Failed to connect to Supabase. Switched to local demo mode.");
-                    setIsDemoMode(true);
-                    setProfiles(DEFAULT_PROFILES);
-                    setActiveProfile(DEFAULT_PROFILES[0]);
-                    setAttempts(DEFAULT_ATTEMPTS);
-                } finally {
-                    setLoading(false);
+                    setErrorMsg("Database connection error. Check your table RLS policies.");
                 }
             };
 
-            // TIMER LOGIC
             const updateTimer = () => {
                 if (timerRef.current !== null) {
                     const now = performance.now();
@@ -216,48 +186,12 @@ description: "319 door challenge hub"
             };
 
             const saveAttempt = async () => {
-                if (!activeProfile) return;
+                if (!activeProfile || !supabase) return;
                 const newTimeMs = elapsedMs;
                 const newNotes = attemptNotes || 'Standard speedrun attempt';
-                const newCreatedAt = new Date().toISOString();
-
-                const existingUserAttempt = attempts.find(a => a.profile_id === activeProfile.id);
-
-                if (isDemoMode) {
-                    let updatedAttempts = [...attempts];
-                    if (existingUserAttempt) {
-                        if (newTimeMs < existingUserAttempt.time_ms) {
-                            updatedAttempts = updatedAttempts.map(a => a.profile_id === activeProfile.id ? { ...a, time_ms: newTimeMs, notes: newNotes, created_at: newCreatedAt } : a);
-                        }
-                    } else {
-                        const fullAttempt = {
-                            id: 'demo-' + Date.now(),
-                            profile_id: activeProfile.id,
-                            time_ms: newTimeMs,
-                            notes: newNotes,
-                            created_at: newCreatedAt,
-                            profiles: { name: activeProfile.name, avatar_url: activeProfile.avatar_url }
-                        };
-                        updatedAttempts.push(fullAttempt);
-                    }
-                    updatedAttempts.sort((a, b) => a.time_ms - b.time_ms);
-                    setAttempts(updatedAttempts);
-
-                    const isNewBest = !existingUserAttempt || newTimeMs < existingUserAttempt.time_ms;
-                    const isHouseRecord = updatedAttempts.length > 0 && (updatedAttempts[0].profile_id === activeProfile.id);
-
-                    setLastSavedAttempt({ time_ms: newTimeMs, isHouseRecord, isPersonalBest: isNewBest });
-                    setShowSaveModal(false);
-                    setTimerState('idle');
-                    setActiveTab('leaderboard');
-
-                    if (isHouseRecord || isNewBest) {
-                        confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 }, colors: ['#facc15', '#eab308', '#ffffff', '#22c55e'] });
-                    }
-                    return;
-                }
 
                 try {
+                    const existingUserAttempt = attempts.find(a => a.profile_id === activeProfile.id);
                     if (existingUserAttempt) {
                         if (newTimeMs < existingUserAttempt.time_ms) {
                             await supabase.from('attempts').delete().eq('profile_id', activeProfile.id);
@@ -288,7 +222,6 @@ description: "319 door challenge hub"
                 }
             };
 
-            // DELETE ATTEMPT WITH PIN 134
             const requestDeleteAttempt = (attempt) => {
                 setAttemptToDelete(attempt);
                 setDeletePinInput('');
@@ -301,14 +234,7 @@ description: "319 door challenge hub"
                     setDeleteErrorMsg('Incorrect PIN. Required PIN is 134.');
                     return;
                 }
-                if (!attemptToDelete) return;
-
-                if (isDemoMode) {
-                    setAttempts(attempts.filter(a => a.id !== attemptToDelete.id));
-                    setShowDeleteModal(false);
-                    setAttemptToDelete(null);
-                    return;
-                }
+                if (!attemptToDelete || !supabase) return;
 
                 try {
                     const { error } = await supabase.from('attempts').delete().eq('id', attemptToDelete.id);
@@ -322,24 +248,9 @@ description: "319 door challenge hub"
                 }
             };
 
-            // CREATE PROFILE
             const handleCreateProfile = async (e) => {
                 e.preventDefault();
-                if (!newProfileName.trim()) return;
-
-                if (isDemoMode) {
-                    const newProf = {
-                        id: 'prof-' + Date.now(),
-                        name: newProfileName.trim(),
-                        avatar_url: newProfileEmoji,
-                        created_at: new Date().toISOString()
-                    };
-                    setProfiles([...profiles, newProf]);
-                    setActiveProfile(newProf);
-                    setNewProfileName('');
-                    setShowProfileModal(false);
-                    return;
-                }
+                if (!newProfileName.trim() || !supabase) return;
 
                 try {
                     const { data, error } = await supabase.from('profiles').insert([{
@@ -358,41 +269,27 @@ description: "319 door challenge hub"
                 }
             };
 
-            // UPDATE PROFILE PICTURE
             const handleUpdateAvatar = async (newUrl) => {
                 setNewProfileEmoji(newUrl);
-                if (!activeProfile) return;
+                if (!activeProfile || !supabase) return;
 
                 const updated = { ...activeProfile, avatar_url: newUrl };
                 setActiveProfile(updated);
                 setProfiles(profiles.map(p => p.id === activeProfile.id ? updated : p));
 
-                if (!isDemoMode) {
-                    try {
-                        await supabase.from('profiles').update({ avatar_url: newUrl }).eq('id', activeProfile.id);
-                    } catch (err) {
-                        console.error("Error updating avatar in Supabase:", err);
-                    }
+                try {
+                    await supabase.from('profiles').update({ avatar_url: newUrl }).eq('id', activeProfile.id);
+                } catch (err) {
+                    console.error("Error updating avatar in Supabase:", err);
                 }
             };
 
-            // DELETE ACCOUNT WITH PIN 134
             const confirmDeleteAccount = async () => {
                 if (accountPinInput !== '134') {
                     setAccountDeleteErrorMsg('Incorrect PIN. Required PIN is 134.');
                     return;
                 }
-                if (!activeProfile) return;
-
-                if (isDemoMode) {
-                    const remainingProfiles = profiles.filter(p => p.id !== activeProfile.id);
-                    setProfiles(remainingProfiles);
-                    setActiveProfile(remainingProfiles.length > 0 ? remainingProfiles[0] : null);
-                    setAttempts(attempts.filter(a => a.profile_id !== activeProfile.id));
-                    setShowAccountDeleteModal(false);
-                    setAccountPinInput('');
-                    return;
-                }
+                if (!activeProfile || !supabase) return;
 
                 try {
                     await supabase.from('attempts').delete().eq('profile_id', activeProfile.id);
@@ -411,7 +308,6 @@ description: "319 door challenge hub"
                 }
             };
 
-            // CAMERA CAPTURE FUNCTIONS
             const startCamera = async () => {
                 setShowCameraModal(true);
                 try {
@@ -477,7 +373,6 @@ description: "319 door challenge hub"
 
             return (
                 <div className="min-h-screen bg-background text-zinc-100 flex flex-col selection:bg-primary selection:text-black pt-24 pb-12">
-                    {/* APP HEADER & PROFILE BAR (DROPPED DOWN BELOW JOEL'S SPACE NAVBAR) */}
                     <div className="max-w-xl mx-auto w-full px-4 mb-4">
                         <div className="flex items-center justify-between bg-card p-3 rounded-2xl border border-border shadow-md">
                             <div className="flex items-center space-x-2">
@@ -525,7 +420,6 @@ description: "319 door challenge hub"
                         </div>
                     </div>
 
-                    {/* NAVIGATION TABS */}
                     <div className="max-w-xl mx-auto w-full px-4 mb-4">
                         <div className="grid grid-cols-3 gap-2 bg-card p-1.5 rounded-xl border border-border">
                             <button
@@ -561,7 +455,6 @@ description: "319 door challenge hub"
                         </div>
                     </div>
 
-                    {/* MAIN CONTENT AREA */}
                     <main className="max-w-xl mx-auto w-full px-4 flex-1 flex flex-col justify-center">
                         {errorMsg && (
                             <div className="mb-4 bg-red-950/40 border border-red-500/30 text-red-400 text-xs p-3 rounded-lg text-center font-mono">
@@ -569,7 +462,6 @@ description: "319 door challenge hub"
                             </div>
                         )}
 
-                        {/* TAB 1: TIME ATTACK */}
                         {activeTab === 'timer' && (
                             <div className="flex flex-col items-center justify-center py-2">
                                 {activeProfile ? (
@@ -589,7 +481,6 @@ description: "319 door challenge hub"
                                         319 DOOR SPEEDRUN v2.4
                                     </div>
 
-                                    {/* TIMER DISPLAY */}
                                     <div className="my-10 text-center">
                                         <div className="font-mono text-6xl sm:text-7xl font-bold tracking-tighter text-white drop-shadow-md">
                                             {formatTime(elapsedMs)}
@@ -599,7 +490,6 @@ description: "319 door challenge hub"
                                         </div>
                                     </div>
 
-                                    {/* START / STOP INTERACTION BUTTON */}
                                     {timerState === 'idle' || timerState === 'stopped' ? (
                                         <button
                                             onClick={startTimer}
@@ -619,7 +509,6 @@ description: "319 door challenge hub"
                             </div>
                         )}
 
-                        {/* TAB 2: LEADERBOARD */}
                         {activeTab === 'leaderboard' && (
                             <div className="py-2">
                                 <div className="flex items-center justify-between mb-4">
@@ -711,7 +600,6 @@ description: "319 door challenge hub"
                             </div>
                         )}
 
-                        {/* TAB 3: PILOT PROFILE & SETTINGS */}
                         {activeTab === 'profiles' && (
                             <div className="py-2">
                                 <h2 className="text-lg font-bold tracking-tight text-white mb-4 flex items-center gap-2">
@@ -790,7 +678,6 @@ description: "319 door challenge hub"
                         )}
                     </main>
 
-                    {/* MODAL: SAVE ATTEMPT */}
                     {showSaveModal && (
                         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
                             <div className="bg-card border border-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl">
@@ -824,7 +711,6 @@ description: "319 door challenge hub"
                         </div>
                     )}
 
-                    {/* MODAL: CREATE PILOT */}
                     {showProfileModal && (
                         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
                             <div className="bg-card border border-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl">
@@ -870,7 +756,6 @@ description: "319 door challenge hub"
                         </div>
                     )}
 
-                    {/* MODAL: DELETE ATTEMPT PIN (134) */}
                     {showDeleteModal && (
                         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
                             <div className="bg-card border border-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl">
@@ -905,7 +790,6 @@ description: "319 door challenge hub"
                         </div>
                     )}
 
-                    {/* MODAL: DELETE ACCOUNT PIN (134) */}
                     {showAccountDeleteModal && (
                         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
                             <div className="bg-card border border-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl">
@@ -940,7 +824,6 @@ description: "319 door challenge hub"
                         </div>
                     )}
 
-                    {/* MODAL: CAMERA CAPTURE */}
                     {showCameraModal && (
                         <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
                             <div className="bg-card border border-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl flex flex-col items-center">
