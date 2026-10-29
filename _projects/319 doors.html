@@ -140,7 +140,6 @@ description: "319 door challenge hub"
             const [showSaveModal, setShowSaveModal] = React.useState(false);
             const timerRef = React.useRef(null);
 
-            // Creation Profile State
             const [showProfileModal, setShowProfileModal] = React.useState(false);
             const [newProfileName, setNewProfileName] = React.useState('');
             const [newProfileNickname, setNewProfileNickname] = React.useState('');
@@ -157,7 +156,7 @@ description: "319 door challenge hub"
 
             const [leaderboardFilter, setLeaderboardFilter] = React.useState('all');
             const [showCameraModal, setShowCameraModal] = React.useState(false);
-            const [cameraTarget, setCameraTarget] = React.useState('edit'); // 'edit' or 'create'
+            const [cameraTarget, setCameraTarget] = React.useState('edit');
             const videoRef = React.useRef(null);
             const canvasRef = React.useRef(null);
 
@@ -174,7 +173,6 @@ description: "319 door challenge hub"
                     setProfiles(profData || []);
                     setAttempts(attData || []);
 
-                    // BUG FIX: Maintain the active profile instead of always resetting to the first profile.
                     setActiveProfile(current => {
                         if (!profData || profData.length === 0) return null;
                         if (current) {
@@ -270,7 +268,7 @@ description: "319 door challenge hub"
                     setNewProfileAvatar('🏁');
                     setShowProfileModal(false);
                 } catch (err) {
-                    alert("Error registering pilot. Make sure the 'nickname' column exists in your database table. Error: " + err.message);
+                    alert("Error registering pilot. Error: " + err.message);
                 }
             };
 
@@ -410,7 +408,6 @@ description: "319 door challenge hub"
                                             if (found) setActiveProfile(found);
                                         }}
                                         className="bg-black border border-zinc-700 text-white text-xs font-mono font-bold px-2 py-1 focus:border-primary focus:outline-none cursor-pointer uppercase appearance-none"
-                                        style={{ WebkitAppearance: 'none' }}
                                     >
                                         {profiles.map(p => (
                                             <option key={p.id} value={p.id}>
