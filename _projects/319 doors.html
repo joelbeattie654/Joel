@@ -221,7 +221,6 @@ description: "319 door challenge hub"
                 const newNotes = attemptNotes || 'Standard speedrun attempt';
                 const newCreatedAt = new Date().toISOString();
 
-                // PERSONAL BESTS ONLY RULE: Check if this profile already has an attempt
                 const existingUserAttempt = attempts.find(a => a.profile_id === activeProfile.id);
 
                 if (isDemoMode) {
@@ -477,9 +476,9 @@ description: "319 door challenge hub"
             }
 
             return (
-                <div className="min-h-screen bg-background text-zinc-100 flex flex-col selection:bg-primary selection:text-black">
-                    {/* APP HEADER & PROFILE BAR (INTEGRATED CLEANLY BELOW JOELS SPACE) */}
-                    <div className="max-w-xl mx-auto w-full px-4 pt-6 pb-2">
+                <div className="min-h-screen bg-background text-zinc-100 flex flex-col selection:bg-primary selection:text-black pt-24 pb-12">
+                    {/* APP HEADER & PROFILE BAR (DROPPED DOWN BELOW JOEL'S SPACE NAVBAR) */}
+                    <div className="max-w-xl mx-auto w-full px-4 mb-4">
                         <div className="flex items-center justify-between bg-card p-3 rounded-2xl border border-border shadow-md">
                             <div className="flex items-center space-x-2">
                                 <div className="bg-primary text-black font-extrabold px-2.5 py-1 text-xs tracking-wider rounded uppercase">
@@ -527,7 +526,7 @@ description: "319 door challenge hub"
                     </div>
 
                     {/* NAVIGATION TABS */}
-                    <div className="max-w-xl mx-auto w-full px-4 pt-2">
+                    <div className="max-w-xl mx-auto w-full px-4 mb-4">
                         <div className="grid grid-cols-3 gap-2 bg-card p-1.5 rounded-xl border border-border">
                             <button
                                 onClick={() => setActiveTab('timer')}
@@ -563,7 +562,7 @@ description: "319 door challenge hub"
                     </div>
 
                     {/* MAIN CONTENT AREA */}
-                    <main className="max-w-xl mx-auto w-full p-4 flex-1 flex flex-col justify-center">
+                    <main className="max-w-xl mx-auto w-full px-4 flex-1 flex flex-col justify-center">
                         {errorMsg && (
                             <div className="mb-4 bg-red-950/40 border border-red-500/30 text-red-400 text-xs p-3 rounded-lg text-center font-mono">
                                 {errorMsg}
@@ -572,14 +571,14 @@ description: "319 door challenge hub"
 
                         {/* TAB 1: TIME ATTACK */}
                         {activeTab === 'timer' && (
-                            <div className="flex flex-col items-center justify-center py-6">
+                            <div className="flex flex-col items-center justify-center py-2">
                                 {activeProfile ? (
-                                    <div className="flex items-center gap-3 mb-6 bg-card px-4 py-2 rounded-full border border-zinc-800">
+                                    <div className="flex items-center gap-3 mb-4 bg-card px-4 py-2 rounded-full border border-zinc-800">
                                         <img src={activeProfile.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover border border-primary" />
                                         <div className="text-sm font-bold">PILOT: <span className="text-primary font-mono">{activeProfile.name}</span></div>
                                     </div>
                                 ) : (
-                                    <div className="mb-6 bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs px-4 py-2 rounded-lg">
+                                    <div className="mb-4 bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs px-4 py-2 rounded-lg">
                                         Please select or create a pilot profile first!
                                     </div>
                                 )}
