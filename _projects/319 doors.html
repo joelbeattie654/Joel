@@ -478,55 +478,56 @@ description: "319 door challenge hub"
 
             return (
                 <div className="min-h-screen bg-background text-zinc-100 flex flex-col selection:bg-primary selection:text-black">
-                    {/* TOP HEADER WITH PROFILE SWITCHER AND + PILOT BUTTON */}
-                    <header className="border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                            <div className="bg-primary text-black font-extrabold px-2.5 py-1 text-xs tracking-wider rounded uppercase">
-                                319 HUD
-                            </div>
-                            <span className="font-bold tracking-tight text-lg text-white flex items-center gap-2">
-                                HOUSE <span className="text-primary">319</span>
-                            </span>
-                        </div>
-
-                        {/* PROFILE SWITCHER & + PILOT BUTTON */}
-                        <div className="flex items-center space-x-3">
-                            {profiles.length > 0 && activeProfile && (
-                                <div className="relative">
-                                    <select
-                                        value={activeProfile.id}
-                                        onChange={(e) => {
-                                            const found = profiles.find(p => p.id === e.target.value);
-                                            if (found) setActiveProfile(found);
-                                        }}
-                                        className="bg-zinc-900 border border-zinc-700 text-white text-sm rounded-lg px-3 py-1.5 pr-8 appearance-none focus:outline-none focus:border-primary cursor-pointer font-medium"
-                                    >
-                                        {profiles.map(p => (
-                                            <option key={p.id} value={p.id}>
-                                                👤 {p.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-zinc-400">
-                                        ▼
-                                    </div>
+                    {/* APP HEADER & PROFILE BAR (INTEGRATED CLEANLY BELOW JOELS SPACE) */}
+                    <div className="max-w-xl mx-auto w-full px-4 pt-6 pb-2">
+                        <div className="flex items-center justify-between bg-card p-3 rounded-2xl border border-border shadow-md">
+                            <div className="flex items-center space-x-2">
+                                <div className="bg-primary text-black font-extrabold px-2.5 py-1 text-xs tracking-wider rounded uppercase">
+                                    319
                                 </div>
-                            )}
-                            <button
-                                onClick={() => {
-                                    setNewProfileName('');
-                                    setNewProfileEmoji('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150');
-                                    setShowProfileModal(true);
-                                }}
-                                className="bg-primary hover:bg-primary-hover text-black font-bold px-3 py-1.5 text-xs rounded-lg transition-all flex items-center gap-1 shadow-md"
-                            >
-                                + PILOT
-                            </button>
+                                <span className="font-bold tracking-tight text-sm text-white">
+                                    DOOR CHALLENGE
+                                </span>
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                                {profiles.length > 0 && activeProfile && (
+                                    <div className="relative">
+                                        <select
+                                            value={activeProfile.id}
+                                            onChange={(e) => {
+                                                const found = profiles.find(p => p.id === e.target.value);
+                                                if (found) setActiveProfile(found);
+                                            }}
+                                            className="bg-zinc-900 border border-zinc-700 text-white text-xs rounded-lg px-2.5 py-1.5 pr-7 appearance-none focus:outline-none focus:border-primary cursor-pointer font-medium"
+                                        >
+                                            {profiles.map(p => (
+                                                <option key={p.id} value={p.id}>
+                                                    👤 {p.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-zinc-400 text-xs">
+                                            ▼
+                                        </div>
+                                    </div>
+                                )}
+                                <button
+                                    onClick={() => {
+                                        setNewProfileName('');
+                                        setNewProfileEmoji('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150');
+                                        setShowProfileModal(true);
+                                    }}
+                                    className="bg-primary hover:bg-primary-hover text-black font-bold px-3 py-1.5 text-xs rounded-lg transition-all shadow-md"
+                                >
+                                    + PILOT
+                                </button>
+                            </div>
                         </div>
-                    </header>
+                    </div>
 
                     {/* NAVIGATION TABS */}
-                    <div className="max-w-xl mx-auto w-full px-4 pt-4">
+                    <div className="max-w-xl mx-auto w-full px-4 pt-2">
                         <div className="grid grid-cols-3 gap-2 bg-card p-1.5 rounded-xl border border-border">
                             <button
                                 onClick={() => setActiveTab('timer')}
