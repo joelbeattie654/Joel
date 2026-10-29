@@ -1,12 +1,11 @@
 theme: minima
 title: Joel Space
 description: Welcome to my creative portfolio
-baseurl: "/Joel"
-
+baseurl: ""
 
 collections:
   projects:
     output: true
+    permalink: /:collection/:name.html
   items:
     output: true
- 
